@@ -1,0 +1,14 @@
+*.pyc
+__pycache__/
+dist/
+build/
+MANIFEST
+charmhelpers/version.py
+.coverage
+.tox
+.env/
+coverage.xml
+docs/_build
+.project
+.pydevproject
+.settings

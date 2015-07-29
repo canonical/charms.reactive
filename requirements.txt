@@ -1,0 +1,4 @@
+six>=1.9.0
+PyYAML>=3.10
+#charmhelpers>=0.3.3
+-e bzr+lp:~johnsca/charm-helpers/action-metadata-cli-helpers#egg=charmhelpers

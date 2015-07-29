@@ -1,0 +1,6 @@
+include *.txt
+include *.rst
+include Makefile
+include VERSION
+include MANIFEST.in
+include scripts/*
