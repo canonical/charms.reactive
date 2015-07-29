@@ -21,7 +21,7 @@ docclean:
 clean: docclean
 	-python setup.py clean
 	rm -rf build/ MANIFEST
-	find . -name '*.pyc' -or -name '__pycache__' -delete
+	find . -name '*.pyc' -or -name '__pycache__' -exec rm -rf '{}' ';'
 	rm -rf dist/*
 	rm -rf .tox
 	(which dh_clean && dh_clean) || true
