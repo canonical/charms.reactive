@@ -19,7 +19,7 @@ if [[ "$0" == "$BASH_SOURCE" ]]; then
     echo '        status-set blocked "Waiting for db and/or cache"'
     echo '    }'
     echo
-    echo '    dispatch'
+    echo '    reactive_handler_main'
     echo
     echo 'Helpers available:'
     echo
