@@ -56,4 +56,4 @@ docs: lint2
 .PHONY: docs
 
 release: test docs
-	$(PYTHON) setup.py sdist upload upload_sphinx
+	$(PYTHON) setup.py sdist register upload upload_sphinx
