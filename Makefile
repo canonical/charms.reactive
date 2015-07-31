@@ -57,3 +57,6 @@ docs: lint2
 
 release: test docs
 	$(PYTHON) setup.py sdist register upload upload_sphinx
+
+docrelease: ftest docs
+	$(PYTHON) setup.py sdist register upload_sphinx
