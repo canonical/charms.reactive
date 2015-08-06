@@ -21,7 +21,7 @@ SETUP = {
     'install_requires': [
         'six',
         'pyaml',
-        'charmhelpers',
+        'charmhelpers>=0.5.0',
     ],
     'scripts': [
         "bin/charms.reactive",
