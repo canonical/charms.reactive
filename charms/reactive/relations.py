@@ -26,6 +26,7 @@ from charms.reactive.bus import get_state
 from charms.reactive.bus import set_state
 from charms.reactive.bus import remove_state
 from charms.reactive.bus import _load_module
+from charms.reactive.bus import StateList
 
 
 ALL = '__ALL_SERVICES__'
@@ -109,6 +110,33 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
 
     The default scope is :attr:`scopes.UNIT`.
     """
+
+    class states(StateList):
+        """
+        This is the set of :class:`States <charms.reactive.bus.State>` that this
+        relation could set.
+
+        This should be defined by the relation subclass to ensure that
+        states are consistent and documented, as well as being discoverable
+        and introspectable by linting and composition tools.
+
+        For example::
+
+            class MyRelationClient(RelationBase):
+                scope = scopes.GLOBAL
+                auto_accessors = ['host', 'port']
+
+                class states(StateList):
+                    connected = State('{relation_name}.connected')
+                    available = State('{relation_name}.available')
+
+                @hook('{requires:my-interface}-relation-{joined,changed}')
+                def changed(self):
+                    self.set_state(self.states.connected)
+                    if self.host() and self.port():
+                        self.set_state(self.states.available)
+        """
+        pass
 
     auto_accessors = []
     """

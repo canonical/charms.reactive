@@ -116,6 +116,8 @@ class TestHandler(unittest.TestCase):
         unitdata._KV = cls.kv = unitdata.Storage(cls.test_db)
         cls._log = mock.patch('charmhelpers.core.hookenv.log')
         cls.log = cls._log.start()
+        cls._log_opts = mock.patch.dict(reactive.bus.LOG_OPTS, register=True)
+        cls._log_opts.start()
         cls._charm_dir = mock.patch('charmhelpers.core.hookenv.charm_dir', lambda: 'charm_dir')
         cls._charm_dir.start()
         if not hasattr(cls, 'assertItemsEqual'):
@@ -123,6 +125,7 @@ class TestHandler(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls._log_opts.stop()
         cls._log.stop()
         cls._charm_dir.stop()
         cls.kv.close()
@@ -194,6 +197,8 @@ class TestExternalHandler(unittest.TestCase):
         unitdata._KV = cls.kv = unitdata.Storage(cls.test_db)
         cls._log = mock.patch('charmhelpers.core.hookenv.log')
         cls.log = cls._log.start()
+        cls._log_opts = mock.patch.dict(reactive.bus.LOG_OPTS, register=True)
+        cls._log_opts.start()
         cls._charm_dir = mock.patch('charmhelpers.core.hookenv.charm_dir', lambda: 'charm_dir')
         cls._charm_dir.start()
         if not hasattr(cls, 'assertItemsEqual'):
@@ -201,6 +206,7 @@ class TestExternalHandler(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        cls._log_opts.stop()
         cls._log.stop()
         cls._charm_dir.stop()
         cls.kv.close()
@@ -271,9 +277,12 @@ class TestReactiveBus(unittest.TestCase):
 
     @mock.patch.object(reactive.bus.StateWatch, 'change')
     def test_set_get_remove_state(self, change):
+        class states(reactive.bus.StateList):
+            qux = reactive.bus.State('qux')
+
         reactive.bus.set_state('foo')
         reactive.bus.set_state('bar.ready', 'bar')
-        reactive.bus.set_state('qux')
+        reactive.bus.set_state(states.qux)
         self.assertEqual(reactive.bus.get_states(), {
             'foo': None,
             'bar.ready': 'bar',

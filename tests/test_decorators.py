@@ -80,6 +80,7 @@ class TestReactiveDecorators(unittest.TestCase):
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when')
     def test_when(self, _when, _action_id, RelationBase):
+        reactive.bus.Handler._CONSUMED_STATES.clear()
         _when.return_value = True
         _action_id.return_value = 'f:l:test_action'
         RelationBase.from_state.side_effect = [None, 'rel', None]
@@ -100,11 +101,13 @@ class TestReactiveDecorators(unittest.TestCase):
             mock.call('qux'),
         ])
         action.assert_called_once_with('rel')
+        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'RelationBase')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when')
     def test_when_not(self, _when, _action_id, RelationBase):
+        reactive.bus.Handler._CONSUMED_STATES.clear()
         _when.return_value = True
         _action_id.return_value = 'f:l:test_action'
         RelationBase.from_state.return_value = 'rel'
@@ -121,6 +124,7 @@ class TestReactiveDecorators(unittest.TestCase):
         _when.assert_called_once_with('f:l:test_action', ('foo', 'bar', 'qux'), True)
         assert not RelationBase.from_state.called
         action.assert_called_once_with()
+        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'any_file_changed')
     def test_when_file_changed(self, any_file_changed):

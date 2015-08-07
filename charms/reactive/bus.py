@@ -44,10 +44,41 @@ LOG_OPTS = {
 }
 
 
+class State(str):
+    """
+    A reactive state that can be set.
+
+    States are essentially just strings, but this class should be used to enable them
+    to be discovered and introspected, for documentation, composition, or linting.
+
+    This should be used with :class:`StateList`.
+    """
+    pass
+
+
+class StateList(object):
+    """
+    Base class for a set of states that can be set by a relation or layer.
+
+    This class should be used so that they can be discovered and introspected,
+    for documentation, composition, or linting.
+
+    Example usage::
+
+        class MyRelation(RelationBase):
+            class states(StateList):
+                connected = State('{relation_name}.connected')
+                available = State('{relation_name}.available')
+    """
+    pass
+
+
 @cmdline.subcommand()
 @cmdline.no_output
 def set_state(state, value=None):
-    """Set the given state as active, optionally associating with a relation"""
+    """
+    Set the given state as active, optionally associating with a relation.
+    """
     old_states = get_states()
     unitdata.kv().update({state: value}, prefix='reactive.states.')
     if state not in old_states:
@@ -57,7 +88,9 @@ def set_state(state, value=None):
 @cmdline.subcommand()
 @cmdline.no_output
 def remove_state(state):
-    """Remove / deactivate a state"""
+    """
+    Remove / deactivate a state.
+    """
     old_states = get_states()
     unitdata.kv().unset('reactive.states.%s' % state)
     unitdata.kv().set('reactive.dispatch.removed_state', True)
@@ -67,7 +100,9 @@ def remove_state(state):
 
 @cmdline.subcommand()
 def get_states():
-    """Return a mapping of all active states to their values"""
+    """
+    Return a mapping of all active states to their values.
+    """
     return unitdata.kv().getrange('reactive.states.', strip=True) or {}
 
 
@@ -208,6 +243,7 @@ class Handler(object):
     Class representing a reactive state handler.
     """
     _HANDLERS = {}
+    _CONSUMED_STATES = set()
 
     @classmethod
     def get(cls, action):
@@ -292,6 +328,13 @@ class Handler(object):
         """
         args = self._get_args()
         self._action(*args)
+
+    def _register_consumed_states(self, states):
+        """
+        Register a state as being consumed.  This is strictly for linting
+        and composition purposes.
+        """
+        self._CONSUMED_STATES.update(states)
 
 
 class ExternalHandler(Handler):

@@ -36,6 +36,9 @@ lint:
 lint2:
 	tox -e lint2
 
+lint3:
+	tox -e lint3
+
 test:
 	tox
 
@@ -45,10 +48,15 @@ test2:
 test3:
 	tox -e py3
 
-ftest: lint
-	@echo Starting fast tests...
+ftest2: lint2
+	@echo Starting fast Python 2 tests...
 	.tox/py2/bin/nosetests --attr '!slow' --nologcapture tests/
+
+ftest3: lint3
+	@echo Starting fast Python 3 tests...
 	.tox/py3/bin/nosetests --attr '!slow' --nologcapture tests/
+
+ftest: ftest2 ftest3;
 
 docs: lint2
 	.tox/py2/bin/pip install sphinx

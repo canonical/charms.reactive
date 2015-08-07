@@ -77,6 +77,7 @@ def when(*desired_states):
         handler = Handler.get(action)
         handler.add_predicate(partial(_when, _action_id(action), desired_states, False))
         handler.add_args(filter(None, map(RelationBase.from_state, desired_states)))
+        handler._register_consumed_states(desired_states)
         return action
     return _register
 
@@ -93,6 +94,7 @@ def when_not(*desired_states):
     def _register(action):
         handler = Handler.get(action)
         handler.add_predicate(partial(_when, _action_id(action), desired_states, True))
+        handler._register_consumed_states(desired_states)
         return action
     return _register
 
