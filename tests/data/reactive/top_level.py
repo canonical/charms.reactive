@@ -19,7 +19,7 @@ from charms.reactive import when
 from charms.reactive import when_not
 from charms.reactive import set_state
 from charms.reactive import remove_state
-from charms.reactive.bus import any_states
+from charms.reactive.helpers import any_states
 
 
 @when('test')

@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import re
 import os
 import mock
 import shutil
@@ -41,6 +42,80 @@ class TestReactiveHelpers(unittest.TestCase):
 
     def tearDown(self):
         self.kv.cursor.execute('delete from kv')
+
+    def test_toggle_state(self):
+        reactive.toggle_state('foo', True)
+        reactive.toggle_state('foo', True)
+        reactive.toggle_state('bar', False)
+        reactive.toggle_state('bar', False)
+        assert reactive.is_state('foo')
+        assert not reactive.is_state('bar')
+
+    def test_is_state(self):
+        assert not reactive.is_state('foo')
+        reactive.set_state('foo')
+        assert reactive.is_state('foo')
+
+    def test_all_states(self):
+        reactive.bus.set_state('foo')
+        reactive.bus.set_state('bar')
+        assert reactive.helpers.all_states('foo')
+        assert reactive.helpers.all_states('bar')
+        assert reactive.helpers.all_states('foo', 'bar')
+        assert not reactive.helpers.all_states('foo', 'bar', 'qux')
+        assert not reactive.helpers.all_states('foo', 'qux')
+        assert not reactive.helpers.all_states('bar', 'qux')
+        assert not reactive.helpers.all_states('qux')
+
+    def test_any_states(self):
+        reactive.bus.set_state('foo')
+        reactive.bus.set_state('bar')
+        assert reactive.helpers.any_states('foo')
+        assert reactive.helpers.any_states('bar')
+        assert reactive.helpers.any_states('foo', 'bar')
+        assert reactive.helpers.any_states('foo', 'bar', 'qux')
+        assert reactive.helpers.any_states('foo', 'qux')
+        assert reactive.helpers.any_states('bar', 'qux')
+        assert not reactive.helpers.any_states('qux')
+
+    def test_expand_replacements(self):
+        er = reactive.helpers._expand_replacements
+        pat = re.compile(r'{([^}]+)}')
+        self.assertItemsEqual(er(pat, lambda v: [v], ['A']), ['A'])
+        self.assertItemsEqual(er(pat, lambda v: [v], ['{A}']), ['A'])
+        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}']), ['A', 'B'])
+        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}', '{C,D}']), ['A', 'B', 'C', 'D'])
+        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}{C,D}']), ['AC', 'BC', 'AD', 'BD'])
+        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}{A,B}']), ['AA', 'BA', 'AB', 'BB'])
+
+    @mock.patch('charmhelpers.core.hookenv.metadata')
+    @mock.patch('charmhelpers.core.hookenv.hook_name')
+    def test_any_hook(self, hook_name, metadata):
+        hook_name.return_value = 'config-changed'
+        metadata.return_value = {}
+        assert not reactive.helpers.any_hook('foo', 'bar')
+        assert reactive.helpers.any_hook('foo', 'config-changed')
+        assert reactive.helpers.any_hook('foo', 'config-{set,changed}')
+        assert reactive.helpers.any_hook('foo', 'config-{changed,set}')
+        assert reactive.helpers.any_hook('foo', '{config,option}-{changed,set}')
+
+        metadata.return_value = {
+            'requires': {
+                'db1': {'interface': 'mysql'},
+                'db2': {'interface': 'postgres'},
+            },
+            'provides': {
+                'db3': {'interface': 'mysql'},
+            },
+        }
+        hook_name.return_value = 'db1-relation-changed'
+        assert not reactive.helpers.any_hook('{requires:http}-relation-changed')
+        assert not reactive.helpers.any_hook('{requires:postgres}-relation-changed')
+        assert reactive.helpers.any_hook('{requires:mysql}-relation-changed')
+        hook_name.return_value = 'db3-relation-changed'
+        assert not reactive.helpers.any_hook('{requires:mysql}-relation-changed')
+        assert reactive.helpers.any_hook('{provides:mysql}-relation-changed')
+        assert reactive.helpers.any_hook('{provides:mysql}-relation-{joined,changed}')
 
     @mock.patch('charmhelpers.core.host.file_hash')
     def test_any_file_changed(self, file_hash):

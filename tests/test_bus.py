@@ -15,7 +15,6 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import re
 import sys
 import shutil
 import tempfile
@@ -301,56 +300,6 @@ class TestReactiveBus(unittest.TestCase):
             mock.call('bar.ready'),
         ])
 
-    def test_all_states(self):
-        reactive.bus.set_state('foo')
-        reactive.bus.set_state('bar')
-        assert reactive.bus.all_states('foo')
-        assert reactive.bus.all_states('bar')
-        assert reactive.bus.all_states('foo', 'bar')
-        assert not reactive.bus.all_states('foo', 'bar', 'qux')
-        assert not reactive.bus.all_states('foo', 'qux')
-        assert not reactive.bus.all_states('bar', 'qux')
-        assert not reactive.bus.all_states('qux')
-
-    @mock.patch('charmhelpers.core.hookenv.metadata')
-    @mock.patch('charmhelpers.core.hookenv.hook_name')
-    def test_any_hook(self, hook_name, metadata):
-        hook_name.return_value = 'config-changed'
-        metadata.return_value = {}
-        assert not reactive.bus.any_hook('foo', 'bar')
-        assert reactive.bus.any_hook('foo', 'config-changed')
-        assert reactive.bus.any_hook('foo', 'config-{set,changed}')
-        assert reactive.bus.any_hook('foo', 'config-{changed,set}')
-        assert reactive.bus.any_hook('foo', '{config,option}-{changed,set}')
-
-        metadata.return_value = {
-            'requires': {
-                'db1': {'interface': 'mysql'},
-                'db2': {'interface': 'postgres'},
-            },
-            'provides': {
-                'db3': {'interface': 'mysql'},
-            },
-        }
-        hook_name.return_value = 'db1-relation-changed'
-        assert not reactive.bus.any_hook('{requires:http}-relation-changed')
-        assert not reactive.bus.any_hook('{requires:postgres}-relation-changed')
-        assert reactive.bus.any_hook('{requires:mysql}-relation-changed')
-        hook_name.return_value = 'db3-relation-changed'
-        assert not reactive.bus.any_hook('{requires:mysql}-relation-changed')
-        assert reactive.bus.any_hook('{provides:mysql}-relation-changed')
-        assert reactive.bus.any_hook('{provides:mysql}-relation-{joined,changed}')
-
-    def test_expand_replacements(self):
-        er = reactive.bus._expand_replacements
-        pat = re.compile(r'{([^}]+)}')
-        self.assertItemsEqual(er(pat, lambda v: [v], ['A']), ['A'])
-        self.assertItemsEqual(er(pat, lambda v: [v], ['{A}']), ['A'])
-        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}']), ['A', 'B'])
-        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}', '{C,D}']), ['A', 'B', 'C', 'D'])
-        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}{C,D}']), ['AC', 'BC', 'AD', 'BD'])
-        self.assertItemsEqual(er(pat, lambda v: v.split(','), ['{A,B}{A,B}']), ['AA', 'BA', 'AB', 'BB'])
-
     def test_dispatch(self):
         calls = []
 
@@ -506,39 +455,39 @@ class TestReactiveBus(unittest.TestCase):
 
             reactive.set_state('test')
             reactive.set_state('to-remove')
-            assert not reactive.bus.any_states('top-level', 'nested', 'test-rel.ready', 'relation', 'bash')
+            assert not reactive.helpers.any_states('top-level', 'nested', 'test-rel.ready', 'relation', 'bash')
             reactive.bus.dispatch()
-            assert reactive.bus.all_states('top-level')
-            assert reactive.bus.all_states('nested')
-            assert not reactive.bus.any_states('relation')
-            assert not reactive.bus.any_states('test-rel.ready')
-            assert not reactive.bus.any_states('top-level-repeat')
-            assert reactive.bus.all_states('bash-when')
-            assert not reactive.bus.all_states('bash-when-repeat')
-            assert not reactive.bus.all_states('bash-when-neg')
-            assert reactive.bus.all_states('bash-when-not')
-            assert not reactive.bus.all_states('bash-when-not-repeat')
-            assert not reactive.bus.all_states('bash-when-not-neg')
-            assert reactive.bus.all_states('bash-only-once')
-            assert not reactive.bus.all_states('bash-only-once-repeat')
-            assert not reactive.bus.all_states('bash-hook')
-            assert not reactive.bus.all_states('bash-hook-repeat')
-            assert reactive.bus.all_states('bash-multi')
-            assert not reactive.bus.all_states('bash-multi-repeat')
-            assert not reactive.bus.all_states('bash-multi-neg')
-            assert not reactive.bus.all_states('bash-multi-neg2')
+            assert reactive.helpers.all_states('top-level')
+            assert reactive.helpers.all_states('nested')
+            assert not reactive.helpers.any_states('relation')
+            assert not reactive.helpers.any_states('test-rel.ready')
+            assert not reactive.helpers.any_states('top-level-repeat')
+            assert reactive.helpers.all_states('bash-when')
+            assert not reactive.helpers.all_states('bash-when-repeat')
+            assert not reactive.helpers.all_states('bash-when-neg')
+            assert reactive.helpers.all_states('bash-when-not')
+            assert not reactive.helpers.all_states('bash-when-not-repeat')
+            assert not reactive.helpers.all_states('bash-when-not-neg')
+            assert reactive.helpers.all_states('bash-only-once')
+            assert not reactive.helpers.all_states('bash-only-once-repeat')
+            assert not reactive.helpers.all_states('bash-hook')
+            assert not reactive.helpers.all_states('bash-hook-repeat')
+            assert reactive.helpers.all_states('bash-multi')
+            assert not reactive.helpers.all_states('bash-multi-repeat')
+            assert not reactive.helpers.all_states('bash-multi-neg')
+            assert not reactive.helpers.all_states('bash-multi-neg2')
 
             hook_name.return_value = 'test-rel-relation-joined'
             relation_type.return_value = 'test-rel'
             with mock.patch.dict(os.environ, {'JUJU_HOOK_NAME': 'test-rel-relation-joined'}):
                 reactive.bus.dispatch()
-            assert reactive.bus.all_states('test-rel.ready')
-            assert reactive.bus.all_states('relation')
-            assert reactive.bus.all_states('test-remove-not')
-            assert reactive.bus.all_states('bash-hook')
-            assert not reactive.bus.all_states('bash-hook-repeat')
-            assert reactive.bus.all_states('bash-when-repeat')
-            assert not reactive.bus.all_states('bash-only-once-repeat')
+            assert reactive.helpers.all_states('test-rel.ready')
+            assert reactive.helpers.all_states('relation')
+            assert reactive.helpers.all_states('test-remove-not')
+            assert reactive.helpers.all_states('bash-hook')
+            assert not reactive.helpers.all_states('bash-hook-repeat')
+            assert reactive.helpers.all_states('bash-when-repeat')
+            assert not reactive.helpers.all_states('bash-only-once-repeat')
 
     @mock.patch.object(reactive.bus, 'sys')
     @mock.patch.object(reactive.bus.os.path, 'realpath')

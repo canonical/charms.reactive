@@ -47,6 +47,9 @@ def hook(*hook_patterns):
             @hook('{provides:mysql}-relation-{joined,changed}')
             def joined_or_changed(self):
                 pass
+
+    Note that hook decorators **cannot** be combined with :func:`when` or
+    :func:`when_not` decorators.
     """
     def _register(action):
         def arg_gen():
