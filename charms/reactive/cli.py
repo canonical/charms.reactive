@@ -108,6 +108,8 @@ def test(*handlers):
                 result &= when_file_changed(*test_args)
             elif test_name == 'only_once':
                 result &= only_once(handler_id)
+            else:
+                raise ValueError('Invalid test: %s' % test_name)
         if states:
             result &= bus.StateWatch.watch(handler_id, states)
         if result:
