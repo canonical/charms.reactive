@@ -221,6 +221,7 @@ class Handler(object):
         self._action = action
         self._args = []
         self._predicates = []
+        self._states = set()
 
     def id(self):
         return self._action_id
@@ -250,6 +251,8 @@ class Handler(object):
         """
         Check the predicate(s) and return True if this handler should be invoked.
         """
+        if self._states and not StateWatch.watch(self._action_id, self._states):
+            return False
         return all(predicate() for predicate in self._predicates)
 
     def _get_args(self):
@@ -265,12 +268,21 @@ class Handler(object):
         args = self._get_args()
         self._action(*args)
 
-    def _register_consumed_states(self, states):
+    def register_states(self, states):
         """
-        Register a state as being consumed.  This is strictly for linting
-        and composition purposes.
+        Register states as being relevant to this handler.
+
+        Relevant states will be used to determine if the handler should
+        be re-invoked due to changes in the set of active states.  If this
+        handler has already been invoked during this :func:`dispatch` run
+        and none of its relevant states have been set or removed since then,
+        then the handler will be skipped.
+
+        This is also used for linting and composition purposes, to determine
+        if a layer has unhandled states.
         """
         self._CONSUMED_STATES.update(states)
+        self._states.update(states)
 
 
 class ExternalHandler(Handler):

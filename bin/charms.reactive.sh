@@ -40,26 +40,11 @@ fi
 
 shopt -s expand_aliases
 
-declare REACTIVE_ACTION
+REACTIVE_ACTION="$1"
+REACTIVE_ARGS="$2"
+
 declare -A REACTIVE_HANDLERS
-declare -A REACTIVE_POST_INVOKE
-while [[ $# > 0 ]]; do
-    case "$1" in
-        --test)
-            REACTIVE_ACTION="test"
-            shift
-            ;;
-        --invoke)
-            REACTIVE_ACTION="invoke"
-            for handler in ${2//,/ }; do
-                REACTIVE_HANDLERS[$handler]='true'
-            done
-            shift
-            ;;
-        *)  ;;
-    esac
-    shift
-done
+declare -A REACTIVE_TESTS
 
 function _get_decorated() {
     filename=${BASH_SOURCE[2]}
@@ -72,50 +57,39 @@ function _get_decorated() {
 
 function @decorator() {
     _get_decorated
-    decorator="$1"
     handler_id="$filename:$lineno:$func"
-    shift
-    if [[ "$REACTIVE_ACTION" == "test" ]]; then
-        if [ ! ${REACTIVE_HANDLERS[$func]+_} ]; then
-            REACTIVE_HANDLERS[$func]='true'
-        fi
-        case "$decorator" in
-            when|when_not|only_once)
-                hid_arg="$handler_id"
-                ;;
-            *)
-                hid_arg=""
-        esac
-        if ! charms.reactive "$decorator" "$hid_arg" "$@"; then
-            REACTIVE_HANDLERS[$func]='false'
-        fi
-    elif [[ "$REACTIVE_ACTION" == "invoke" && "$decorator" == "only_once" ]]; then
-        REACTIVE_POST_INVOKE[$func]="charms.reactive mark_invoked '$handler_id'"
+
+    # register handler_ids
+    if [ ! ${REACTIVE_HANDLERS[$func]+_} ]; then
+        REACTIVE_HANDLERS[$func]="$handler_id"
+    fi
+
+    # register tests
+    test_name="$1"; shift
+    test_args=$(printf '"%s" ' "$@")
+    if [ ! ${REACTIVE_TESTS[$func]+_} ]; then
+        REACTIVE_TESTS[$func]="'$func' '$handler_id' '$test_name' '$test_args'"
+    else
+        REACTIVE_TESTS[$func]="${REACTIVE_TESTS[$func]} '$test_name' '$test_args'"
     fi
 }
 
 function reactive_handler_main() {
-    to_invoke=()
-    for handler in "${!REACTIVE_HANDLERS[@]}"; do
-        if [[ ${REACTIVE_HANDLERS[$handler]} == 'true' ]]; then
-            to_invoke+=("$handler")
-        fi
-    done
-    if [[ "$REACTIVE_ACTION" == "test" ]]; then
-        if [[ ${#to_invoke[@]} -gt 0 ]]; then
-            local IFS=","
-            echo "${to_invoke[*]}"
+    if [[ "$REACTIVE_ACTION" == "--test" ]]; then
+        to_invoke=$(charms.reactive test "${REACTIVE_TESTS[@]}")
+        if [[ -n "$to_invoke" ]]; then
+            echo $to_invoke
             exit 0
         else
             exit 1
         fi
-    elif [[ "$REACTIVE_ACTION" == "invoke" ]]; then
-        for handler in "${to_invoke[@]}"; do
+    elif [[ "$REACTIVE_ACTION" == "--invoke" ]]; then
+        invoked=()
+        for handler in ${REACTIVE_ARGS//,/ }; do
             eval "$handler"
-            if [[ -n "${REACTIVE_POST_INVOKE[$handler]}" ]]; then
-                eval "${REACTIVE_POST_INVOKE[$handler]}"
-            fi
+            invoked+=("${REACTIVE_HANDLERS[$handler]}")
         done
+        charms.reactive mark_invoked "${invoked[@]}"
     fi
 }
 

@@ -14,8 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import shlex
+
 from charmhelpers.cli import cmdline
 from charms.reactive import helpers
+from charms.reactive import bus
 
 
 @cmdline.subcommand()
@@ -29,20 +32,20 @@ def hook(*hook_patterns):
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when(handler_id, *desired_states):
+def when(*desired_states):
     """
     Check if all of the desired_states are active and have changed.
     """
-    return helpers._when(handler_id, desired_states, False)
+    return helpers._when(desired_states, False)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when_not(handler_id, *desired_states):
+def when_not(*desired_states):
     """
     Check if not all of the desired_states are active and have changed.
     """
-    return helpers._when(handler_id, desired_states, True)
+    return helpers._when(desired_states, True)
 
 
 @cmdline.subcommand()
@@ -65,8 +68,57 @@ def only_once(handler_id):
 
 @cmdline.subcommand()
 @cmdline.no_output
-def mark_invoked(handler_id):
+def mark_invoked(*handler_ids):
     """
     Record that the handler has been invoked, for use with only_once.
     """
-    helpers.mark_invoked(handler_id)
+    for handler_id in handler_ids:
+        helpers.mark_invoked(handler_id)
+
+
+@cmdline.subcommand()
+def test(*handlers):
+    """
+    Combined test function to apply one or more tests to multiple handlers.
+
+    Each handler spec given should be a single argument but can contain shell
+    quotes to group the parts, and should follow the form:
+
+        'HANDLER_NAME HANDLER_ID [TEST_NAME TEST_ARGS]...'
+
+    Each TEST_ARGS value can have further shell quoting.  For example:
+
+        charms.reactive test 'foo foo_id when "foo.connected foo.available" when_not foo.disabled'
+    """
+    passed = []
+    for handler_spec in handlers:
+        handler_name, handler_id, tests = _parse_handler_spec(handler_spec)
+        result = True
+        states = set()
+        for test_name, test_args in tests:
+            if test_name == 'hook':
+                result &= hook(*test_args)
+            elif test_name == 'when':
+                result &= when(*test_args)
+                states.update(test_args)
+            elif test_name == 'when_not':
+                result &= when_not(*test_args)
+                states.update(test_args)
+            elif test_name == 'when_file_changed':
+                result &= when_file_changed(*test_args)
+            elif test_name == 'only_once':
+                result &= only_once(handler_id)
+        if states:
+            result &= bus.StateWatch.watch(handler_id, states)
+        if result:
+            passed.append(handler_name)
+    return ','.join(passed)
+
+
+def _parse_handler_spec(handler_spec):
+    parts = shlex.split(handler_spec)
+    handler_name, handler_id = parts[:2]
+    # one or more pairs of test_name + test_args
+    # test_args can be further shell quoted
+    tests = zip(parts[2::2], map(shlex.split, parts[3::2]))
+    return handler_name, handler_id, tests

@@ -190,63 +190,23 @@ class TestReactiveHelpers(unittest.TestCase):
         any_hook.assert_called_once_with('pat1', 'pat2')
 
     def test__when(self):
-        test1 = lambda: reactive.helpers._when('test1', ['state1', 'state2'], invert=False)
-        test2 = lambda: reactive.helpers._when('test2', ['state1', 'state2'], invert=True)
+        test1 = lambda: reactive.helpers._when(['state1', 'state2'], invert=False)
+        test2 = lambda: reactive.helpers._when(['state1', 'state2'], invert=True)
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        assert not test1(), 'when: hooks; none'
+        assert not test2(), 'when_not: hooks; none'
 
         self.kv.set('reactive.dispatch.phase', 'other')
-        reactive.bus.StateWatch.iteration(0)
-        assert not test1(), 'when: iter 0; none'
-        assert test2(), 'when_not: iter 0; none'
+        assert not test1(), 'when: other; none'
+        assert test2(), 'when_not: other; none'
 
+        self.kv.set('reactive.dispatch.phase', 'hooks')
         reactive.bus.set_state('state1')
         reactive.bus.set_state('state2')
-        assert test1(), 'when: iter 0'
-        assert not test2(), 'when_not: iter 0'
+        assert not test1(), 'when: hooks; both'
+        assert not test2(), 'when_not: hooks; both'
 
-        reactive.bus.StateWatch.iteration(1)
-        reactive.bus.StateWatch.commit()
-        assert test1(), 'when'
-        assert not test2(), 'when_not'
-
-        reactive.bus.StateWatch.commit()
-        assert not test1(), 'when: no changes'
-        assert not test2(), 'when_not: no changes'
-
-        reactive.bus.set_state('state1')
-        assert not test1(), 'when: no-op change pending'
-        assert not test2(), 'when_not: no-op change pending'
-        reactive.bus.StateWatch.commit()
-        assert not test1(), 'when: no-op change committed'
-        assert not test2(), 'when_not: no-op change committed'
-
-        reactive.bus.StateWatch.commit()
-        assert not test1(), 'when: no changes'
-        assert not test2(), 'when_not: no changes'
-
-        reactive.bus.remove_state('state1')
-        assert not test1(), 'when: remove pending'
-        assert not test2(), 'when_not: remove pending'
-        reactive.bus.StateWatch.commit()
-        assert not test1(), 'when: remove committed'
-        assert test2(), 'when_not: remove committed'
-
-        reactive.bus.StateWatch.commit()
-        assert not test1(), 'when: no changes'
-        assert not test2(), 'when_not: no changes'
-
-        reactive.bus.set_state('state1')
-        assert not test1(), 'when: set pending'
-        assert not test2(), 'when_not: set pending'
-        reactive.bus.StateWatch.commit()
-        assert test1(), 'when: set committed'
-        assert not test2(), 'when_not: set committed'
-
-        reactive.bus.StateWatch.commit()
-        assert not test1(), 'when: no changes'
-        assert not test2(), 'when_not: no changes'
-
-        reactive.bus.remove_state('state1')
-        reactive.bus.set_state('state1')
-        assert not test1(), 'remove + set: pending'
-        reactive.bus.StateWatch.commit()
-        assert test1(), 'remove + set: committed'
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test1(), 'when: other; both'
+        assert not test2(), 'when_not: other; both'

@@ -162,6 +162,15 @@ class TestHandler(unittest.TestCase):
         assert handler.test()
         assert not action.called
 
+        handler.register_states(['state1', 'state2'])
+        assert handler.test()
+        reactive.bus.StateWatch.iteration(1)
+        assert not handler.test()
+        reactive.bus.StateWatch.change('state1')
+        assert not handler.test()
+        reactive.bus.StateWatch.commit()
+        assert handler.test()
+
     def test_args(self):
         def test_action():
             pass

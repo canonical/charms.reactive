@@ -94,7 +94,7 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
 
-        _when.assert_called_once_with('f:l:test_action', ('foo', 'bar', 'qux'), False)
+        _when.assert_called_once_with(('foo', 'bar', 'qux'), False)
         self.assertEqual(RelationBase.from_state.call_args_list, [
             mock.call('foo'),
             mock.call('bar'),
@@ -121,7 +121,7 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
 
-        _when.assert_called_once_with('f:l:test_action', ('foo', 'bar', 'qux'), True)
+        _when.assert_called_once_with(('foo', 'bar', 'qux'), True)
         assert not RelationBase.from_state.called
         action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
@@ -185,6 +185,7 @@ class TestReactiveDecorators(unittest.TestCase):
     def test_multi(self):
         action1 = mock.Mock(name='action1')
         action2 = mock.Mock(name='action2')
+        action3 = mock.Mock(name='action3')
 
         @reactive.when('foo')
         @reactive.when('bar')
@@ -207,3 +208,14 @@ class TestReactiveDecorators(unittest.TestCase):
         reactive.bus.dispatch()
         assert not action1.called
         assert action2.called
+
+        @reactive.when('foo')
+        def test3():
+            action3()
+            reactive.remove_state('bar')
+
+        reactive.set_state('bar')
+        action2.reset_mock()
+        reactive.bus.dispatch()
+        assert action3.called
+        assert action2.called  # should be called on second iteration

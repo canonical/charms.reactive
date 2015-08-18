@@ -22,7 +22,6 @@ from charmhelpers.core import host
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-from charms.reactive.bus import StateWatch
 from charms.reactive.bus import set_state, remove_state, get_states
 
 
@@ -187,6 +186,6 @@ def _hook(hook_patterns):
     return dispatch_phase == 'hooks' and any_hook(*hook_patterns)
 
 
-def _when(handler_id, states, invert):
+def _when(states, invert):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'other' and StateWatch.watch(handler_id, states) and (all_states(*states) ^ invert)
+    return dispatch_phase == 'other' and (all_states(*states) ^ invert)
