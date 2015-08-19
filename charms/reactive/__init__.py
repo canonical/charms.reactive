@@ -45,7 +45,16 @@ def main(relation_name=None):
     :param str relation_name: Optional name of the relation which is being handled.
     """
     hookenv.log('Reactive main running for hook %s' % hookenv.hook_name(), level=hookenv.INFO)
-    bus.discover()
-    bus.dispatch()
-    if unitdata._KV:
-        unitdata._KV.flush()
+
+    def flush_kv():
+        if unitdata._KV:
+            unitdata._KV.flush()
+    hookenv.atexit(flush_kv)
+    try:
+        bus.discover()
+        bus.dispatch()
+    except SystemExit as x:
+        if x.code is None or x.code == 0:
+            hookenv._run_atexit()
+        raise
+    hookenv._run_atexit()
