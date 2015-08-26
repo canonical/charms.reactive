@@ -14,9 +14,11 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import shlex
 
 from charmhelpers.cli import cmdline
+from charmhelpers.core import templating
 from charms.reactive import helpers
 from charms.reactive import bus
 
@@ -124,3 +126,13 @@ def _parse_handler_spec(handler_spec):
     # test_args can be further shell quoted
     tests = zip(parts[2::2], map(shlex.split, parts[3::2]))
     return handler_name, handler_id, tests
+
+
+@cmdline.subcommand()
+@cmdline.no_output
+def render_template(source, target):
+    """
+    Render a Jinja2 template from $CHARM_DIR/templates using the current
+    environment variables as the template context.
+    """
+    templating.render_template(source, target, os.environ)

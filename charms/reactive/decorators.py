@@ -35,7 +35,7 @@ def hook(*hook_patterns):
     the ``hook_patterns``.
 
     The hook patterns can use the ``{interface:...}`` and ``{A,B,...}`` syntax
-    supported by :func:`~charmhelpers.core.reactive.bus.any_hook`.
+    supported by :func:`~charms.reactive.bus.any_hook`.
 
     If the hook is a relation hook, an instance of that relation class will be
     passed in to the decorated function.

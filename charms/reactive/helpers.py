@@ -148,7 +148,7 @@ def was_invoked(invocation_id):
             mark_invoked('foo')
 
     This is also available as a decorator at
-    :func:`~charmhelpers.core.reactive.decorators.only_once`.
+    :func:`~charms.reactive.decorators.only_once`.
     """
     return unitdata.kv().get('reactive.invoked.%s' % invocation_id, False)
 
