@@ -117,10 +117,10 @@ class TestRelationBase(unittest.TestCase):
     @mock.patch.object(relations, 'hookenv')
     def test_conversation(self, hookenv):
         hookenv.remote_unit.return_value = 'remote_unit'
-        hookenv.remote_service.return_value = 'remote_service'
+        hookenv.remote_service_name.return_value = 'remote_service_name'
 
         conv1 = mock.Mock(scope='remote_unit')
-        conv2 = mock.Mock(scope='remote_service')
+        conv2 = mock.Mock(scope='remote_service_name')
         conv3 = mock.Mock(scope='global')
         conv4 = mock.Mock(scope='explicit')
         rel = DummyRelationSubclass('relname', [conv1, conv2, conv3, conv4])
