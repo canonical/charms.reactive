@@ -248,7 +248,7 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
             if self.scope is scopes.UNIT:
                 scope = hookenv.remote_unit()
             elif self.scope is scopes.SERVICE:
-                scope = hookenv.remote_service()
+                scope = hookenv.remote_service_name()
             else:
                 scope = self.scope
         if scope is None:
