@@ -528,6 +528,19 @@ class TestReactiveBus(unittest.TestCase):
         access.assert_called_once_with('reactive/foo', os.X_OK)
         register.assert_called_once_with('reactive/foo')
 
+    @mock.patch('charmhelpers.core.hookenv.charm_dir')
+    def test_short_action_id(self, charm_dir):
+        action = mock.Mock(__code__=mock.Mock())
+        action.__code__.co_filename = '/foo/co_filename'
+        action.__code__.co_firstlineno = 99
+        action.__code__.co_name = 'action'
+
+        charm_dir.return_value = None
+        self.assertEqual(reactive.bus._short_action_id(action), '/foo/co_filename:99:action')
+
+        charm_dir.return_value = '/bar'
+        self.assertEqual(reactive.bus._short_action_id(action), '../foo/co_filename:99:action')
+
 
 if __name__ == '__main__':
     unittest.main()

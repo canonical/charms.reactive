@@ -168,7 +168,12 @@ def _action_id(action):
 
 
 def _short_action_id(action):
-    filepath = os.path.relpath(action.__code__.co_filename, hookenv.charm_dir())
+    charm_dir = hookenv.charm_dir()
+    # charm_dir returns None during tests
+    if charm_dir:
+        filepath = os.path.relpath(action.__code__.co_filename, charm_dir)
+    else:
+        filepath = action.__code__.co_filename
     return "%s:%s:%s" % (filepath,
                          action.__code__.co_firstlineno,
                          action.__code__.co_name)
