@@ -26,6 +26,7 @@ from .decorators import when  # noqa
 from .decorators import when_not  # noqa
 from .decorators import not_unless  # noqa
 from .decorators import only_once  # noqa
+from .decorators import when_file_changed  # noqa
 
 from . import bus
 from charmhelpers.core import hookenv
