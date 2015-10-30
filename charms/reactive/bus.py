@@ -1,19 +1,3 @@
-# Copyright 2014-2015 Canonical Limited.
-#
-# This file is part of charm-helpers.
-#
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
-#
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
-
 import os
 import re
 import sys
@@ -168,7 +152,12 @@ def _action_id(action):
 
 
 def _short_action_id(action):
-    filepath = os.path.relpath(action.__code__.co_filename, hookenv.charm_dir())
+    charm_dir = hookenv.charm_dir()
+    # charm_dir returns None during tests
+    if charm_dir:
+        filepath = os.path.relpath(action.__code__.co_filename, charm_dir)
+    else:
+        filepath = action.__code__.co_filename
     return "%s:%s:%s" % (filepath,
                          action.__code__.co_firstlineno,
                          action.__code__.co_name)

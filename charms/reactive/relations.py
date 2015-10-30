@@ -1,19 +1,3 @@
-# Copyright 2014-2015 Canonical Limited.
-#
-# This file is part of charm-helpers.
-#
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
-#
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
-
 import os
 from inspect import isclass
 
@@ -313,7 +297,7 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
 
         In Python, this is equivalent to::
 
-            relation.conversation(scope).set_local(data, scope, **kwdata)
+            relation.conversation(scope).set_local(key, value, data, **kwdata)
 
         See :meth:`conversation` and :meth:`Conversation.set_local`.
         """
@@ -564,8 +548,8 @@ class Conversation(object):
         Note: This uses :mod:`charmhelpers.core.unitdata` and requires that
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
 
-        :param str key: The name of a field to set.
-        :param value: A value to set.
+        :param str key: The name of a single field to set.
+        :param value: A value to set for `key`, if given.
         :param dict data: A mapping of keys to values.
         :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
         """

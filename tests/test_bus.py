@@ -1,19 +1,3 @@
-# Copyright 2014-2015 Canonical Limited.
-#
-# This file is part of charm-helpers.
-#
-# charm-helpers is free software: you can redistribute it and/or modify
-# it under the terms of the GNU Lesser General Public License version 3 as
-# published by the Free Software Foundation.
-#
-# charm-helpers is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU Lesser General Public License for more details.
-#
-# You should have received a copy of the GNU Lesser General Public License
-# along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
-
 import os
 import sys
 import shutil
@@ -527,6 +511,19 @@ class TestReactiveBus(unittest.TestCase):
         reactive.bus._register_handlers_from_file('reactive/foo')
         access.assert_called_once_with('reactive/foo', os.X_OK)
         register.assert_called_once_with('reactive/foo')
+
+    @mock.patch('charmhelpers.core.hookenv.charm_dir')
+    def test_short_action_id(self, charm_dir):
+        action = mock.Mock(__code__=mock.Mock())
+        action.__code__.co_filename = '/foo/co_filename'
+        action.__code__.co_firstlineno = 99
+        action.__code__.co_name = 'action'
+
+        charm_dir.return_value = None
+        self.assertEqual(reactive.bus._short_action_id(action), '/foo/co_filename:99:action')
+
+        charm_dir.return_value = '/bar'
+        self.assertEqual(reactive.bus._short_action_id(action), '../foo/co_filename:99:action')
 
 
 if __name__ == '__main__':
