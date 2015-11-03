@@ -13,4 +13,4 @@ the `base layer`_ and `Juju Compose`_.  See `Composing a Juju charm with Charms.
 
 .. _base layer: https://git.launchpad.net/~bcsaller/charms/+source/basic/
 .. _Juju Compose: https://github.com/bcsaller/juju-compose
-.. _Composing a Juju charm with Charms.Reactive: https://jujucharms.com/docs/stable/authors-charm-composing
+.. _Composing a Juju charm with Charms.Reactive: https://jujucharms.com/docs/stable/authors-charm-building
