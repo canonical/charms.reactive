@@ -102,9 +102,9 @@ This allows you to ensure some ordering of otherwise non-determined handler
 invocation by chaining states (e.g., handler_A sets state_B, which triggers
 handler_B which then sets state_C, which triggers handler_C, and so on).
 
-On the other hand, removing a state causes the queue to be immediately
-re-evaluated.  This ensures that a handler is never invoked when the
-state is no longer active.
+Note, however, that removing a state causes the remaining set of matched handlers
+to be re-tested.  This ensures that a handler is never invoked when the state is
+no longer active.
 
 
 Relation Stubs
