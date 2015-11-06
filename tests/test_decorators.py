@@ -76,6 +76,40 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
         action.assert_called_once_with()
 
+    @mock.patch.object(reactive.decorators, '_preflight')
+    def test_preflight(self, _preflight):
+        _preflight.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.preflight
+        def test_action():
+            action()
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        handler.invoke()
+
+        _preflight.assert_called_once_with()
+        action.assert_called_once_with()
+
+    @mock.patch.object(reactive.decorators, '_preflight')
+    def test_preflight_only_once(self, _preflight):
+        _preflight.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.preflight
+        @reactive.only_once
+        def test_action():
+            action()
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        for _ in range(3):
+            handler.invoke()
+
+        action.assert_called_once_with()
+
+
     @mock.patch.object(reactive.decorators, 'RelationBase')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when')
