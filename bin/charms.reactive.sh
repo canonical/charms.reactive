@@ -1,5 +1,8 @@
 #!/bin/bash
 
+export PATH=$PATH:$CHARM_DIR/bin
+export PYTHONPATH=$PYTHONPATH:$CHARM_DIR/lib
+
 if [[ "$0" == "$BASH_SOURCE" ]]; then
     echo 'This file contains helpers for developing reactive charms in Bash.'
     echo

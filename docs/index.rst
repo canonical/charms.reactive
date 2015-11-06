@@ -139,7 +139,8 @@ There are helpers for writing handlers in bash.  For example:
 
 .. code-block:: bash
 
-    source `which charms.reactive.sh`
+    #!/bin/bash
+    source $CHARM_DIR/bin/charms.reactive.sh
 
     @when 'db.database.available' 'admin-pass'
     function render_config() {
