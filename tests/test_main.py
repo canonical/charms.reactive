@@ -26,11 +26,13 @@ class TestReactiveMain(unittest.TestCase):
     @mock.patch.object(unitdata, '_KV')
     @mock.patch.object(reactive.bus, 'dispatch')
     @mock.patch.object(reactive.bus, 'discover')
+    @mock.patch.object(reactive.hookenv, '_run_atstart')
     @mock.patch.object(reactive.hookenv, 'log')
     @mock.patch.object(reactive.hookenv, 'hook_name')
-    def test_main(self, hook_name, log, discover, dispatch, _KV):
+    def test_main(self, hook_name, log, _run_atstart, discover, dispatch, _KV):
         hook_name.return_value = 'hook_name'
         reactive.main()
+        _run_atstart.assert_called_once_with()
         log.assert_called_once_with('Reactive main running for hook hook_name', level=reactive.hookenv.INFO)
         discover.assert_called_once_with()
         dispatch.assert_called_once_with()
