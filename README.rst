@@ -1,3 +1,9 @@
+Charms.Reactive |badge|
+-----------------------
+
+.. |badge| image:: https://travis-ci.org/juju-solutions/charms.reactive.svg
+    :target: https://travis-ci.org/juju-solutions/charms.reactive
+
 This module serves as the basis for creating charms and relation
 implementations using the reactive pattern.
 
