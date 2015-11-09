@@ -14,6 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
+import sys
+
 from .bus import set_state  # noqa
 from .bus import remove_state  # noqa
 from .helpers import toggle_state  # noqa
@@ -46,6 +49,10 @@ def main(relation_name=None):
     :param str relation_name: Optional name of the relation which is being handled.
     """
     hookenv.log('Reactive main running for hook %s' % hookenv.hook_name(), level=hookenv.INFO)
+
+    # work-around for https://bugs.launchpad.net/juju-core/+bug/1503039
+    # ensure that external handlers can tell what hook they're running in
+    os.environ['JUJU_HOOK_NAME'] = os.path.basename(sys.argv[0])
 
     def flush_kv():
         if unitdata._KV:
