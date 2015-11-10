@@ -1,7 +1,7 @@
 #!/bin/bash
 
 export PATH=$PATH:$CHARM_DIR/bin
-export PYTHONPATH=$PYTHONPATH:$CHARM_DIR/lib
+export PYTHONPATH=${PYTHONPATH-}:$CHARM_DIR/lib
 
 if [[ "$0" == "$BASH_SOURCE" ]]; then
     echo 'This file contains helpers for developing reactive charms in Bash.'
@@ -43,8 +43,8 @@ fi
 
 shopt -s expand_aliases
 
-REACTIVE_ACTION="$1"
-REACTIVE_ARGS="$2"
+REACTIVE_ACTION="${1-'--test'}"
+REACTIVE_ARGS="${2-}"
 
 declare -A REACTIVE_HANDLERS
 declare -A REACTIVE_TESTS
