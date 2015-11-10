@@ -1,10 +1,7 @@
 import re
 import argparse
 import sphinx.ext.autodoc
-
-
-def is_cli(obj):
-    return hasattr(obj, '_subcommand_args') or hasattr(obj, '_subcommand_argsets')
+from charmhelpers.cli import describe_arguments
 
 
 class CLIDoc(sphinx.ext.autodoc.FunctionDocumenter):
@@ -12,49 +9,37 @@ class CLIDoc(sphinx.ext.autodoc.FunctionDocumenter):
     Automatically generate documentation for CLI entry-points.
     """
 
-    def _get_usage(self):
-        """
-        Build usage string from argparser args.
-        """
+    def generate(self, more_content=None, real_modname=None,
+                 check_module=False, all_members=False):
+        if not self.parse_name():
+            # need a module to import
+            self.directive.warn(
+                'don\'t know which module to import for autodocumenting '
+                '%r (try placing a "module" or "currentmodule" directive '
+                'in the document, or giving an explicit module name)'
+                % self.name)
+            return
+
+        # now, import the module and get object to document
+        if not self.import_object():
+            return
+
+        if not (type(self.object).__name__ == 'function' and
+                self.object.__module__ == 'charms.reactive.cli'):
+            return super(CLIDoc, self).generate(more_content, real_modname, check_module, all_members)
+
         parser = argparse.ArgumentParser()
-        parser.prog = 'juju-resources {}'.format(self.object_name)
-        for set_name, set_args in getattr(self.object, '_subcommand_argsets', {}).items():
-            for ap_args, ap_kwargs in set_args:
-                parser.add_argument(*ap_args, **ap_kwargs)
-        for ap_args, ap_kwargs in getattr(self.object, '_subcommand_args', []):
-            parser.add_argument(*ap_args, **ap_kwargs)
+        parser.prog = 'charms.reactive {}'.format(self.object_name)
+        for args, kwargs in describe_arguments(self.object):
+            parser.add_argument(*args, **kwargs)
+
         usage = parser.format_usage()
-        usage = re.sub(r'\n *', ' ', usage)
-        return usage.strip()
-
-    def add_content(self, more_content, no_docstring=False):
-        if is_cli(self.object):
-            # add usage
-            self.add_line('**%s**' % self._get_usage(), '<clidoc>')
-            self.add_line('', '<clidoc>')
-
-        # add description
-        super(CLIDoc, self).add_content(more_content, no_docstring)
-
-        if is_cli(self.object):
-            # add parameter docs
-            sourcename = u'args of %s' % self.fullname
-            lines = []
-            for set_name, set_args in getattr(self.object, '_subcommand_argsets', {}).items():
-                for ap_args, ap_kwargs in set_args:
-                    lines.append(':param {}: {}'.format(' '.join(ap_args), ap_kwargs.get['help']))
-            for ap_args, ap_kwargs in getattr(self.object, '_subcommand_args', []):
-                lines.append(':param {}: {}'.format(' '.join(ap_args), ap_kwargs['help']))
-            for i, line in enumerate(lines):
-                self.add_line(line, sourcename, i)
-
-
-def filter_cli(app, what, name, obj, skip, options):
-    if type(obj).__name__ == 'function' and obj.__module__ == 'jujuresources.cli':
-        return not is_cli(obj)
-    return skip
+        usage = re.sub('usage: (\S+) (\S+) (.*)', r'\1 **\2** `\3`', usage)
+        self.add_line(usage, '<clidoc>')
+        self.add_line('', '<clidoc>')
+        self.indent += '    '
+        self.add_content(more_content)
 
 
 def setup(app):
     app.add_autodocumenter(CLIDoc)
-    app.connect('autodoc-skip-member', filter_cli)

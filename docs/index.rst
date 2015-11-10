@@ -178,6 +178,7 @@ Reactive API Documentation
     charms.reactive.helpers
     charms.reactive.relations
     charms.reactive.bus
+    charms.reactive.cli
 
 .. automodule:: charms.reactive
     :members:
