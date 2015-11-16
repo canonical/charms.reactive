@@ -289,7 +289,7 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
 
         In Python, this is equivalent to::
 
-            relation.conversation(scope).set_remote(data, scope, **kwdata)
+            relation.conversation(scope).set_remote(key, value, data, scope, **kwdata)
 
         See :meth:`conversation` and :meth:`Conversation.set_remote`.
         """
