@@ -40,7 +40,8 @@ Structure of a Reactive Charm
 -----------------------------
 
 The structure of a reactive charm is similar to existing charms, with the
-addition of ``reactive`` and ``relations`` directories under ``hooks``:
+addition of ``reactive`` directory and the ``relations`` directory under
+``hooks``:
 
 .. code-block:: text
 
@@ -59,13 +60,24 @@ addition of ``reactive`` and ``relations`` directories under ``hooks``:
 
 The hooks will need to call :func:`reactive.main() <charms.reactive.main>`,
 and the decorated handler blocks can be placed in any file under the ``reactive``
-directory.  The ``relations`` directory can contain any relation stub implementations
+directory.  Thus, pretty much all of your hooks will end up contain little more
+than:
+
+.. code-block:: python
+
+    #!/usr/bin/env python
+    from charms.reactive import main
+    main()
+
+The ``relations`` directory will contain any interface layer implementations
 that your charm uses.
 
-If using Charm Composition, as is recommended, the ``hooks`` and ``relations``
-directories will be automatically managed for you by your base layer and
-relation stubs, so you can focus on writing handlers under the ``reactive``
+If you are `building a charm with layers`_, as is recommended, both the ``hooks``
+and ``relations`` directories will be automatically managed for you by your base
+and interface layers, so you can focus on writing handlers under the ``reactive``
 directory.
+
+.. _`Building a Charm with Layers`: https://jujucharms.com/docs/stable/authors-charm-building
 
 
 Discovery and Dispatch of Reactive Handlers
