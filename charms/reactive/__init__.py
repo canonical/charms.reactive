@@ -52,7 +52,8 @@ def main(relation_name=None):
 
     # work-around for https://bugs.launchpad.net/juju-core/+bug/1503039
     # ensure that external handlers can tell what hook they're running in
-    os.environ['JUJU_HOOK_NAME'] = os.path.basename(sys.argv[0])
+    if 'JUJU_HOOK_NAME' not in os.environ:
+        os.environ['JUJU_HOOK_NAME'] = os.path.basename(sys.argv[0])
 
     def flush_kv():
         if unitdata._KV:
