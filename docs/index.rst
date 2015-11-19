@@ -11,7 +11,7 @@ Overview
 The pattern is "reactive" because you use :func:`@when <charms.reactive.decorators.when>`
 and similar decorators to indicate that blocks of code react to certain conditions,
 such as a relation reaching a specific `state`, a file changing, certain config
-values being set, etc.  More importantly, you can react to not just indvidual
+values being set, etc.  More importantly, you can react to not just individual
 conditions, but meaningful combinations of conditions that can span multiple hook
 invocations, in a natural way.
 
@@ -112,13 +112,13 @@ Relation Stubs
 
 A big part of the reactive pattern is the use of relation stubs.  These are
 classes, based on :class:`~charms.reactive.relations.RelationBase`,
-that are reponsible for managing the conversation with remote services or units
+that are responsible for managing the conversation with remote services or units
 and informing the charm when the conversation has reached key points, called
 states, upon which the charm can act and do useful work.  They allow a single
 interface author to create code to handle both sides of the conversation, and
 to expose a well-defined API to charm authors.
 
-Relation stubs allows charm authors to focus on implementing the behavior and
+Relation stubs allow charm authors to focus on implementing the behavior and
 resources that the relation provides, while the interface author focuses on the
 communication necessary to get that behavior and resources between the related
 services.  In general, the author of the charm that provides a particular
