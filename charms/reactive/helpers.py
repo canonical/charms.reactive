@@ -122,7 +122,8 @@ def any_file_changed(filenames, hash_type='md5'):
     Check if any of the given files have changed since the last time this
     was called.
 
-    :param list filenames: Names of files to check.
+    :param list filenames: Names of files to check. Accepts callables returning
+        the filename.
     :param str hash_type: Algorithm to use to check the files.
     """
     changed = False

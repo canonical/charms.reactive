@@ -106,7 +106,8 @@ def when_file_changed(*filenames, **kwargs):
     """
     Register the decorated function to run when one or more files have changed.
 
-    :param list filenames: The names of one or more files to check for changes.
+    :param list filenames: The names of one or more files to check for changes
+        (a callable returning the name is also accepted).
     :param str hash_type: The type of hash to use for determining if a file has
         changed.  Defaults to 'md5'.  Must be given as a kwarg.
     """
