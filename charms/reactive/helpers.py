@@ -122,11 +122,16 @@ def any_file_changed(filenames, hash_type='md5'):
     Check if any of the given files have changed since the last time this
     was called.
 
-    :param list filenames: Names of files to check.
+    :param list filenames: Names of files to check. Accepts callables returning
+        the filename.
     :param str hash_type: Algorithm to use to check the files.
     """
     changed = False
     for filename in filenames:
+        if callable(filename):
+            filename = str(filename())
+        else:
+            filename = str(filename)
         old_hash = unitdata.kv().get('reactive.files_changed.%s' % filename)
         new_hash = host.file_hash(filename, hash_type=hash_type)
         if old_hash != new_hash:

@@ -155,6 +155,16 @@ class TestReactiveHelpers(unittest.TestCase):
             mock.call('file3', hash_type='md5'),
         ])
 
+    @mock.patch('charmhelpers.core.host.file_hash')
+    def test_any_file_changed_argtypes(self, file_hash):
+        file_hash.return_value = 'beep'
+        # A filename may be a callable, in which case it is called and
+        # the result used, and are cast to strings.
+        reactive.helpers.any_file_changed(['one', lambda: 'two', 3])
+        file_hash.assert_has_calls([mock.call('one', hash_type='md5'),
+                                    mock.call('two', hash_type='md5'),
+                                    mock.call('3', hash_type='md5')])
+
     def test_was_invoked(self):
         assert not reactive.helpers.was_invoked('foo')
         assert not reactive.helpers.was_invoked('foo')
