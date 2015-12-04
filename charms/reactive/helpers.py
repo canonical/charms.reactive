@@ -127,6 +127,10 @@ def any_file_changed(filenames, hash_type='md5'):
     """
     changed = False
     for filename in filenames:
+        if callable(filename):
+            filename = str(filename())
+        else:
+            filename = str(filename)
         old_hash = unitdata.kv().get('reactive.files_changed.%s' % filename)
         new_hash = host.file_hash(filename, hash_type=hash_type)
         if old_hash != new_hash:
