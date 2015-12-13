@@ -470,7 +470,8 @@ class Conversation(object):
             'relation': self.relation_name,
             'conversations': [],
         })
-        value['conversations'].append(self.key)
+        if self.key not in value['conversations']:
+            value['conversations'].append(self.key)
         set_state(state, value)
 
     def remove_state(self, state):

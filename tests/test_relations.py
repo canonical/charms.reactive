@@ -332,6 +332,9 @@ class TestConversation(unittest.TestCase):
         conv.set_state('{relation_name}.bar')
         set_state.assert_called_once_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
         get_state.assert_called_once_with('rel.bar', {'relation': 'rel', 'conversations': []})
+        conv.set_state('{relation_name}.bar')
+        self.assertEqual(set_state.call_count, 2)
+        set_state.assert_called_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
 
     @mock.patch.object(relations, 'remove_state')
     @mock.patch.object(relations, 'set_state')
