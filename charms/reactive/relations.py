@@ -538,9 +538,17 @@ class Conversation(object):
         """
         Toggle the given state for this conversation.
 
-        If ``active`` is not given, the state will be flipped from its current
-        value.  Otherwise, it will be set if ``active`` is ``True`` or removed
-        if it is ``False``.
+        The state will be set ``active`` is ``True``, otherwise the state will be removed.
+
+        If ``active`` is not given, it will default to the inverse of the current state
+        (i.e., ``False`` if the state is currently set, ``True`` if it is not; essentially
+        toggling the state).
+
+        For example::
+
+            conv.toggle_state('{relation_name}.foo', value=='foo')
+
+        This will set the state if ``value`` is equal to ``foo``.
         """
         if active is None:
             active = not self.is_state(state)
