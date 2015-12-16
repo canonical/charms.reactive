@@ -23,7 +23,8 @@ from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
 from charms.reactive.relations import RelationBase
 from charms.reactive.helpers import _hook
-from charms.reactive.helpers import _when
+from charms.reactive.helpers import _when_all
+from charms.reactive.helpers import _when_none
 from charms.reactive.helpers import any_file_changed
 from charms.reactive.helpers import was_invoked
 from charms.reactive.helpers import mark_invoked
@@ -67,7 +68,14 @@ def hook(*hook_patterns):
 
 def when(*desired_states):
     """
-    Register the decorated function to run when all ``desired_states`` are active.
+    Alias for `when_all`.
+    """
+    return when_all(*desired_states)
+
+
+def when_all(*desired_states):
+    """
+    Register the decorated function to run when all of ``desired_states`` are active.
 
     This decorator will pass zero or more relation instances to the handler, if
     any of the states are associated with relations.  If so, they will be passed
@@ -78,7 +86,7 @@ def when(*desired_states):
     """
     def _register(action):
         handler = Handler.get(action)
-        handler.add_predicate(partial(_when, desired_states, False))
+        handler.add_predicate(partial(_when_all, desired_states))
         handler.add_args(filter(None, map(RelationBase.from_state, desired_states)))
         handler.register_states(desired_states)
         return action
@@ -87,7 +95,15 @@ def when(*desired_states):
 
 def when_not(*desired_states):
     """
-    Register the decorated function to run when **not** all desired_states are active.
+    Alias for `when_none`.
+    """
+    return when_none(*desired_states)
+
+
+def when_none(*desired_states):
+    """
+    Register the decorated function to run when none of ``desired_states`` are
+    active.
 
     This decorator will never cause arguments to be passed to the handler.
 
@@ -96,7 +112,7 @@ def when_not(*desired_states):
     """
     def _register(action):
         handler = Handler.get(action)
-        handler.add_predicate(partial(_when, desired_states, True))
+        handler.add_predicate(partial(_when_none, desired_states))
         handler.register_states(desired_states)
         return action
     return _register

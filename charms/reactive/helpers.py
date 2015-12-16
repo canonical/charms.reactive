@@ -191,6 +191,11 @@ def _hook(hook_patterns):
     return dispatch_phase == 'hooks' and any_hook(*hook_patterns)
 
 
-def _when(states, invert):
+def _when_all(states):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'other' and (all_states(*states) ^ invert)
+    return dispatch_phase == 'other' and all_states(*states)
+
+
+def _when_none(states):
+    dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
+    return dispatch_phase == 'other' and not any_states(*states)
