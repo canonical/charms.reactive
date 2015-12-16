@@ -26,7 +26,9 @@ from .relations import scopes  # noqa
 from .relations import RelationBase  # noqa
 from .decorators import hook  # noqa
 from .decorators import when  # noqa
+from .decorators import when_all  # noqa
 from .decorators import when_not  # noqa
+from .decorators import when_none  # noqa
 from .decorators import not_unless  # noqa
 from .decorators import only_once  # noqa
 from .decorators import when_file_changed  # noqa
