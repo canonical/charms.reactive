@@ -2,6 +2,7 @@ PROJECT=charms
 PYTHON := /usr/bin/env python
 SUITE=unstable
 TESTS=tests/
+VERSION=$(shell cat VERSION)
 
 all:
 	@echo "make test - Run tests"
