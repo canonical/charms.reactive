@@ -392,9 +392,9 @@ def dispatch():
                     break
         StateWatch.commit()
 
-    unitdata.kv().set('reactive.dispatch.phase', 'preflight')
-    preflight_handlers = _test(Handler.get_handlers())
-    _invoke(preflight_handlers)
+    unitdata.kv().set('reactive.dispatch.phase', 'setup')
+    setup_handlers = _test(Handler.get_handlers())
+    _invoke(setup_handlers)
 
     unitdata.kv().set('reactive.dispatch.phase', 'hooks')
     hook_handlers = _test(Handler.get_handlers())

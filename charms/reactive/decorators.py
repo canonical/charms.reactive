@@ -23,7 +23,7 @@ from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
 from charms.reactive.relations import RelationBase
 from charms.reactive.helpers import _hook
-from charms.reactive.helpers import _preflight
+from charms.reactive.helpers import _setup
 from charms.reactive.helpers import _when
 from charms.reactive.helpers import any_file_changed
 from charms.reactive.helpers import was_invoked
@@ -66,22 +66,22 @@ def hook(*hook_patterns):
     return _register
 
 
-def preflight(action):
+def setup(action):
     """
     Register the decorated function to run first in every hook, before
     any @hook or other handlers.
 
-    preflight actions are run in an undefined order.
+    setup actions are run in an undefined order.
 
-    Preflight actions may be used to initialize state, or to ensure
+    Setup actions may be used to initialize state, or to ensure
     invariants such as valid configuration values::
 
-        @preflight
+        @setup
         def leadership():
             helpers.toggle_state('is_leader', hookenv.is_leader())
 
 
-        @preflight
+        @setup
         def validate_config():
             version = hookenv.config()['version']
             if version not in ('9.1', '9.2', '9.3'):
@@ -90,9 +90,10 @@ def preflight(action):
                 raise SystemExit(0)  # Terminate hook.
 
 
-        @preflight
+        @setup
         @only_once
         def execd_preinstall():
+            'Run the pre-install hooks before the install hooks'
             hookenv.status_set('maintenance',
                                'Running preinstallation hooks')
         try:
@@ -103,7 +104,7 @@ def preflight(action):
             raise SystemExit(0)  # Terminate hook.
     """
     handler = Handler.get(action)
-    handler.add_predicate(_preflight)
+    handler.add_predicate(_setup)
     return action
 
 

@@ -186,9 +186,9 @@ def _hook(hook_patterns):
     return dispatch_phase == 'hooks' and any_hook(*hook_patterns)
 
 
-def _preflight():
+def _setup():
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'preflight'
+    return dispatch_phase == 'setup'
 
 
 def _when(states, invert):

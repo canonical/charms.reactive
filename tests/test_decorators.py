@@ -76,12 +76,12 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
         action.assert_called_once_with()
 
-    @mock.patch.object(reactive.decorators, '_preflight')
-    def test_preflight(self, _preflight):
-        _preflight.return_value = True
+    @mock.patch.object(reactive.decorators, '_setup')
+    def test_setup(self, _setup):
+        _setup.return_value = True
         action = mock.Mock(name='action')
 
-        @reactive.preflight
+        @reactive.setup
         def test_action():
             action()
 
@@ -89,15 +89,15 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
 
-        _preflight.assert_called_once_with()
+        _setup.assert_called_once_with()
         action.assert_called_once_with()
 
-    @mock.patch.object(reactive.decorators, '_preflight')
-    def test_preflight_only_once(self, _preflight):
-        _preflight.return_value = True
+    @mock.patch.object(reactive.decorators, '_setup')
+    def test_setup_only_once(self, _setup):
+        _setup.return_value = True
         action = mock.Mock(name='action')
 
-        @reactive.preflight
+        @reactive.setup
         @reactive.only_once
         def test_action():
             action()
