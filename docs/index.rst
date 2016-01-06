@@ -11,7 +11,7 @@ Overview
 The pattern is "reactive" because you use :func:`@when <charms.reactive.decorators.when>`
 and similar decorators to indicate that blocks of code react to certain conditions,
 such as a relation reaching a specific `state`, a file changing, certain config
-values being set, etc.  More importantly, you can react to not just indvidual
+values being set, etc.  More importantly, you can react to not just individual
 conditions, but meaningful combinations of conditions that can span multiple hook
 invocations, in a natural way.
 
@@ -40,7 +40,8 @@ Structure of a Reactive Charm
 -----------------------------
 
 The structure of a reactive charm is similar to existing charms, with the
-addition of ``reactive`` and ``relations`` directories under ``hooks``:
+addition of ``reactive`` directory and the ``relations`` directory under
+``hooks``:
 
 .. code-block:: text
 
@@ -59,13 +60,24 @@ addition of ``reactive`` and ``relations`` directories under ``hooks``:
 
 The hooks will need to call :func:`reactive.main() <charms.reactive.main>`,
 and the decorated handler blocks can be placed in any file under the ``reactive``
-directory.  The ``relations`` directory can contain any relation stub implementations
+directory.  Thus, pretty much all of your hooks will end up contain little more
+than:
+
+.. code-block:: python
+
+    #!/usr/bin/env python
+    from charms.reactive import main
+    main()
+
+The ``relations`` directory will contain any interface layer implementations
 that your charm uses.
 
-If using Charm Composition, as is recommended, the ``hooks`` and ``relations``
-directories will be automatically managed for you by your base layer and
-relation stubs, so you can focus on writing handlers under the ``reactive``
+If you are `building a charm with layers`_, as is recommended, both the ``hooks``
+and ``relations`` directories will be automatically managed for you by your base
+and interface layers, so you can focus on writing handlers under the ``reactive``
 directory.
+
+.. _`Building a Charm with Layers`: https://jujucharms.com/docs/stable/authors-charm-building
 
 
 Discovery and Dispatch of Reactive Handlers
@@ -112,13 +124,13 @@ Relation Stubs
 
 A big part of the reactive pattern is the use of relation stubs.  These are
 classes, based on :class:`~charms.reactive.relations.RelationBase`,
-that are reponsible for managing the conversation with remote services or units
+that are responsible for managing the conversation with remote services or units
 and informing the charm when the conversation has reached key points, called
 states, upon which the charm can act and do useful work.  They allow a single
 interface author to create code to handle both sides of the conversation, and
 to expose a well-defined API to charm authors.
 
-Relation stubs allows charm authors to focus on implementing the behavior and
+Relation stubs allow charm authors to focus on implementing the behavior and
 resources that the relation provides, while the interface author focuses on the
 communication necessary to get that behavior and resources between the related
 services.  In general, the author of the charm that provides a particular
@@ -139,7 +151,8 @@ There are helpers for writing handlers in bash.  For example:
 
 .. code-block:: bash
 
-    source `which charms.reactive.sh`
+    #!/bin/bash
+    source charms.reactive.sh
 
     @when 'db.database.available' 'admin-pass'
     function render_config() {
@@ -177,6 +190,7 @@ Reactive API Documentation
     charms.reactive.helpers
     charms.reactive.relations
     charms.reactive.bus
+    charms.reactive.cli
 
 .. automodule:: charms.reactive
     :members:

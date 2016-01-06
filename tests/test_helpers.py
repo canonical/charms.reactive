@@ -155,6 +155,16 @@ class TestReactiveHelpers(unittest.TestCase):
             mock.call('file3', hash_type='md5'),
         ])
 
+    @mock.patch('charmhelpers.core.host.file_hash')
+    def test_any_file_changed_argtypes(self, file_hash):
+        file_hash.return_value = 'beep'
+        # A filename may be a callable, in which case it is called and
+        # the result used, and are cast to strings.
+        reactive.helpers.any_file_changed(['one', lambda: 'two', 3])
+        file_hash.assert_has_calls([mock.call('one', hash_type='md5'),
+                                    mock.call('two', hash_type='md5'),
+                                    mock.call('3', hash_type='md5')])
+
     def test_was_invoked(self):
         assert not reactive.helpers.was_invoked('foo')
         assert not reactive.helpers.was_invoked('foo')
@@ -189,24 +199,48 @@ class TestReactiveHelpers(unittest.TestCase):
         assert not reactive.helpers._hook(pats)
         any_hook.assert_called_once_with('pat1', 'pat2')
 
-    def test__when(self):
-        test1 = lambda: reactive.helpers._when(['state1', 'state2'], invert=False)
-        test2 = lambda: reactive.helpers._when(['state1', 'state2'], invert=True)
+    def test__when_all(self):
+        test = lambda: reactive.helpers._when_all(['state1', 'state2'])
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        assert not test1(), 'when: hooks; none'
-        assert not test2(), 'when_not: hooks; none'
+        assert not test(), 'when_all: hooks; none'
 
         self.kv.set('reactive.dispatch.phase', 'other')
-        assert not test1(), 'when: other; none'
-        assert test2(), 'when_not: other; none'
+        assert not test(), 'when_all: other; none'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
         reactive.bus.set_state('state1')
-        reactive.bus.set_state('state2')
-        assert not test1(), 'when: hooks; both'
-        assert not test2(), 'when_not: hooks; both'
+        assert not test(), 'when_all: hooks; one'
 
         self.kv.set('reactive.dispatch.phase', 'other')
-        assert test1(), 'when: other; both'
-        assert not test2(), 'when_not: other; both'
+        assert not test(), 'when_all: other; one'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state2')
+        assert not test(), 'when_all: hooks; both'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test(), 'when_all: other; both'
+
+    def test__when_none(self):
+        test = lambda: reactive.helpers._when_none(['state1', 'state2'])
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        assert not test(), 'when_not: hooks; none'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test(), 'when_none: other; none'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state1')
+        assert not test(), 'when_none: hooks; one'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert not test(), 'when_none: other; one'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state2')
+        assert not test(), 'when_none: hooks; both'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert not test(), 'when_none: other; both'

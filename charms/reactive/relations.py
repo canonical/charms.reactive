@@ -283,13 +283,37 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
         """
         self.conversation(scope).remove_state(state)
 
+    def is_state(self, state, scope=None):
+        """
+        Test the state for the :class:`Conversation` with the given scope.
+
+        In Python, this is equivalent to::
+
+            relation.conversation(scope).is_state(state)
+
+        See :meth:`conversation` and :meth:`Conversation.is_state`.
+        """
+        return self.conversation(scope).is_state(state)
+
+    def toggle_state(self, state, active=None, scope=None):
+        """
+        Toggle the state for the :class:`Conversation` with the given scope.
+
+        In Python, this is equivalent to::
+
+            relation.conversation(scope).toggle_state(state)
+
+        See :meth:`conversation` and :meth:`Conversation.toggle_state`.
+        """
+        self.conversation(scope).toggle_state(state, active)
+
     def set_remote(self, key=None, value=None, data=None, scope=None, **kwdata):
         """
         Set data for the remote end(s) of the :class:`Conversation` with the given scope.
 
         In Python, this is equivalent to::
 
-            relation.conversation(scope).set_remote(data, scope, **kwdata)
+            relation.conversation(scope).set_remote(key, value, data, scope, **kwdata)
 
         See :meth:`conversation` and :meth:`Conversation.set_remote`.
         """
@@ -470,7 +494,8 @@ class Conversation(object):
             'relation': self.relation_name,
             'conversations': [],
         })
-        value['conversations'].append(self.key)
+        if self.key not in value['conversations']:
+            value['conversations'].append(self.key)
         set_state(state, value)
 
     def remove_state(self, state):
@@ -498,6 +523,39 @@ class Conversation(object):
             set_state(state, value)
         else:
             remove_state(state)
+
+    def is_state(self, state):
+        """
+        Test if this conversation is in the given state.
+        """
+        state = state.format(relation_name=self.relation_name)
+        value = get_state(state)
+        if not value:
+            return False
+        return self.key in value['conversations']
+
+    def toggle_state(self, state, active=None):
+        """
+        Toggle the given state for this conversation.
+
+        The state will be set ``active`` is ``True``, otherwise the state will be removed.
+
+        If ``active`` is not given, it will default to the inverse of the current state
+        (i.e., ``False`` if the state is currently set, ``True`` if it is not; essentially
+        toggling the state).
+
+        For example::
+
+            conv.toggle_state('{relation_name}.foo', value=='foo')
+
+        This will set the state if ``value`` is equal to ``foo``.
+        """
+        if active is None:
+            active = not self.is_state(state)
+        if active:
+            self.set_state(state)
+        else:
+            self.remove_state(state)
 
     def set_remote(self, key=None, value=None, data=None, **kwdata):
         """

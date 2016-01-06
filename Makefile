@@ -2,6 +2,7 @@ PROJECT=charms
 PYTHON := /usr/bin/env python
 SUITE=unstable
 TESTS=tests/
+VERSION=$(shell cat VERSION)
 
 all:
 	@echo "make test - Run tests"
@@ -64,7 +65,10 @@ docs: lint2
 .PHONY: docs
 
 release: test docs
+	git remote | xargs -L1 git fetch --tags
 	$(PYTHON) setup.py sdist register upload upload_sphinx
+	git tag release-${VERSION}
+	git remote | xargs -L1 git push --tags
 
 docrelease: ftest docs
 	$(PYTHON) setup.py sdist register upload_sphinx

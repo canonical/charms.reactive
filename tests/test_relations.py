@@ -332,6 +332,9 @@ class TestConversation(unittest.TestCase):
         conv.set_state('{relation_name}.bar')
         set_state.assert_called_once_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
         get_state.assert_called_once_with('rel.bar', {'relation': 'rel', 'conversations': []})
+        conv.set_state('{relation_name}.bar')
+        self.assertEqual(set_state.call_count, 2)
+        set_state.assert_called_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
 
     @mock.patch.object(relations, 'remove_state')
     @mock.patch.object(relations, 'set_state')
@@ -357,6 +360,34 @@ class TestConversation(unittest.TestCase):
         conv.remove_state('{relation_name}.bar')
         assert not set_state.called
         remove_state.assert_called_once_with('rel.bar')
+
+    @mock.patch.object(relations, 'get_state')
+    def test_is_state(self, get_state):
+        conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
+        get_state.side_effect = [
+            None,
+            {'conversations': ['foo']},
+            {'conversations': ['reactive.conversations.rel.scope']},
+        ]
+
+        assert not conv.is_state('{relation_name}.bar')
+        assert not conv.is_state('{relation_name}.bar')
+        assert conv.is_state('{relation_name}.bar')
+
+    def test_toggle_state(self):
+        conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
+        conv.is_state = mock.Mock(side_effect=[True, False])
+        conv.set_state = mock.Mock()
+        conv.remove_state = mock.Mock()
+
+        conv.toggle_state('foo')
+        self.assertEqual(conv.remove_state.call_count, 1)
+        conv.toggle_state('foo')
+        self.assertEqual(conv.set_state.call_count, 1)
+        conv.toggle_state('foo', True)
+        self.assertEqual(conv.set_state.call_count, 2)
+        conv.toggle_state('foo', False)
+        self.assertEqual(conv.remove_state.call_count, 2)
 
     @mock.patch.object(relations.hookenv, 'relation_set')
     @mock.patch.object(relations.Conversation, 'relation_ids', ['rel:1', 'rel:2'])

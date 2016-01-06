@@ -13,3 +13,4 @@ docs/_build
 .pydevproject
 .settings
 *~
+charms.reactive.egg-info/

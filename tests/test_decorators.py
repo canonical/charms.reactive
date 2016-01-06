@@ -112,10 +112,10 @@ class TestReactiveDecorators(unittest.TestCase):
 
     @mock.patch.object(reactive.decorators, 'RelationBase')
     @mock.patch.object(reactive.decorators, '_action_id')
-    @mock.patch.object(reactive.decorators, '_when')
-    def test_when(self, _when, _action_id, RelationBase):
+    @mock.patch.object(reactive.decorators, '_when_all')
+    def test_when_all(self, _when_all, _action_id, RelationBase):
         reactive.bus.Handler._CONSUMED_STATES.clear()
-        _when.return_value = True
+        _when_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
         RelationBase.from_state.side_effect = [None, 'rel', None]
         action = mock.Mock(name='action')
@@ -128,7 +128,7 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
 
-        _when.assert_called_once_with(('foo', 'bar', 'qux'), False)
+        _when_all.assert_called_once_with(('foo', 'bar', 'qux'))
         self.assertEqual(RelationBase.from_state.call_args_list, [
             mock.call('foo'),
             mock.call('bar'),
@@ -137,12 +137,19 @@ class TestReactiveDecorators(unittest.TestCase):
         action.assert_called_once_with('rel')
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
+    @mock.patch.object(reactive.decorators, 'when_all')
+    def test_when(self, when_all):
+        @reactive.when('foo', 'bar', 'qux')
+        def test_action(*args):
+            pass
+        when_all.assert_called_once_with('foo', 'bar', 'qux')
+
     @mock.patch.object(reactive.decorators, 'RelationBase')
     @mock.patch.object(reactive.decorators, '_action_id')
-    @mock.patch.object(reactive.decorators, '_when')
-    def test_when_not(self, _when, _action_id, RelationBase):
+    @mock.patch.object(reactive.decorators, '_when_none')
+    def test_when_none(self, _when_none, _action_id, RelationBase):
         reactive.bus.Handler._CONSUMED_STATES.clear()
-        _when.return_value = True
+        _when_none.return_value = True
         _action_id.return_value = 'f:l:test_action'
         RelationBase.from_state.return_value = 'rel'
         action = mock.Mock(name='action')
@@ -155,10 +162,17 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
 
-        _when.assert_called_once_with(('foo', 'bar', 'qux'), True)
+        _when_none.assert_called_once_with(('foo', 'bar', 'qux'))
         assert not RelationBase.from_state.called
         action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+
+    @mock.patch.object(reactive.decorators, 'when_none')
+    def test_when(self, when_none):
+        @reactive.when_not('foo', 'bar', 'qux')
+        def test_action(*args):
+            pass
+        when_none.assert_called_once_with('foo', 'bar', 'qux')
 
     @mock.patch.object(reactive.decorators, 'any_file_changed')
     def test_when_file_changed(self, any_file_changed):
