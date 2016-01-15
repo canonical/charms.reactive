@@ -223,21 +223,6 @@ class TestConversation(unittest.TestCase):
         ])
         relation_ids.assert_called_once_with('rel')
 
-        # test cache
-        remote_service_name.reset_mock()
-        remote_service_name.side_effect = ['foo', 'bar', 'foo']
-        relation_ids.return_value = ['rel:4', 'rel:5', 'rel:6']
-        self.assertEqual(c1.relation_ids, ['rel:1', 'rel:3'])
-        assert not remote_service_name.called
-
-        hookenv.cache.clear()
-        self.assertEqual(c1.relation_ids, ['rel:4', 'rel:6'])
-        self.assertEqual(remote_service_name.call_args_list, [
-            mock.call('rel:4'),
-            mock.call('rel:5'),
-            mock.call('rel:6'),
-        ])
-
     @mock.patch.object(relations, 'unitdata')
     @mock.patch.object(relations, 'hookenv')
     def test_join(self, hookenv, unitdata):
