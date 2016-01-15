@@ -366,7 +366,6 @@ class Conversation(object):
         return 'reactive.conversations.%s.%s' % (self.relation_name, self.scope)
 
     @property
-    @hookenv.cached
     def relation_ids(self):
         """
         The set of IDs of the specific relation instances that this conversation
