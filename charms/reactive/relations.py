@@ -1,4 +1,4 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -15,8 +15,10 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import sys
 from inspect import isclass
 
+import six
 from six import with_metaclass
 
 from charmhelpers.core import hookenv
@@ -197,17 +199,25 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
     def _find_impl(cls, role, interface):
         """
         Find relation implementation based on its role and interface.
-
-        Looks for the first file matching:
-        ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``
         """
-        hooks_dir = os.path.join(hookenv.charm_dir(), 'hooks')
-        try:
-            filepath = os.path.join(hooks_dir, 'relations', interface, role + '.py')
-            module = _load_module(filepath)
-            return cls._find_subclass(module)
-        except ImportError:
-            return None
+        if six.PY2:
+            # Looks for the first file matching:
+            # ``$CHARM_DIR/hooks/relations/{iface}/{provides,requires,peer}.py``
+            hooks_dir = os.path.join(hookenv.charm_dir(), 'hooks')
+            try:
+                filepath = os.path.join(hooks_dir, 'relations',
+                                        interface, role + '.py')
+                module = _load_module('relations', filepath)
+                return cls._find_subclass(module)
+            except ImportError:
+                return None
+        else:
+            # Already discovered and imported.
+            module = 'relations.{}.{}'.format(interface, role)
+            if module in sys.modules:
+                return cls._find_subclass(sys.modules[module])
+            else:
+                return None
 
     @classmethod
     def _find_subclass(cls, module):

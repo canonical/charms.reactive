@@ -1,4 +1,4 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -23,6 +23,7 @@ from collections import OrderedDict
 
 import mock
 from nose.plugins.attrib import attr
+import six
 
 from charmhelpers.core import unitdata
 from charms import reactive
@@ -438,6 +439,13 @@ class TestReactiveBus(unittest.TestCase):
         reactive.bus.discover()
         self.assertEqual(len(reactive.bus.Handler.get_handlers()), 8)
 
+        # The path is extended so discovered modules can perform
+        # absolute and relative imports as expected.
+        self.assertListEqual(sys.path[-2:],
+                             [charm_dir(), charm_dir() + '/hooks'])
+        sys.path.pop()  # Repair sys.path
+        sys.path.pop()
+
     @attr('slow')
     @mock.patch.dict('sys.modules')
     @mock.patch('charmhelpers.core.hookenv.relation_type')
@@ -498,18 +506,27 @@ class TestReactiveBus(unittest.TestCase):
             assert reactive.helpers.all_states('bash-when-repeat')
             assert not reactive.helpers.all_states('bash-only-once-repeat')
 
+        # The path is extended so discovered modules can perform
+        # absolute and relative imports as expected.
+        self.assertListEqual(sys.path[-2:],
+                             [charm_dir(), charm_dir() + '/hooks'])
+        sys.path.pop()  # Repair sys.path
+        sys.path.pop()
+
+
+    @unittest.skipUnless(six.PY2, 'Python2 only')
     @mock.patch.object(reactive.bus, 'sys')
     @mock.patch.object(reactive.bus.os.path, 'realpath')
     @mock.patch.object(reactive.bus, 'load_source')
-    def test_load_module(self, load_source, realpath, sys):
+    def test_load_module_py2(self, load_source, realpath, sys):
         realpath.side_effect = lambda p: os.path.join('real', os.path.basename(p))
         mod1 = mock.Mock(name='mod1', __file__='else/file1.pyc')
         mod2 = mock.Mock(name='mod2', __file__='file2.pyc')
         sys.modules = OrderedDict({'real_file1_py': mod1})
         load_source.return_value = mod2
-        self.assertEqual(reactive.bus._load_module('file1.py'), mod1)
-        self.assertEqual(reactive.bus._load_module('file2.py'), mod2)
-        self.assertEqual(reactive.bus._load_module('file2.py'), mod2)
+        self.assertEqual(reactive.bus._load_module('ign', 'file1.py'), mod1)
+        self.assertEqual(reactive.bus._load_module('ign', 'file2.py'), mod2)
+        self.assertEqual(reactive.bus._load_module('ign', 'file2.py'), mod2)
         load_source.assert_called_once_with('real_file2_py', 'real/file2.py')
         self.assertEqual(realpath.call_args_list, [
             mock.call('file1.py'), mock.call('else/file1.py'),
@@ -517,14 +534,37 @@ class TestReactiveBus(unittest.TestCase):
             mock.call('file2.py'), mock.call('else/file1.py'), mock.call('file2.py'),
         ])
 
+    @unittest.skipIf(six.PY2, 'Python3 only')
+    @mock.patch.object(reactive.bus.importlib, 'import_module')
+    def test_load_module_py3(self, import_module):
+        import_module.side_effect = lambda x: x
+        self.assertEqual(reactive.bus._load_module('/x/reactive',
+                                                   '/x/reactive/file1.py'),
+                         'reactive.file1')
+        import_module.assert_called_once_with('reactive.file1')
+
+        import_module.reset_mock()
+        mod = reactive.bus._load_module('/x/hooks/relations',
+                                        '/x/hooks/relations/iface/role.py')
+        self.assertEqual(mod, 'relations.iface.role')
+        import_module.assert_called_once_with('relations.iface.role')
+
+        import_module.reset_mock()
+        mod = reactive.bus._load_module('/x/hooks/reactive',
+                                        '/x/hooks/reactive/sub/__init__.py')
+        self.assertEqual(mod, 'reactive.sub')
+        import_module.assert_called_once_with('reactive.sub')
+
     @mock.patch.object(reactive.bus.ExternalHandler, 'register')
     @mock.patch.object(reactive.bus.os, 'access')
     @mock.patch.object(reactive.bus, '_load_module')
     def test_register_handlers_from_file(self, _load_module, access, register):
-        reactive.bus._register_handlers_from_file('reactive/foo.py')
-        _load_module.assert_called_once_with('reactive/foo.py')
+        reactive.bus._register_handlers_from_file('reactive',
+                                                  'reactive/foo.py')
+        _load_module.assert_called_once_with('reactive',
+                                             'reactive/foo.py')
         access.return_value = True
-        reactive.bus._register_handlers_from_file('reactive/foo')
+        reactive.bus._register_handlers_from_file('reactive', 'reactive/foo')
         access.assert_called_once_with('reactive/foo', os.X_OK)
         register.assert_called_once_with('reactive/foo')
 
