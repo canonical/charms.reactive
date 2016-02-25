@@ -444,6 +444,13 @@ def _load_module(filepath):
 
 
 def _register_handlers_from_file(filepath):
+    no_exec_blacklist = (
+        '.md', '.yaml', '.txt', '.ini',
+        'makefile', '.gitignore',
+        'copyright', 'license')
+    if filepath.lower().endswith(no_exec_blacklist):
+        # Don't load handlers with one of the blacklisted extensions
+        return
     if filepath.endswith('.py'):
         _load_module(filepath)
     elif os.access(filepath, os.X_OK):
