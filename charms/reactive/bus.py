@@ -341,7 +341,7 @@ class ExternalHandler(Handler):
         except OSError as oserr:
             if oserr.errno == errno.ENOEXEC:
                 raise BrokenHandlerException(self._filepath)
-            raise oserr
+            raise
         self._test_output, _ = proc.communicate()
         return proc.returncode == 0
 
