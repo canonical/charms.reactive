@@ -16,6 +16,7 @@
 
 import os
 import sys
+import errno
 import shutil
 import tempfile
 import unittest
@@ -244,6 +245,12 @@ class TestExternalHandler(unittest.TestCase):
         Popen.return_value.returncode = 1
         assert not handler.test()
         Popen.assert_called_with(['filepath', '--test'], stdout=reactive.bus.subprocess.PIPE, env='env')
+
+        e = Popen.side_effect = OSError()
+        e.errno = errno.ENOEXEC
+        self.assertRaises(reactive.bus.BrokenHandlerException, handler.test)
+        e.errno = errno.ENOENT
+        self.assertRaises(OSError, handler.test)
 
     @mock.patch.object(os, 'environ', 'env')
     @mock.patch.object(reactive.bus.subprocess, 'check_call')
@@ -527,6 +534,10 @@ class TestReactiveBus(unittest.TestCase):
         reactive.bus._register_handlers_from_file('reactive/foo')
         access.assert_called_once_with('reactive/foo', os.X_OK)
         register.assert_called_once_with('reactive/foo')
+
+        register.reset_mock()
+        reactive.bus._register_handlers_from_file('hooks/relations/foo/README.md')
+        assert not register.called
 
 
 if __name__ == '__main__':
