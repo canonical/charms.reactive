@@ -222,6 +222,29 @@ class TestReactiveHelpers(unittest.TestCase):
         self.kv.set('reactive.dispatch.phase', 'other')
         assert test(), 'when_all: other; both'
 
+    def test__when_any(self):
+        test = lambda: reactive.helpers._when_any(['state1', 'state2'])
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        assert not test(), 'when_any: hooks; none'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert not test(), 'when_any: other; none'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state1')
+        assert not test(), 'when_any: hooks; one'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test(), 'when_any: other; one'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state2')
+        assert not test(), 'when_any: hooks; both'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test(), 'when_any: other; both'
+
     def test__when_none(self):
         test = lambda: reactive.helpers._when_none(['state1', 'state2'])
 
@@ -244,3 +267,26 @@ class TestReactiveHelpers(unittest.TestCase):
 
         self.kv.set('reactive.dispatch.phase', 'other')
         assert not test(), 'when_none: other; both'
+
+    def test__when_not_all(self):
+        test = lambda: reactive.helpers._when_not_all(['state1', 'state2'])
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        assert not test(), 'when_not_all: hooks; none'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test(), 'when_not_all: other; none'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state1')
+        assert not test(), 'when_not_all: hooks; one'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert test(), 'when_not_all: other; one'
+
+        self.kv.set('reactive.dispatch.phase', 'hooks')
+        reactive.bus.set_state('state2')
+        assert not test(), 'when_not_all: hooks; both'
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        assert not test(), 'when_not_all: other; both'
