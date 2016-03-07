@@ -98,7 +98,11 @@ function reactive_handler_main() {
 
 alias @hook='@decorator hook'
 alias @when='@decorator when'
+alias @when_all='@decorator when_all'
+alias @when_any='@decorator when_any'
 alias @when_not='@decorator when_not'
+alias @when_none='@decorator when_none'
+alias @when_not_all='@decorator when_not_all'
 alias @when_file_changed='@decorator when_file_changed'
 alias @only_once='@decorator only_once'
 alias set_state='charms.reactive set_state'
