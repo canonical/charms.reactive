@@ -22,6 +22,7 @@ from six import with_metaclass
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
+from charms.reactive.bus import get_states
 from charms.reactive.bus import get_state
 from charms.reactive.bus import set_state
 from charms.reactive.bus import remove_state
@@ -377,17 +378,25 @@ class Conversation(object):
     Conversations use the idea of :class:`scope` to determine how units and
     services are grouped together.
     """
-    def __init__(self, relation_name=None, units=None, scope=None):
-        self.relation_name = relation_name or hookenv.relation_type()
-        self.units = set(units or [hookenv.remote_unit()])
-        self.scope = scope or hookenv.remote_unit()
+    def __init__(self, namespace, units, scope):
+        self.namespace = namespace
+        self.units = set(units)
+        self.scope = scope
+
+    @classmethod
+    def _key(cls, namespace, scope):
+        return 'reactive.conversations.%s.%s' % (namespace, scope)
 
     @property
     def key(self):
         """
         The key under which this conversation will be stored.
         """
-        return 'reactive.conversations.%s.%s' % (self.relation_name, self.scope)
+        return self._key(self.namespace, self.scope)
+
+    @property
+    def relation_name(self):
+        return self.namespace.split(':')[0]
 
     @property
     def relation_ids(self):
@@ -395,12 +404,13 @@ class Conversation(object):
         The set of IDs of the specific relation instances that this conversation
         is communicating with.
         """
-        relation_ids = []
-        services = set(unit.split('/')[0] for unit in self.units)
-        for relation_id in hookenv.relation_ids(self.relation_name):
-            if hookenv.remote_service_name(relation_id) in services:
-                relation_ids.append(relation_id)
-        return relation_ids
+        if self.scope == scopes.GLOBAL:
+            # the namespace is the relation name and this conv speaks for all
+            # connected instances of that relation
+            return hookenv.relation_ids(self.namespace)
+        else:
+            # the namespace is the relation ID
+            return [self.namespace]
 
     @classmethod
     def join(cls, scope):
@@ -414,14 +424,20 @@ class Conversation(object):
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
         """
         relation_name = hookenv.relation_type()
+        relation_id = hookenv.relation_id()
         unit = hookenv.remote_unit()
         service = hookenv.remote_service_name()
         if scope is scopes.UNIT:
             scope = unit
+            namespace = relation_id
         elif scope is scopes.SERVICE:
             scope = service
-        key = 'reactive.conversations.%s.%s' % (relation_name, scope)
-        conversation = cls.deserialize(unitdata.kv().get(key, {'scope': scope}))
+            namespace = relation_id
+        else:
+            namespace = relation_name
+        key = cls._key(namespace, scope)
+        data = unitdata.kv().get(key, {'namespace': namespace, 'scope': scope, 'units': []})
+        conversation = cls.deserialize(data)
         conversation.units.add(unit)
         unitdata.kv().set(key, cls.serialize(conversation))
         return conversation
@@ -454,8 +470,8 @@ class Conversation(object):
         Serialize a conversation instance for storage.
         """
         return {
-            'relation_name': conversation.relation_name,
-            'units': list(conversation.units),
+            'namespace': conversation.namespace,
+            'units': sorted(conversation.units),
             'scope': conversation.scope,
         }
 
@@ -641,6 +657,48 @@ class Conversation(object):
         """
         key = '%s.%s.%s' % (self.key, 'local-data', key)
         return unitdata.kv().get(key, default)
+
+
+def _migrate_conversations():
+    """
+    Due to issue #28 (https://github.com/juju-solutions/charms.reactive/issues/28),
+    conversations needed to be updated to be namespaced per relation ID for SERVICE
+    and UNIT scope.  To ensure backwards compatibility, this updates all convs in
+    the old format to the new.
+
+    TODO: Remove in 2.0.0
+    """
+    for key, data in unitdata.kv().getrange('reactive.conversations.').items():
+        if 'namespace' in data:
+            continue
+        relation_name = data.pop('relation_name')
+        if data['scope'] == scopes.GLOBAL:
+            data['namespace'] = relation_name
+            unitdata.kv().set(key, data)
+        else:
+            # split the conv based on the relation ID
+            new_keys = []
+            for rel_id in hookenv.relation_ids(relation_name):
+                new_key = Conversation._key(rel_id, data['scope'])
+                new_units = set(hookenv.related_units(rel_id)) & set(data['units'])
+                if new_units:
+                    unitdata.kv().set(new_key, {
+                        'namespace': rel_id,
+                        'scope': data['scope'],
+                        'units': sorted(new_units),
+                    })
+                    new_keys.append(new_key)
+            unitdata.kv().unset(key)
+            # update the states pointing to the old conv key to point to the
+            # (potentially multiple) new key(s)
+            for state, value in get_states().items():
+                if not value:
+                    continue
+                if key not in value['conversations']:
+                    continue
+                value['conversations'].remove(key)
+                value['conversations'].extend(new_keys)
+                set_state(state, value)
 
 
 @cmdline.subcommand()
