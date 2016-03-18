@@ -18,6 +18,7 @@ import importlib
 import os
 import re
 import sys
+import errno
 import subprocess
 from itertools import chain
 from functools import partial
@@ -37,6 +38,14 @@ _log_opts = os.environ.get('REACTIVE_LOG_OPTS', '').split(',')
 LOG_OPTS = {
     'register': 'register' in _log_opts,
 }
+
+
+class BrokenHandlerException(Exception):
+    def __init__(self, path):
+        message = ("File at '{}' is marked as executable but "
+                   "execution failed. Only handler files may be marked "
+                   "as executable.".format(path))
+        super(BrokenHandlerException, self).__init__(message)
 
 
 class State(str):
@@ -323,7 +332,12 @@ class ExternalHandler(Handler):
         # flush to ensure external process can see states as they currently
         # are, and write states (flush releases lock)
         unitdata.kv().flush()
-        proc = subprocess.Popen([self._filepath, '--test'], stdout=subprocess.PIPE, env=os.environ)
+        try:
+            proc = subprocess.Popen([self._filepath, '--test'], stdout=subprocess.PIPE, env=os.environ)
+        except OSError as oserr:
+            if oserr.errno == errno.ENOEXEC:
+                raise BrokenHandlerException(self._filepath)
+            raise
         self._test_output, _ = proc.communicate()
         return proc.returncode == 0
 
@@ -467,6 +481,13 @@ def _load_module(root, filepath):
 
 
 def _register_handlers_from_file(root, filepath):
+    no_exec_blacklist = (
+        '.md', '.yaml', '.txt', '.ini',
+        'makefile', '.gitignore',
+        'copyright', 'license')
+    if filepath.lower().endswith(no_exec_blacklist):
+        # Don't load handlers with one of the blacklisted extensions
+        return
     if filepath.endswith('.py'):
         _load_module(root, filepath)
     elif os.access(filepath, os.X_OK):

@@ -10,6 +10,14 @@ function test_when() {
     set_state 'bash-when'
 }
 
+@when_any 'test'
+function test_when_any() {
+    if any_states 'bash-when-any'; then
+        set_state 'bash-when-any-repeat'
+    fi
+    set_state 'bash-when-any'
+}
+
 @when 'test-not'
 function test_when_neg() {
     if any_states 'bash-when-neg'; then
@@ -32,6 +40,14 @@ function test_when_not_neg() {
         set_state 'bash-when-not-neg-repeat'
     fi
     set_state 'bash-when-not-neg'
+}
+
+@when_not 'test-not-all'
+function test_when_not_all() {
+    if any_states 'bash-when-not-all'; then
+        set_state 'bash-when-not-all-repeat'
+    fi
+    set_state 'bash-when-not-all'
 }
 
 @when 'test'
