@@ -129,12 +129,8 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_any.assert_called_once_with(('foo', 'bar', 'qux'))
-        self.assertEqual(RelationBase.from_state.call_args_list, [
-            mock.call('foo'),
-            mock.call('bar'),
-            mock.call('qux'),
-        ])
-        action.assert_called_once_with('rel')
+        assert not RelationBase.from_state.called
+        action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'RelationBase')
