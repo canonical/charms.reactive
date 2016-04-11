@@ -112,7 +112,6 @@ def when_any(*desired_states):
     def _register(action):
         handler = Handler.get(action)
         handler.add_predicate(partial(_when_any, desired_states))
-        handler.add_args(filter(None, map(RelationBase.from_state, desired_states)))
         handler.register_states(desired_states)
         return action
     return _register
