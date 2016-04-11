@@ -1,4 +1,5 @@
-from distutils.core import setup
+from setuptools import setup
+from sphinx_pypi_upload import UploadDoc
 import os
 
 
@@ -14,6 +15,9 @@ SETUP = {
     'author': "Ubuntu Developers",
     'author_email': "ubuntu-devel-discuss@lists.ubuntu.com",
     'url': "https://github.com/juju-solutions/charms.reactive",
+    'cmdclass': {
+        'upload_sphinx': UploadDoc,
+    },
     'packages': [
         "charms",
         "charms.reactive",
@@ -32,11 +36,6 @@ SETUP = {
     'description': 'Framework for writing reactive-style Juju Charms',
 }
 
-try:
-    from sphinx_pypi_upload import UploadDoc
-    SETUP['cmdclass'] = {'upload_sphinx': UploadDoc}
-except ImportError:
-    pass
 
 if __name__ == '__main__':
     setup(**SETUP)
