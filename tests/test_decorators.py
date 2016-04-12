@@ -103,6 +103,11 @@ class TestReactiveDecorators(unittest.TestCase):
         action.assert_called_once_with('rel')
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
+        action.reset_mock()
+        assert handler.test()
+        handler.invoke()
+        action.assert_called_once_with('rel')
+
     @mock.patch.object(reactive.decorators, 'when_all')
     def test_when(self, when_all):
         @reactive.when('foo', 'bar', 'qux')
