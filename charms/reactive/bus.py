@@ -267,7 +267,10 @@ class Handler(object):
         """
         Lazily evaluate the args.
         """
-        return list(chain.from_iterable(self._args))
+        if not hasattr(self, '_args_evaled'):
+            # cache the args in case handler is re-invoked due to states change
+            self._args_evaled = list(chain.from_iterable(self._args))
+        return self._args_evaled
 
     def invoke(self):
         """
