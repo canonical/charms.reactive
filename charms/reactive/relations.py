@@ -669,6 +669,8 @@ def _migrate_conversations():
     TODO: Remove in 2.0.0
     """
     for key, data in unitdata.kv().getrange('reactive.conversations.').items():
+        if 'local-data' in key:
+            continue
         if 'namespace' in data:
             continue
         relation_name = data.pop('relation_name')
