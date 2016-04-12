@@ -71,6 +71,7 @@ class TestReactiveDecorators(unittest.TestCase):
         RelationBase.from_name.assert_called_once_with('rel_type')
         action.assert_called_once_with('RB.from_name')
 
+        delattr(handler, '_args_evaled')
         action.reset_mock()
         RelationBase.from_name.return_value = None
         handler.invoke()
