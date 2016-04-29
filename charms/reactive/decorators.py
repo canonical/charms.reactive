@@ -25,7 +25,9 @@ from charms.reactive.relations import RelationBase
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _setup
 from charms.reactive.helpers import _when_all
+from charms.reactive.helpers import _when_any
 from charms.reactive.helpers import _when_none
+from charms.reactive.helpers import _when_not_all
 from charms.reactive.helpers import any_file_changed
 from charms.reactive.helpers import was_invoked
 from charms.reactive.helpers import mark_invoked
@@ -136,6 +138,28 @@ def when_all(*desired_states):
     return _register
 
 
+def when_any(*desired_states):
+    """
+    Register the decorated function to run when any of ``desired_states`` are active.
+
+    This decorator will never cause arguments to be passed into to the handler,
+    even for states which are set by relations, since that would make the
+    parameter bindings ambiguous.  Therefore, it is not generally recommended
+    to use this with relation states; however, if you do need to, you can get
+    the relation instance associated with a state using
+    :func:`~charms.reactive.relations.RelationBase.from_state`.
+
+    Note that handlers whose conditions match are triggered at least once per
+    hook invocation.
+    """
+    def _register(action):
+        handler = Handler.get(action)
+        handler.add_predicate(partial(_when_any, desired_states))
+        handler.register_states(desired_states)
+        return action
+    return _register
+
+
 def when_not(*desired_states):
     """
     Alias for `when_none`.
@@ -156,6 +180,24 @@ def when_none(*desired_states):
     def _register(action):
         handler = Handler.get(action)
         handler.add_predicate(partial(_when_none, desired_states))
+        handler.register_states(desired_states)
+        return action
+    return _register
+
+
+def when_not_all(*desired_states):
+    """
+    Register the decorated function to run when one or more of the
+    ``desired_states`` are not active.
+
+    This decorator will never cause arguments to be passed to the handler.
+
+    Note that handlers whose conditions match are triggered at least once per
+    hook invocation.
+    """
+    def _register(action):
+        handler = Handler.get(action)
+        handler.add_predicate(partial(_when_not_all, desired_states))
         handler.register_states(desired_states)
         return action
     return _register

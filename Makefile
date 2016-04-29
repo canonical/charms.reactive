@@ -1,5 +1,5 @@
 PROJECT=charms
-PYTHON := /usr/bin/env python
+PYTHON := .tox/py2/bin/python
 SUITE=unstable
 TESTS=tests/
 VERSION=$(shell cat VERSION)

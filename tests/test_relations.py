@@ -31,6 +31,7 @@ class TestAutoAccessors(unittest.TestCase):
         kv_p = mock.patch.object(relations.unitdata, 'kv')
         self.kv = kv_p.start()
         self.addCleanup(kv_p.stop)
+        self.kv.return_value.get.side_effect = lambda k, v=None: v
 
     def test_accessor_doc(self):
         self.assertEqual(DummyRelationSubclass.field_one.__doc__, 'Get the field-one, if available, or None.')
@@ -151,6 +152,25 @@ class TestRelationBase(unittest.TestCase):
         rb.conversation.assert_called_once_with('scope')
         conv.remove_state.assert_called_once_with('state')
 
+    def test_is_state(self):
+        conv = mock.Mock(name='conv')
+        rb = relations.RelationBase('relname', 'unit')
+        rb.conversation = mock.Mock(return_value=conv)
+        rb.conversation.return_value.is_state.return_value = False
+        assert not rb.is_state('state', 'scope')
+        rb.conversation.assert_called_once_with('scope')
+        conv.is_state.assert_called_once_with('state')
+        rb.conversation.return_value.is_state.return_value = True
+        assert rb.is_state('state', 'scope')
+
+    def test_toggle_state(self):
+        conv = mock.Mock(name='conv')
+        rb = relations.RelationBase('relname', 'unit')
+        rb.conversation = mock.Mock(return_value=conv)
+        rb.toggle_state('state', 'active', 'scope')
+        rb.conversation.assert_called_once_with('scope')
+        conv.toggle_state.assert_called_once_with('state', 'active')
+
     def test_set_remote(self):
         conv = mock.Mock(name='conv')
         rb = relations.RelationBase('relname', 'unit')
@@ -190,97 +210,86 @@ class TestConversation(unittest.TestCase):
         if not hasattr(cls, 'assertItemsEqual'):
             cls.assertItemsEqual = cls.assertCountEqual
 
-    @mock.patch.object(relations, 'hookenv')
-    def test_init(self, hookenv):
-        hookenv.relation_type.return_value = 'relation_type'
-        hookenv.remote_unit.return_value = 'remote_unit'
-
-        c1 = relations.Conversation()
-        self.assertEqual(c1.relation_name, 'relation_type')
-        self.assertEqual(c1.units, set(['remote_unit']))
-        self.assertEqual(c1.scope, 'remote_unit')
-
-        c2 = relations.Conversation('rel', ['unit'], 'scope')
-        self.assertEqual(c2.relation_name, 'rel')
-        self.assertEqual(c2.units, set(['unit']))
-        self.assertEqual(c2.scope, 'scope')
-
     def test_key(self):
         c1 = relations.Conversation('rel', ['unit'], 'scope')
         self.assertEqual(c1.key, 'reactive.conversations.rel.scope')
 
-    @mock.patch.object(relations.hookenv, 'remote_service_name')
     @mock.patch.object(relations.hookenv, 'relation_ids')
-    def test_relation_ids(self, relation_ids, remote_service_name):
-        relation_ids.return_value = ['rel:1', 'rel:2', 'rel:3']
-        remote_service_name.side_effect = ['foo', 'bar', 'foo']
-        c1 = relations.Conversation('rel', ['foo/1', 'qux/1', 'foo/2'], 'scope')
-        self.assertEqual(c1.relation_ids, ['rel:1', 'rel:3'])
-        self.assertEqual(remote_service_name.call_args_list, [
-            mock.call('rel:1'),
-            mock.call('rel:2'),
-            mock.call('rel:3'),
-        ])
+    def test_relation_ids(self, relation_ids):
+        relation_ids.return_value = ['rel:1', 'rel:2']
+        c1 = relations.Conversation('rel:0', [], 'scope')
+        self.assertEqual(c1.relation_ids, ['rel:0'])
+        assert not relation_ids.called
+
+        c2 = relations.Conversation('rel', [], relations.scopes.GLOBAL)
+        self.assertEqual(c2.relation_ids, ['rel:1', 'rel:2'])
         relation_ids.assert_called_once_with('rel')
-
-        # test cache
-        remote_service_name.reset_mock()
-        remote_service_name.side_effect = ['foo', 'bar', 'foo']
-        relation_ids.return_value = ['rel:4', 'rel:5', 'rel:6']
-        self.assertEqual(c1.relation_ids, ['rel:1', 'rel:3'])
-        assert not remote_service_name.called
-
-        hookenv.cache.clear()
-        self.assertEqual(c1.relation_ids, ['rel:4', 'rel:6'])
-        self.assertEqual(remote_service_name.call_args_list, [
-            mock.call('rel:4'),
-            mock.call('rel:5'),
-            mock.call('rel:6'),
-        ])
 
     @mock.patch.object(relations, 'unitdata')
     @mock.patch.object(relations, 'hookenv')
     def test_join(self, hookenv, unitdata):
         hookenv.relation_type.return_value = 'relation_type'
+        hookenv.relation_id.return_value = 'relation_type:0'
         hookenv.remote_unit.return_value = 'service/0'
         hookenv.remote_service_name.return_value = 'service'
         unitdata.kv().get.side_effect = [
-            {'scope': 'scope'},
             {
-                'relation_name': 'relation_type',
-                'units': {'service/1'},
+                'namespace': 'relation_type',
+                'units': [],
+                'scope': 'my-global',
+            },
+            {
+                'namespace': 'relation_type:0',
+                'units': ['service/1'],
                 'scope': 'service',
             },
-            {'scope': 'service/0'},
+            {
+                'namespace': 'relation_type:0',
+                'units': [],
+                'scope': 'service/0',
+            },
         ]
-        conv = relations.Conversation.join('scope')
-        self.assertEqual(conv.relation_name, 'relation_type')
+        conv = relations.Conversation.join('my-global')
+        self.assertEqual(conv.namespace, 'relation_type')
         self.assertEqual(conv.units, {'service/0'})
-        self.assertEqual(conv.scope, 'scope')
-        unitdata.kv().get.assert_called_with('reactive.conversations.relation_type.scope', {'scope': 'scope'})
-        unitdata.kv().set.assert_called_with('reactive.conversations.relation_type.scope', {
-            'relation_name': 'relation_type',
+        self.assertEqual(conv.scope, 'my-global')
+        unitdata.kv().get.assert_called_with('reactive.conversations.relation_type.my-global', {
+            'namespace': 'relation_type',
+            'scope': 'my-global',
+            'units': [],
+        })
+        unitdata.kv().set.assert_called_with('reactive.conversations.relation_type.my-global', {
+            'namespace': 'relation_type',
             'units': ['service/0'],
-            'scope': 'scope',
+            'scope': 'my-global',
         })
 
         conv = relations.Conversation.join(relations.scopes.SERVICE)
-        self.assertEqual(conv.relation_name, 'relation_type')
+        self.assertEqual(conv.namespace, 'relation_type:0')
         self.assertEqual(conv.units, {'service/0', 'service/1'})
         self.assertEqual(conv.scope, 'service')
-        unitdata.kv().get.assert_called_with('reactive.conversations.relation_type.service', {'scope': 'service'})
-        self.assertEqual(unitdata.kv().set.call_args[0][0], 'reactive.conversations.relation_type.service')
-        self.assertEqual(unitdata.kv().set.call_args[0][1]['relation_name'], 'relation_type')
-        self.assertItemsEqual(unitdata.kv().set.call_args[0][1]['units'], ['service/0', 'service/1'])
-        self.assertEqual(unitdata.kv().set.call_args[0][1]['scope'], 'service')
+        unitdata.kv().get.assert_called_with('reactive.conversations.relation_type:0.service', {
+            'namespace': 'relation_type:0',
+            'scope': 'service',
+            'units': [],
+        })
+        unitdata.kv().set.assert_called_with('reactive.conversations.relation_type:0.service', {
+            'namespace': 'relation_type:0',
+            'units': ['service/0', 'service/1'],
+            'scope': 'service',
+        })
 
         conv = relations.Conversation.join(relations.scopes.UNIT)
         self.assertEqual(conv.relation_name, 'relation_type')
         self.assertEqual(conv.units, {'service/0'})
         self.assertEqual(conv.scope, 'service/0')
-        unitdata.kv().get.assert_called_with('reactive.conversations.relation_type.service/0', {'scope': 'service/0'})
-        unitdata.kv().set.assert_called_with('reactive.conversations.relation_type.service/0', {
-            'relation_name': 'relation_type',
+        unitdata.kv().get.assert_called_with('reactive.conversations.relation_type:0.service/0', {
+            'namespace': 'relation_type:0',
+            'scope': 'service/0',
+            'units': [],
+        })
+        unitdata.kv().set.assert_called_with('reactive.conversations.relation_type:0.service/0', {
+            'namespace': 'relation_type:0',
             'units': ['service/0'],
             'scope': 'service/0',
         })
@@ -293,7 +302,7 @@ class TestConversation(unittest.TestCase):
         conv.depart()
         self.assertEqual(conv.units, {'service/1'}, 'scope')
         unitdata.kv().set.assert_called_with(conv.key, {
-            'relation_name': 'rel',
+            'namespace': 'rel',
             'units': ['service/1'],
             'scope': 'scope',
         })
@@ -308,16 +317,16 @@ class TestConversation(unittest.TestCase):
     @mock.patch.object(relations, 'unitdata')
     def test_load(self, unitdata):
         unitdata.kv().get.side_effect = [
-            {'relation_name': 'rel1', 'units': ['service/0'], 'scope': 'scope'},
+            {'namespace': 'rel:1', 'units': ['service/0'], 'scope': 'scope'},
             None,
-            {'relation_name': 'rel2', 'units': ['service/1'], 'scope': 'service'},
+            {'namespace': 'rel:2', 'units': ['service/1'], 'scope': 'service'},
         ]
         convs = relations.Conversation.load(['key1', 'key2', 'key3'])
         self.assertEqual(len(convs), 2)
-        self.assertEqual(convs[0].relation_name, 'rel1')
+        self.assertEqual(convs[0].relation_name, 'rel')
         self.assertEqual(convs[0].units, {'service/0'})
         self.assertEqual(convs[0].scope, 'scope')
-        self.assertEqual(convs[1].relation_name, 'rel2')
+        self.assertEqual(convs[1].relation_name, 'rel')
         self.assertEqual(convs[1].units, {'service/1'})
         self.assertEqual(convs[1].scope, 'service')
         self.assertEqual(unitdata.kv().get.call_args_list, [
@@ -473,6 +482,91 @@ class TestConversation(unittest.TestCase):
         conv = relations.Conversation('rel', ['srv1/0', 'srv2/0', 'srv2/1'], 'scope')
         conv.get_local('foo', 'default')
         kv().get.assert_called_once_with('reactive.conversations.rel.scope.local-data.foo', 'default')
+
+
+class TestMigrateConvs(unittest.TestCase):
+    @mock.patch.object(relations, 'set_state')
+    @mock.patch.object(relations, 'get_states')
+    @mock.patch.object(relations, 'hookenv')
+    @mock.patch.object(relations.unitdata, 'kv')
+    def test_migrate(self, kv, mhookenv, get_states, set_state):
+        kv().getrange.side_effect = [
+            {'reactive.conversations.rel:0.service': {
+                'namespace': 'rel:0',
+            }},
+            {'reactive.conversations.rel.global': {
+                'relation_name': 'rel',
+                'scope': 'global',
+                'units': ['service/0', 'service/1', 'service/3'],
+            }},
+            {'reactive.conversations.rel.service': {
+                'relation_name': 'rel',
+                'scope': 'service',
+                'units': ['service/0', 'service/1', 'service/3'],
+            }},
+            {'reactive.conversations.rel.service/3': {
+                'relation_name': 'rel',
+                'scope': 'service/3',
+                'units': ['service/3'],
+            }},
+        ]
+        mhookenv.relation_ids.return_value = ['rel:1', 'rel:2']
+        mhookenv.related_units.side_effect = [
+            ['service/0', 'service/2'], ['service/3'],
+            ['service/0', 'service/2'], ['service/3'],
+        ]
+        get_states.side_effect = [
+            {
+                'rel.joined': {'conversations': ['reactive.conversations.rel.service']},
+                'foo': None,
+            },
+            {
+                'rel.joined': {'conversations': ['reactive.conversations.rel.service/3']},
+                'foo': {'conversations': []},
+            },
+        ]
+        relations._migrate_conversations()
+        assert not kv().set.called
+
+        kv().set.reset_mock()
+        relations._migrate_conversations()
+        kv().set.assert_called_with('reactive.conversations.rel.global', {
+            'namespace': 'rel',
+            'scope': 'global',
+            'units': ['service/0', 'service/1', 'service/3'],
+        })
+        assert not kv().unset.called
+        assert not set_state.called
+
+        kv().set.reset_mock()
+        relations._migrate_conversations()
+        kv().set.assert_any_call('reactive.conversations.rel:1.service', {
+            'namespace': 'rel:1',
+            'scope': 'service',
+            'units': ['service/0'],
+        })
+        kv().set.assert_called_with('reactive.conversations.rel:2.service', {
+            'namespace': 'rel:2',
+            'scope': 'service',
+            'units': ['service/3'],
+        })
+        kv().unset.assert_called_with('reactive.conversations.rel.service')
+        set_state.assert_called_with('rel.joined', {'conversations': [
+            'reactive.conversations.rel:1.service',
+            'reactive.conversations.rel:2.service',
+        ]})
+
+        kv().set.reset_mock()
+        relations._migrate_conversations()
+        kv().set.assert_called_with('reactive.conversations.rel:2.service/3', {
+            'namespace': 'rel:2',
+            'scope': 'service/3',
+            'units': ['service/3'],
+        })
+        kv().unset.assert_called_with('reactive.conversations.rel.service/3')
+        set_state.assert_called_with('rel.joined', {'conversations': [
+            'reactive.conversations.rel:2.service/3',
+        ]})
 
 
 class TestRelationCall(unittest.TestCase):

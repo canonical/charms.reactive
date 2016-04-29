@@ -28,13 +28,16 @@ from .decorators import hook  # noqa
 from .decorators import setup  # noqa
 from .decorators import when  # noqa
 from .decorators import when_all  # noqa
+from .decorators import when_any  # noqa
 from .decorators import when_not  # noqa
 from .decorators import when_none  # noqa
+from .decorators import when_not_all  # noqa
 from .decorators import not_unless  # noqa
 from .decorators import only_once  # noqa
 from .decorators import when_file_changed  # noqa
 
 from . import bus
+from . import relations
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 
@@ -57,6 +60,9 @@ def main(relation_name=None):
     # ensure that external handlers can tell what hook they're running in
     if 'JUJU_HOOK_NAME' not in os.environ:
         os.environ['JUJU_HOOK_NAME'] = os.path.basename(sys.argv[0])
+
+    # update data to be backwards compatible after fix for issue 28
+    relations._migrate_conversations()
 
     def flush_kv():
         if unitdata._KV:

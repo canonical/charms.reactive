@@ -201,6 +201,16 @@ def _when_all(states):
     return dispatch_phase == 'other' and all_states(*states)
 
 
+def _when_any(states):
+    dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
+    return dispatch_phase == 'other' and any_states(*states)
+
+
 def _when_none(states):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
     return dispatch_phase == 'other' and not any_states(*states)
+
+
+def _when_not_all(states):
+    dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
+    return dispatch_phase == 'other' and not all_states(*states)

@@ -52,6 +52,15 @@ def when_all(*desired_states):
 
 @cmdline.subcommand()
 @cmdline.test_command
+def when_any(*desired_states):
+    """
+    Check if any of the desired_states are active and have changed.
+    """
+    return helpers._when_any(desired_states)
+
+
+@cmdline.subcommand()
+@cmdline.test_command
 def when_not(*desired_states):
     """
     Alias of when_none.
@@ -66,6 +75,15 @@ def when_none(*desired_states):
     Check if none of the desired_states are active and have changed.
     """
     return helpers._when_none(desired_states)
+
+
+@cmdline.subcommand()
+@cmdline.test_command
+def when_not_all(*desired_states):
+    """
+    Check if at least one of the desired_states is not active.
+    """
+    return helpers._when_not_all(desired_states)
 
 
 @cmdline.subcommand()
@@ -121,8 +139,20 @@ def test(*handlers):
             elif test_name == 'when':
                 result &= when(*test_args)
                 states.update(test_args)
+            elif test_name == 'when_all':
+                result &= when_all(*test_args)
+                states.update(test_args)
+            elif test_name == 'when_any':
+                result &= when_any(*test_args)
+                states.update(test_args)
             elif test_name == 'when_not':
                 result &= when_not(*test_args)
+                states.update(test_args)
+            elif test_name == 'when_none':
+                result &= when_none(*test_args)
+                states.update(test_args)
+            elif test_name == 'when_not_all':
+                result &= when_not_all(*test_args)
                 states.update(test_args)
             elif test_name == 'when_file_changed':
                 result &= when_file_changed(*test_args)
