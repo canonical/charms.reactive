@@ -71,6 +71,7 @@ class TestReactiveDecorators(unittest.TestCase):
         RelationBase.from_name.assert_called_once_with('rel_type')
         action.assert_called_once_with('RB.from_name')
 
+        delattr(handler, '_args_evaled')
         action.reset_mock()
         RelationBase.from_name.return_value = None
         handler.invoke()
@@ -103,6 +104,11 @@ class TestReactiveDecorators(unittest.TestCase):
         action.assert_called_once_with('rel')
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
+        action.reset_mock()
+        assert handler.test()
+        handler.invoke()
+        action.assert_called_once_with('rel')
+
     @mock.patch.object(reactive.decorators, 'when_all')
     def test_when(self, when_all):
         @reactive.when('foo', 'bar', 'qux')
@@ -129,12 +135,8 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_any.assert_called_once_with(('foo', 'bar', 'qux'))
-        self.assertEqual(RelationBase.from_state.call_args_list, [
-            mock.call('foo'),
-            mock.call('bar'),
-            mock.call('qux'),
-        ])
-        action.assert_called_once_with('rel')
+        assert not RelationBase.from_state.called
+        action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'RelationBase')

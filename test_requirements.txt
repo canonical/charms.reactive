@@ -5,3 +5,4 @@ nose
 flake8
 ipython
 ipdb
+sphinx_pypi_upload
