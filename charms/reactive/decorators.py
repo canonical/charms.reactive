@@ -1,4 +1,4 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -22,6 +22,7 @@ from charms.reactive.bus import Handler
 from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
 from charms.reactive.relations import RelationBase
+from charms.reactive.helpers import _action
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _setup
 from charms.reactive.helpers import _when_all
@@ -66,6 +67,28 @@ def hook(*hook_patterns):
         handler.add_predicate(partial(_hook, hook_patterns))
         handler.add_args(arg_gen())
         return action
+    return _register
+
+
+def action(action_name):
+    """
+    Register the decorated function to run when the given action is invoked.
+    It must accept a single argument, which will be a dictionary containing
+    the parameters from the `action-get` hook environment tool.
+
+    Note that action decorators **cannot** be combined with :func:`when` or
+    :func:`when_not` decorators.
+    """
+    def _register(action_func):
+        def arg_gen():
+            # Use a generate to defer the call to hookenv.action_get()
+            params = hookenv.action_get()
+            yield params
+
+        handler = Handler.get(action_func)
+        handler.add_predicate(partial(_action, action_name))
+        handler.add_args(arg_gen())
+        return action_func
     return _register
 
 

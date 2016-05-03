@@ -407,9 +407,11 @@ class TestReactiveBus(unittest.TestCase):
             mock.call('h3'),
         ])
 
+    @mock.patch.object(reactive.bus.hookenv, 'action_name')
     @mock.patch.object(reactive.bus.hookenv, 'hook_name')
     @mock.patch.object(reactive.bus.Handler, 'get_handlers')
-    def test_dispatch_hook(self, get_handlers, hook_name):
+    def test_dispatch_hook(self, get_handlers, hook_name, action_name):
+        action_name.return_value = None
         hook_name.return_value = 'fook'
         reactive.bus.set_state('foos')
         a = mock.Mock(name='a')
@@ -434,6 +436,33 @@ class TestReactiveBus(unittest.TestCase):
             mock.call('h2'),
             mock.call('h1'),
         ])
+
+    @mock.patch.object(reactive.bus.hookenv, 'action_get')
+    @mock.patch.object(reactive.bus.hookenv, 'action_name')
+    @mock.patch.object(reactive.bus.Handler, 'get_handlers')
+    def test_dispatch_action(self, get_handlers, action_name, action_get):
+        action_name.return_value = 'kill-the-wabbit'
+        action_get.return_value = mock.sentinel.params
+        reactive.bus.set_state('a-state')
+
+        m_action = mock.MagicMock()
+        m_handler = mock.MagicMock()
+
+        @reactive.decorators.action('kill-the-wabbit')
+        def a_action(*args):
+            m_action(*args)
+
+        @reactive.decorators.when('a-state')
+        def a_handler(*args):
+            m_handler(*args)
+
+        h_action = reactive.bus.Handler.get(a_action)
+        h_handler = reactive.bus.Handler.get(a_handler)
+
+        get_handlers.return_value = [h_action, h_handler]
+        reactive.bus.dispatch()
+        m_action.assert_called_once_with(mock.sentinel.params)
+        m_handler.assert_called_once_with()
 
     @mock.patch.dict('sys.modules')
     @mock.patch('charmhelpers.core.hookenv.charm_dir')

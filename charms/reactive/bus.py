@@ -1,8 +1,8 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of the charms.reactive Python library.
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
@@ -408,13 +408,18 @@ def dispatch():
                     break
         StateWatch.commit()
 
+    action_name = hookenv.action_name()
+
     unitdata.kv().set('reactive.dispatch.phase', 'setup')
     setup_handlers = _test(Handler.get_handlers())
     _invoke(setup_handlers)
 
-    unitdata.kv().set('reactive.dispatch.phase', 'hooks')
-    hook_handlers = _test(Handler.get_handlers())
-    _invoke(hook_handlers)
+    if action_name:
+        unitdata.kv().set('reactive.dispatch.phase', 'actions')
+    else:
+        unitdata.kv().set('reactive.dispatch.phase', 'hooks')
+    entry_handlers = _test(Handler.get_handlers())
+    _invoke(entry_handlers)
 
     unitdata.kv().set('reactive.dispatch.phase', 'other')
     for i in range(100):

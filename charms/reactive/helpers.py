@@ -1,4 +1,4 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -189,6 +189,11 @@ def data_changed(data_id, data, hash_type='md5'):
 def _hook(hook_patterns):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
     return dispatch_phase == 'hooks' and any_hook(*hook_patterns)
+
+
+def _action(action_name):
+    dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
+    return dispatch_phase == 'actions' and hookenv.action_name() == action_name
 
 
 def _setup():

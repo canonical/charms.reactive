@@ -77,6 +77,24 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
         action.assert_called_once_with()
 
+    @mock.patch.object(hookenv, 'action_get')
+    @mock.patch.object(reactive.decorators, '_action')
+    def test_action(self, _action, action_get):
+        _action.return_value = True
+        action_get.return_value = mock.sentinel.params
+        wabbit = mock.MagicMock()
+
+        @reactive.action('kill-the-wabbit')
+        def kill_wabbit(*args):
+            wabbit.kill(*args)
+
+        handler = reactive.bus.Handler.get(kill_wabbit)
+        assert handler.test()
+        handler.invoke()
+
+        _action.assert_called_once_with('kill-the-wabbit')
+        wabbit.kill.assert_called_once_with(mock.sentinel.params)
+
     @mock.patch.object(reactive.decorators, '_setup')
     def test_setup(self, _setup):
         _setup.return_value = True
