@@ -30,7 +30,9 @@ from charms.reactive.bus import _load_module
 from charms.reactive.bus import StateList
 
 
-ALL = '__ALL_SERVICES__'
+# arbitrary obj instances to use as defaults instead of None
+ALL = object()
+TOGGLE = object()
 
 
 class scopes(object):
@@ -296,13 +298,13 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
         """
         return self.conversation(scope).is_state(state)
 
-    def toggle_state(self, state, active=None, scope=None):
+    def toggle_state(self, state, active=TOGGLE, scope=None):
         """
         Toggle the state for the :class:`Conversation` with the given scope.
 
         In Python, this is equivalent to::
 
-            relation.conversation(scope).toggle_state(state)
+            relation.conversation(scope).toggle_state(state, active)
 
         See :meth:`conversation` and :meth:`Conversation.toggle_state`.
         """
@@ -549,7 +551,7 @@ class Conversation(object):
             return False
         return self.key in value['conversations']
 
-    def toggle_state(self, state, active=None):
+    def toggle_state(self, state, active=TOGGLE):
         """
         Toggle the given state for this conversation.
 
@@ -565,7 +567,7 @@ class Conversation(object):
 
         This will set the state if ``value`` is equal to ``foo``.
         """
-        if active is None:
+        if active is TOGGLE:
             active = not self.is_state(state)
         if active:
             self.set_state(state)

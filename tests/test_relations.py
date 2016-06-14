@@ -171,6 +171,11 @@ class TestRelationBase(unittest.TestCase):
         rb.conversation.assert_called_once_with('scope')
         conv.toggle_state.assert_called_once_with('state', 'active')
 
+        conv.toggle_state.reset_mock()
+        rb.toggle_state('state')
+        conv.toggle_state.assert_called_once_with('state',
+                                                  relations.TOGGLE)
+
     def test_set_remote(self):
         conv = mock.Mock(name='conv')
         rb = relations.RelationBase('relname', 'unit')
@@ -391,12 +396,14 @@ class TestConversation(unittest.TestCase):
 
         conv.toggle_state('foo')
         self.assertEqual(conv.remove_state.call_count, 1)
+        conv.toggle_state('foo', None)
+        self.assertEqual(conv.remove_state.call_count, 2)
         conv.toggle_state('foo')
         self.assertEqual(conv.set_state.call_count, 1)
         conv.toggle_state('foo', True)
         self.assertEqual(conv.set_state.call_count, 2)
         conv.toggle_state('foo', False)
-        self.assertEqual(conv.remove_state.call_count, 2)
+        self.assertEqual(conv.remove_state.call_count, 3)
 
     @mock.patch.object(relations.hookenv, 'relation_set')
     @mock.patch.object(relations.Conversation, 'relation_ids', ['rel:1', 'rel:2'])
