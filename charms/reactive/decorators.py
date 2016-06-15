@@ -21,6 +21,7 @@ from charmhelpers.core import hookenv
 from charms.reactive.bus import Handler
 from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
+from charms.reactive.bus import _short_action_id
 from charms.reactive.relations import RelationBase
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _when_all
@@ -188,19 +189,21 @@ def not_unless(*desired_states):
     This is primarily for informational purposes and as a guard clause.
     """
     def _decorator(func):
+        action_id = _action_id(func)
+        short_action_id = _short_action_id(func)
+
         @wraps(func)
         def _wrapped(*args, **kwargs):
             active_states = get_states()
             missing_states = [state for state in desired_states if state not in active_states]
             if missing_states:
-                func_id = "%s:%s:%s" % (func.__code__.co_filename,
-                                        func.__code__.co_firstlineno,
-                                        func.__code__.co_name)
                 hookenv.log('%s called before state%s: %s' % (
-                    func_id,
+                    short_action_id,
                     's' if len(missing_states) > 1 else '',
                     ', '.join(missing_states)), hookenv.WARNING)
             return func(*args, **kwargs)
+        _wrapped._action_id = action_id
+        _wrapped._short_action_id = short_action_id
         return _wrapped
     return _decorator
 
