@@ -443,15 +443,19 @@ class TestConversation(unittest.TestCase):
 
     @mock.patch.object(relations.hookenv, 'relation_get')
     @mock.patch.object(relations.hookenv, 'related_units')
-    @mock.patch.object(relations.Conversation, 'relation_ids', ['rel:1', 'rel:2'])
+    @mock.patch.object(relations.Conversation, 'relation_ids', ['rel:1',
+                                                                'rel:2'])
     def test_get_remote(self, related_units, relation_get):
-        conv = relations.Conversation('rel', ['srv1/0', 'srv2/0', 'srv2/1'], 'scope')
+        conv = relations.Conversation('rel',
+                                      ['srv1/0', 'srv2/0', 'srv2/1'],
+                                      'scope')
 
         # set on at least one remote
         related_units.side_effect = [['srv1/0', 'srv1/1'], ['srv2/1']]
         relation_get.side_effect = [None, 'value']
         self.assertEqual(conv.get_remote('key', 'default'), 'value')
-        self.assertEqual(related_units.call_args_list, [mock.call('rel:1'), mock.call('rel:2')])
+        self.assertEqual(related_units.call_args_list, [mock.call('rel:1'),
+                                                        mock.call('rel:2')])
         self.assertEqual(relation_get.call_args_list, [
             mock.call('key', 'srv1/0', 'rel:1'),
             mock.call('key', 'srv2/1', 'rel:2'),
@@ -466,6 +470,28 @@ class TestConversation(unittest.TestCase):
         related_units.side_effect = [['srv1/1'], []]
         relation_get.side_effect = AssertionError('relation_get should not be called')
         self.assertEqual(conv.get_remote('key', 'default'), 'default')
+
+    @mock.patch.object(relations.hookenv, 'relation_get')
+    @mock.patch.object(relations.hookenv, 'related_units')
+    @mock.patch.object(relations.Conversation, 'relation_ids', ['rel:1',
+                                                                'rel:2'])
+    @mock.patch.object(relations.hookenv, 'hook_name',
+                       lambda: 'rel-relation-departed')
+    @mock.patch.object(relations.hookenv, 'relation_id', lambda: 'rel:2')
+    @mock.patch.object(relations.hookenv, 'remote_unit', lambda: 'srv2/0')
+    def test_get_remote_departed(self, related_units, relation_get):
+        conv = relations.Conversation('rel',
+                                      ['srv1/0', 'srv2/0'],
+                                      'scope')
+
+        related_units.side_effect = [['srv1/0'], ['srv2/0']]
+        relation_get.side_effect = [None, 'value']
+        self.assertEqual(conv.get_remote('key', 'default'), 'value')
+        self.assertEqual(related_units.call_args_list, [mock.call('rel:1'),
+                                                        mock.call('rel:2')])
+        self.assertEqual(relation_get.call_args_list,
+                         [mock.call('key', 'srv1/0', 'rel:1'),
+                          mock.call('key', 'srv2/0', 'rel:2')])
 
     @mock.patch.object(relations.unitdata, 'kv')
     def test_set_local(self, kv):
