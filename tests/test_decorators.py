@@ -248,6 +248,17 @@ class TestReactiveDecorators(unittest.TestCase):
         test(2)
         self.assertEquals(calls, [1])
 
+    def test_only_once_parens(self):
+        calls = []
+
+        @reactive.decorators.only_once()
+        def test(num):
+            calls.append(num)
+
+        test(1)
+        test(2)
+        self.assertEquals(calls, [1])
+
     def test_multi(self):
         action1 = mock.Mock(name='action1')
         action2 = mock.Mock(name='action2')

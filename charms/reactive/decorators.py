@@ -205,7 +205,7 @@ def not_unless(*desired_states):
     return _decorator
 
 
-def only_once(action):
+def only_once(action=None):
     """
     Ensure that the decorated function is only executed the first time it is called.
 
@@ -213,6 +213,9 @@ def only_once(action):
     once, even if their conditions continue to match on subsequent calls, even
     across hook invocations.
     """
+    if action is None:
+        # allow to be used as @only_once or @only_once()
+        return only_once
     @wraps(action)
     def wrapper(*args, **kwargs):
         action_id = _action_id(action)
