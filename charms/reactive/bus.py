@@ -229,6 +229,7 @@ class Handler(object):
         self._action = action
         self._args = []
         self._predicates = []
+        self._post_callbacks = []
         self._states = set()
 
     def id(self):
@@ -255,6 +256,12 @@ class Handler(object):
             hookenv.log('  Adding predicate for %s: %s' % (self.id(), _predicate), level=hookenv.DEBUG)
         self._predicates.append(predicate)
 
+    def add_post_callback(self, callback):
+        """
+        Add a callback to be run after the action is invoked.
+        """
+        self._post_callbacks.append(callback)
+
     def test(self):
         """
         Check the predicate(s) and return True if this handler should be invoked.
@@ -278,6 +285,8 @@ class Handler(object):
         """
         args = self._get_args()
         self._action(*args)
+        for callback in self._post_callbacks:
+            callback()
 
     def register_states(self, states):
         """

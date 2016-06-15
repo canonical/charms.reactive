@@ -207,19 +207,16 @@ def not_unless(*desired_states):
 
 def only_once(action=None):
     """
-    Ensure that the decorated function is only executed the first time it is called.
+    Register the decorated function to be run once, and only once.
 
-    This can be used on reactive handlers to ensure that they are only triggered
-    once, even if their conditions continue to match on subsequent calls, even
-    across hook invocations.
+    This decorator will never cause arguments to be passed to the handler.
     """
     if action is None:
         # allow to be used as @only_once or @only_once()
         return only_once
-    @wraps(action)
-    def wrapper(*args, **kwargs):
-        action_id = _action_id(action)
-        if not was_invoked(action_id):
-            action(*args, **kwargs)
-            mark_invoked(action_id)
-    return wrapper
+
+    action_id = _action_id(action)
+    handler = Handler.get(action)
+    handler.add_predicate(lambda: not was_invoked(action_id))
+    handler.add_post_callback(partial(mark_invoked, action_id))
+    return action
