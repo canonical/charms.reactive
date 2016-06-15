@@ -245,11 +245,28 @@ class TestReactiveDecorators(unittest.TestCase):
         calls = []
 
         @reactive.decorators.only_once
-        def test(num):
-            calls.append(num)
+        def test():
+            calls.append(len(calls)+1)
 
-        test(1)
-        test(2)
+        handler = reactive.bus.Handler.get(test)
+
+        assert handler.test()
+        handler.invoke()
+        assert not handler.test()
+        self.assertEquals(calls, [1])
+
+    def test_only_once_parens(self):
+        calls = []
+
+        @reactive.decorators.only_once()
+        def test():
+            calls.append(len(calls)+1)
+
+        handler = reactive.bus.Handler.get(test)
+
+        assert handler.test()
+        handler.invoke()
+        assert not handler.test()
         self.assertEquals(calls, [1])
 
     def test_multi(self):
