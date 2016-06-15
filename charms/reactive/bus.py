@@ -170,12 +170,16 @@ def get_state(state, default=None):
 
 
 def _action_id(action):
+    if hasattr(action, '_action_id'):
+        return action._action_id
     return "%s:%s:%s" % (action.__code__.co_filename,
                          action.__code__.co_firstlineno,
                          action.__code__.co_name)
 
 
 def _short_action_id(action):
+    if hasattr(action, '_short_action_id'):
+        return action._short_action_id
     filepath = os.path.relpath(action.__code__.co_filename, hookenv.charm_dir())
     return "%s:%s:%s" % (filepath,
                          action.__code__.co_firstlineno,
