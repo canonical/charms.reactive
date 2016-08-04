@@ -1,12 +1,12 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
-# charm-helpers is distributed in the hope that it will be useful,
+# charms.reactive is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -69,7 +69,7 @@ def main(relation_name=None):
     hookenv.atexit(flush_kv)
     if hookenv.hook_name().endswith('-relation-departed'):
         def depart_conv():
-            rel = RelationBase.from_name(hookenv.relation_type())
+            rel = relations.relation_from_name(hookenv.relation_type())
             rel.conversation().depart()
         hookenv.atexit(depart_conv)
     try:
