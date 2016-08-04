@@ -214,13 +214,13 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
                 return cls._find_subclass(module)
             except ImportError:
                 return None
+
+        # Already discovered and imported.
+        module = 'relations.{}.{}'.format(interface, role)
+        if module in sys.modules:
+            return cls._find_subclass(sys.modules[module])
         else:
-            # Already discovered and imported.
-            module = 'relations.{}.{}'.format(interface, role)
-            if module in sys.modules:
-                return cls._find_subclass(sys.modules[module])
-            else:
-                return None
+            return None
 
     @classmethod
     def _find_subclass(cls, module):

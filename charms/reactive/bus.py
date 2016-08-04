@@ -24,14 +24,10 @@ from itertools import chain
 from functools import partial
 
 import six
-from six.moves import range
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-
-if six.PY2:
-    from imp import load_source
 
 
 _log_opts = os.environ.get('REACTIVE_LOG_OPTS', '').split(',')
@@ -469,8 +465,10 @@ def _append_path(d):
         sys.path.append(d)
 
 
-def _load_module(root, filepath):
-    if six.PY2:
+if six.PY2:
+    from imp import load_source
+
+    def _load_module(root, filepath):
         realpath = os.path.realpath(filepath)
         for module in sys.modules.values():
             if not hasattr(module, '__file__'):
@@ -484,10 +482,12 @@ def _load_module(root, filepath):
             sys.modules[modname] = load_source(modname, realpath)
             return sys.modules[modname]
 
-    else:
-        assert filepath.startswith(root)
+else:
+    def _load_module(root, filepath):
+        assert filepath.startswith(root + os.sep)
         assert filepath.endswith('.py')
         package = os.path.basename(root)  # 'reactive' or 'relations'
+        assert package in ('reactive', 'relations')
         module = filepath[len(root):-3].replace(os.sep, '.')
         if module.endswith('.__init__'):
             module = module[:-9]

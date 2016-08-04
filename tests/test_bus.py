@@ -21,6 +21,7 @@ import shutil
 import tempfile
 import unittest
 from collections import OrderedDict
+from contextlib import contextmanager
 
 import mock
 from nose.plugins.attrib import attr
@@ -524,7 +525,6 @@ class TestReactiveBus(unittest.TestCase):
         sys.path.pop()  # Repair sys.path
         sys.path.pop()
 
-
     @unittest.skipUnless(six.PY2, 'Python2 only')
     @mock.patch.object(reactive.bus, 'sys')
     @mock.patch.object(reactive.bus.os.path, 'realpath')
@@ -566,6 +566,44 @@ class TestReactiveBus(unittest.TestCase):
         self.assertEqual(mod, 'reactive.sub')
         import_module.assert_called_once_with('reactive.sub')
 
+    def test_load_module_really(self):
+        # Look Ma, no mocks!
+        here = os.path.dirname(__file__)
+        root_path = os.path.join(here, 'data')
+
+        # Path manipulation normally done by bus.discover()
+        ext_path = [root_path, os.path.join(root_path, 'hooks')]
+        with extended_sys_path(ext_path):
+            top_mod = reactive.bus._load_module(os.path.join(root_path,
+                                                            'reactive'),
+                                                os.path.join(root_path,
+                                                            'reactive',
+                                                            'top_level.py'))
+            sub_mod = reactive.bus._load_module(os.path.join(root_path,
+                                                            'reactive'),
+                                                os.path.join(root_path,
+                                                            'reactive',
+                                                            'nested',
+                                                            'nested.py'))
+            hyp_mod = reactive.bus._load_module(os.path.join(root_path,
+                                                            'hooks',
+                                                            'relations'),
+                                                os.path.join(root_path,
+                                                            'hooks',
+                                                            'relations',
+                                                            'hyphen-ated',
+                                                            'peer.py'))
+
+        self.assertEqual(top_mod.test_marker, 'top level')
+        self.assertEqual(sub_mod.test_marker, 'nested')
+        self.assertEqual(hyp_mod.test_marker, 'hyphenated-relation')
+
+        if six.PY3:
+            self.assertIn('reactive.top_level', sys.modules)
+            self.assertIn('reactive.nested.nested', sys.modules)
+            self.assertIs(top_mod, sys.modules['reactive.top_level'])
+            self.assertIs(sub_mod, sys.modules['reactive.nested.nested'])
+
     @mock.patch.object(reactive.bus.ExternalHandler, 'register')
     @mock.patch.object(reactive.bus.os, 'access')
     @mock.patch.object(reactive.bus, '_load_module')
@@ -583,6 +621,17 @@ class TestReactiveBus(unittest.TestCase):
         reactive.bus._register_handlers_from_file(
                 'hooks/relations', 'hooks/relations/foo/README.md')
         assert not register.called
+
+
+@contextmanager
+def extended_sys_path(extras_list):
+    extras_list = [p for p in extras_list if p not in sys.path]
+    sys.path.extend(extras_list)
+    try:
+        yield
+    finally:
+        for p in extras_list:
+            sys.path.remove(p)
 
 
 if __name__ == '__main__':
