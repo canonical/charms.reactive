@@ -1,12 +1,12 @@
 # Copyright 2014-2016 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
-# charm-helpers is distributed in the hope that it will be useful,
+# charms.reactive is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -33,6 +33,103 @@ from charms.reactive.bus import _append_path
 # arbitrary obj instances to use as defaults instead of None
 ALL = object()
 TOGGLE = object()
+
+
+def relation_from_name(relation_name):
+    """The object used for interacting with the named relations, or None.
+
+    This will be a RelationBase instance, unless the interface is using
+    a custom implementation.
+    """
+    if relation_name is None:
+        return None
+    factory = relation_factory(relation_name)
+    if factory:
+        return factory.from_name(relation_name)
+
+
+def relation_from_state(state):
+    """The object used for interacting with relations tied to a state, or None.
+
+    This will be a RelationBase instance, unless the interface is using
+    a custom implementation.
+    """
+    value = get_state(state)
+    if value is None:
+        return None
+    relation_name = value['relation']
+    factory = relation_factory(relation_name)
+    if factory:
+        return factory.from_state(state)
+
+
+class RelationFactory(object):
+    """Produce objects for interacting with a relation.
+
+    Interfaces choose which RelationFactory is used for their relations
+    by adding a RelationFactory subclass to
+    ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``.
+    This is normally a RelationBase subclass.
+    """
+    @classmethod
+    def from_name(cls, relation_name):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_state(cls, state):
+        raise NotImplementedError()
+
+
+def relation_factory(relation_name):
+    """Get the RelationFactory for the given relation name.
+
+    Looks for a RelationFactory in the first file matching:
+    ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``
+    """
+    role, interface = hookenv.relation_to_role_and_interface(relation_name)
+    hooks_dir = os.path.join(hookenv.charm_dir(), 'hooks')
+    try:
+        filepath = os.path.join(hooks_dir, 'relations',
+                                interface, role + '.py')
+        module = _load_module(filepath)
+        return _find_relation_factory(module)
+    except ImportError:
+        hookenv.log('Missing or invalid hooks/relations/{}/{}.py'
+                    ''.format(interface, role), hookenv.WARNING)
+        return None
+
+
+def _find_relation_factory(module):
+    """
+    Attempt to find a RelationFactory subclass in the module.
+
+    Note: RelationFactory and RelationBase are ignored so they may
+    be imported to be used as base classes without fear.
+    """
+    # All the RelationFactory subclasses
+    candidates = [o for o in (getattr(module, attr) for attr in dir(module))
+                  if (o is not RelationFactory and
+                      o is not RelationBase and
+                      isclass(o) and
+                      issubclass(o, RelationFactory))]
+
+    # Filter out any factories that are superclasses of another factory
+    # (none of the other factories subclass it). This usually makes
+    # the explict check for RelationBase and RelationFactory unnecessary.
+    candidates = [c1 for c1 in candidates
+                  if not any(issubclass(c2, c1) for c2 in candidates
+                             if c1 is not c2)]
+
+    if not candidates:
+        hookenv.log('No RelationFactory found in {}'.format(module.__path__),
+                    hookenv.WARNING)
+        return None
+
+    if len(candidates) > 1:
+        raise RuntimeError('Too many RelationFactory found in {}'
+                           ''.format(module.__path__))
+
+    return candidates[0]
 
 
 class scopes(object):
@@ -92,9 +189,13 @@ class AutoAccessors(type):
         return __accessor
 
 
-class RelationBase(object, metaclass=AutoAccessors):
+class RelationMeta(AutoAccessors, RelationFactory):
+    pass
+
+
+class RelationBase(object, metaclass=RelationMeta):
     """
-    The base class for all relation implementations.
+    A base class for relation implementations.
     """
     _cache = {}
 
@@ -223,7 +324,8 @@ class RelationBase(object, metaclass=AutoAccessors):
         """
         for attr in dir(module):
             candidate = getattr(module, attr)
-            if isclass(candidate) and issubclass(candidate, cls) and candidate is not cls:
+            if (isclass(candidate) and issubclass(candidate, cls) and
+                    candidate is not RelationBase):
                 return candidate
         return None
 
@@ -714,17 +816,17 @@ def _migrate_conversations():
 def relation_call(method, relation_name=None, state=None, *args):
     """Invoke a method on the class implementing a relation via the CLI"""
     if relation_name:
-        relation = RelationBase.from_name(relation_name)
+        relation = relation_from_name(relation_name)
         if relation is None:
             raise ValueError('Relation not found: %s' % relation_name)
     elif state:
-        relation = RelationBase.from_state(state)
+        relation = relation_from_state(state)
         if relation is None:
             raise ValueError('Relation not found: %s' % state)
     else:
         raise ValueError('Must specify either relation_name or state')
     result = getattr(relation, method)(*args)
-    if method == 'conversations':
+    if isinstance(relation, RelationBase) and method == 'conversations':
         # special case for conversations to make them work from CLI
         result = [c.scope for c in result]
     return result
