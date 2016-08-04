@@ -21,6 +21,7 @@ from charmhelpers.core import hookenv
 from charms.reactive.bus import Handler
 from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
+from charms.reactive.bus import _short_action_id
 from charms.reactive.relations import RelationBase
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _when_all
@@ -188,35 +189,37 @@ def not_unless(*desired_states):
     This is primarily for informational purposes and as a guard clause.
     """
     def _decorator(func):
+        action_id = _action_id(func)
+        short_action_id = _short_action_id(func)
+
         @wraps(func)
         def _wrapped(*args, **kwargs):
             active_states = get_states()
             missing_states = [state for state in desired_states if state not in active_states]
             if missing_states:
-                func_id = "%s:%s:%s" % (func.__code__.co_filename,
-                                        func.__code__.co_firstlineno,
-                                        func.__code__.co_name)
                 hookenv.log('%s called before state%s: %s' % (
-                    func_id,
+                    short_action_id,
                     's' if len(missing_states) > 1 else '',
                     ', '.join(missing_states)), hookenv.WARNING)
             return func(*args, **kwargs)
+        _wrapped._action_id = action_id
+        _wrapped._short_action_id = short_action_id
         return _wrapped
     return _decorator
 
 
-def only_once(action):
+def only_once(action=None):
     """
-    Ensure that the decorated function is only executed the first time it is called.
+    Register the decorated function to be run once, and only once.
 
-    This can be used on reactive handlers to ensure that they are only triggered
-    once, even if their conditions continue to match on subsequent calls, even
-    across hook invocations.
+    This decorator will never cause arguments to be passed to the handler.
     """
-    @wraps(action)
-    def wrapper(*args, **kwargs):
-        action_id = _action_id(action)
-        if not was_invoked(action_id):
-            action(*args, **kwargs)
-            mark_invoked(action_id)
-    return wrapper
+    if action is None:
+        # allow to be used as @only_once or @only_once()
+        return only_once
+
+    action_id = _action_id(action)
+    handler = Handler.get(action)
+    handler.add_predicate(lambda: not was_invoked(action_id))
+    handler.add_post_callback(partial(mark_invoked, action_id))
+    return action

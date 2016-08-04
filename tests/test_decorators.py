@@ -236,16 +236,37 @@ class TestReactiveDecorators(unittest.TestCase):
         self.assertEqual(action.call_count, 3)
         assert log_msg(0).endswith('test called before states: foo, bar'), log_msg(0)
         assert log_msg(1).endswith('test called before state: bar'), log_msg(1)
+        self.assertIn('tests/test_decorators.py:', reactive.bus._action_id(test))
+        self.assertIn(':test', reactive.bus._action_id(test))
+        self.assertIn('tests/test_decorators.py:', reactive.bus._short_action_id(test))
+        self.assertIn(':test', reactive.bus._short_action_id(test))
 
     def test_only_once(self):
         calls = []
 
         @reactive.decorators.only_once
-        def test(num):
-            calls.append(num)
+        def test():
+            calls.append(len(calls)+1)
 
-        test(1)
-        test(2)
+        handler = reactive.bus.Handler.get(test)
+
+        assert handler.test()
+        handler.invoke()
+        assert not handler.test()
+        self.assertEquals(calls, [1])
+
+    def test_only_once_parens(self):
+        calls = []
+
+        @reactive.decorators.only_once()
+        def test():
+            calls.append(len(calls)+1)
+
+        handler = reactive.bus.Handler.get(test)
+
+        assert handler.test()
+        handler.invoke()
+        assert not handler.test()
         self.assertEquals(calls, [1])
 
     def test_multi(self):

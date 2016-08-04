@@ -32,7 +32,9 @@ from charms.reactive.bus import _load_module
 from charms.reactive.bus import StateList
 
 
-ALL = '__ALL_SERVICES__'
+# arbitrary obj instances to use as defaults instead of None
+ALL = object()
+TOGGLE = object()
 
 
 class scopes(object):
@@ -179,7 +181,7 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
     def from_name(cls, relation_name, conversations=None):
         """
         Find relation implementation in the current charm, based on the
-        ID of the relation.
+        name of the relation.
 
         :return: A Relation instance, or None
         """
@@ -306,13 +308,13 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
         """
         return self.conversation(scope).is_state(state)
 
-    def toggle_state(self, state, active=None, scope=None):
+    def toggle_state(self, state, active=TOGGLE, scope=None):
         """
         Toggle the state for the :class:`Conversation` with the given scope.
 
         In Python, this is equivalent to::
 
-            relation.conversation(scope).toggle_state(state)
+            relation.conversation(scope).toggle_state(state, active)
 
         See :meth:`conversation` and :meth:`Conversation.toggle_state`.
         """
@@ -456,9 +458,6 @@ class Conversation(object):
         """
         Remove the current remote unit, for the active hook context, from
         this conversation.  This should be called from a `-departed` hook.
-
-        TODO: Need to figure out a way to have this called implicitly, to
-        ensure cleaning up of conversations that are no longer needed.
         """
         unit = hookenv.remote_unit()
         self.units.remove(unit)
@@ -559,7 +558,7 @@ class Conversation(object):
             return False
         return self.key in value['conversations']
 
-    def toggle_state(self, state, active=None):
+    def toggle_state(self, state, active=TOGGLE):
         """
         Toggle the given state for this conversation.
 
@@ -575,7 +574,7 @@ class Conversation(object):
 
         This will set the state if ``value`` is equal to ``foo``.
         """
-        if active is None:
+        if active is TOGGLE:
             active = not self.is_state(state)
         if active:
             self.set_state(state)
@@ -620,8 +619,16 @@ class Conversation(object):
         converging to identical data.  Thus, this method returns the first
         value that it finds set by any of its units.
         """
+        cur_rid = hookenv.relation_id()
+        departing = hookenv.hook_name().endswith('-relation-departed')
         for relation_id in self.relation_ids:
-            for unit in hookenv.related_units(relation_id):
+            units = hookenv.related_units(relation_id)
+            if departing and cur_rid == relation_id:
+                # Work around the fact that Juju 2.0 doesn't include the
+                # departing unit in relation-list during the -departed hook,
+                # by adding it back in ourselves.
+                units.append(hookenv.remote_unit())
+            for unit in units:
                 if unit not in self.units:
                     continue
                 value = hookenv.relation_get(key, unit, relation_id)

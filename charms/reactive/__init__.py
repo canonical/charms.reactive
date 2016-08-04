@@ -67,6 +67,11 @@ def main(relation_name=None):
         if unitdata._KV:
             unitdata._KV.flush()
     hookenv.atexit(flush_kv)
+    if hookenv.hook_name().endswith('-relation-departed'):
+        def depart_conv():
+            rel = RelationBase.from_name(hookenv.relation_type())
+            rel.conversation().depart()
+        hookenv.atexit(depart_conv)
     try:
         bus.discover()
         hookenv._run_atstart()
