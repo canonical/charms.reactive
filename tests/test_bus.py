@@ -446,7 +446,7 @@ class TestReactiveBus(unittest.TestCase):
 
         self.assertEqual(len(reactive.bus.Handler.get_handlers()), 0)
         reactive.bus.discover()
-        self.assertEqual(len(reactive.bus.Handler.get_handlers()), 8)
+        self.assertEqual(len(reactive.bus.Handler.get_handlers()), 9)
 
     @attr('slow')
     @mock.patch.dict('sys.modules')
