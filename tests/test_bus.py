@@ -15,11 +15,14 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+import re
 import sys
 import errno
 import shutil
 import tempfile
 import unittest
+import subprocess
+from subprocess import Popen
 from collections import OrderedDict
 
 import mock
@@ -447,14 +450,41 @@ class TestReactiveBus(unittest.TestCase):
 
     @attr('slow')
     @mock.patch.dict('sys.modules')
+    @mock.patch('subprocess.check_call')
+    @mock.patch('subprocess.Popen')
     @mock.patch('charmhelpers.core.hookenv.relation_type')
     @mock.patch('charmhelpers.core.hookenv.hook_name')
     @mock.patch('charmhelpers.core.hookenv.charm_dir')
-    def test_full_stack(self, charm_dir, hook_name, relation_type):
+    def test_full_stack(self, charm_dir, hook_name, relation_type, mPopen, mcheck_call):
         test_dir = os.path.dirname(__file__)
         charm_dir.return_value = os.path.join(test_dir, 'data')
         hook_name.return_value = 'config-changed'
         relation_type.return_value = None
+
+        mPopen.stdout = []
+        mPopen.stderr = []
+
+        def capture_output(proc):
+            stdout, stderr = Popen.communicate(proc)
+            mPopen.stdout.extend((stdout or b'').decode('utf-8').splitlines())
+            mPopen.stderr.extend((stderr or b'').decode('utf-8').splitlines())
+            return stdout, stderr
+
+        def mock_Popen(*args, **kwargs):
+            kwargs['stderr'] = subprocess.PIPE
+            proc = Popen(*args, **kwargs)
+            proc.communicate = lambda: capture_output(proc)
+            return proc
+
+        def mock_check_call(*args, **kwargs):
+            proc = mock_Popen(*args, **kwargs)
+            _, _ = proc.communicate()
+            if proc.returncode != 0:
+                raise subprocess.CalledProcessError(proc.returncode,
+                                                    args[0])
+
+        mPopen.side_effect = mock_Popen
+        mcheck_call.side_effect = mock_check_call
         with mock.patch.dict(os.environ, {
             'PATH': os.pathsep.join([
                 os.path.dirname(sys.executable),  # for /usr/bin/env python
@@ -467,7 +497,7 @@ class TestReactiveBus(unittest.TestCase):
         }):
             self.assertEqual(len(reactive.bus.Handler.get_handlers()), 0)
             reactive.bus.discover()
-            self.assertEqual(len(reactive.bus.Handler.get_handlers()), 8)
+            self.assertEqual(len(reactive.bus.Handler.get_handlers()), 9)
 
             reactive.set_state('test')
             reactive.set_state('to-remove')
@@ -496,6 +526,22 @@ class TestReactiveBus(unittest.TestCase):
             assert not reactive.helpers.all_states('bash-multi-repeat')
             assert not reactive.helpers.all_states('bash-multi-neg')
             assert not reactive.helpers.all_states('bash-multi-neg2')
+            invoked = ['test_when_not_all', 'test_when_any', 'test_when',
+                       'test_when_not', 'test_multi', 'test_only_once']
+            self.assertEqual(mPopen.stdout, [','.join(invoked)])
+            assert 'Will invoke: %s' % ','.join(invoked) in mPopen.stderr
+            for handler in invoked:
+                assert 'Invoking bash reactive handler: %s' % handler in mPopen.stderr
+            assert '++ charms.reactive set_state bash-when-not-all' in mPopen.stderr
+            bash_debug = False
+            debug_debug = False
+            for line in mPopen.stderr:
+                if re.match(r'\+ REACTIVE_HANDLERS\[\$func]=.*/bash.sh:', line):
+                    bash_debug = True
+                if re.match(r'\+ REACTIVE_HANDLERS\[\$func]=.*/debug.sh:', line):
+                    debug_debug = True
+            assert not bash_debug, 'CHARMS_REACTIVE_TRACE not enabled but has debug output'
+            assert debug_debug, 'CHARMS_REACTIVE_TRACE enabled but missing debug output'
 
             hook_name.return_value = 'test-rel-relation-joined'
             relation_type.return_value = 'test-rel'
