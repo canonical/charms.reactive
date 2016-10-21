@@ -2,24 +2,33 @@
 
 
 {
+    # this block disables xtrace for lines from this file,
+    # while keeping it enabled for user-land reactive code
     shopt -s expand_aliases
     alias _suppress_xtrace='{ local old_opts="$-"; set $X_OPT; } 2> /dev/null'
     alias _restore_xtrace='_restore_opt $old_opts x'
     function _restore_opt() {
-        if [[ "$1" == *$2* ]]; then
-            set -$2
+        # restore the given opt to its previous state
+        local prev_opts="$1"
+        local opt_to_restore="$2"
+        if [[ "$prev_opts" == *$opt_to_restore* ]]; then
+            # opt was previously enabled, to re-enable it
+            set -$opt_to_restore
         else
-            set +$2
+            # opt was previously disabled, to re-disable it
+            set +$opt_to_restore
         fi
     }
     if [[ "$CHARMS_REACTIVE_TRACE" != 'true' ]]; then
         X_OPT="+x"
     else
+        # we are debugging charms.reactive.sh, so enable xtrace internally
         X_OPT="-x"
     fi
+    # save options as of import
     import_opts="$-"
     set +x
-} 2> /dev/null  # suppress xtrace during import
+} 2> /dev/null  # suppress xtrace during import (braces to hide entire block from xtracing)
 
 export PATH=$PATH:$CHARM_DIR/bin
 export PYTHONPATH=${PYTHONPATH-}:$CHARM_DIR/lib
@@ -69,10 +78,13 @@ declare -A REACTIVE_HANDLERS
 declare -A REACTIVE_TESTS
 
 function _get_decorated() {
+    # find the name of the "decorated" function, given
+    # that there may be more decorators between us and it
     filename=${BASH_SOURCE[2]}
     lineno=$((BASH_LINENO[1]+1))
     last_decorator=yes
     while sed "${lineno}q;d" $filename | grep -qE "^\s*@"; do
+        # there are other decorators between us and the function
         last_decorator=no
         ((lineno++))
     done
@@ -88,6 +100,8 @@ function @decorator() {
     _suppress_xtrace
     _get_decorated
     handler_id="$filename:$lineno:$func"
+    # this "decorates" a function using source-code introspection, registering
+    # the "decorated" function as a reactive handler with a set of preconditions
 
     # register handler_ids
     if [ ! ${REACTIVE_HANDLERS[$func]+_} ]; then
@@ -134,6 +148,7 @@ function reactive_handler_main() {
     _restore_xtrace
 }
 
+# some helpers and syntactic sugar
 alias @hook='@decorator hook'
 alias @when='@decorator when'
 alias @when_all='@decorator when_all'
@@ -181,4 +196,5 @@ function name_relation_get() {
     _restore_xtrace
 }
 
+# re-enable xtrace for user code, if it was enabled
 _restore_opt $import_opts x

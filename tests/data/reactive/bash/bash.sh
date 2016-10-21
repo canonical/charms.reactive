@@ -1,6 +1,7 @@
 #!/bin/bash
 
-set -x
+set -o xtrace
+# or set -x
 
 . `dirname $0`/../../../../bin/charms.reactive.sh
 
