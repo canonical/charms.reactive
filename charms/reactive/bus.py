@@ -1,4 +1,4 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -13,6 +13,8 @@
 #
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
+
+import importlib
 import os
 import re
 import sys
@@ -21,21 +23,11 @@ import subprocess
 from itertools import chain
 from functools import partial
 
-from six.moves import range
+import six
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-
-try:
-    # Python 3
-    from importlib.machinery import SourceFileLoader
-
-    def load_source(modname, realpath):
-        return SourceFileLoader(modname, realpath).load_module()
-except ImportError:
-    # Python 2
-    from imp import load_source
 
 
 _log_opts = os.environ.get('REACTIVE_LOG_OPTS', '').split(',')
@@ -450,29 +442,61 @@ def discover():
     functions registered.  Or they can be executables, in which case they must
     adhere to the :class:`ExternalHandler` protocol.
     """
+    # Add $CHARM_DIR and $CHARM_DIR/hooks to sys.path so
+    # 'import reactive.leadership', 'import relations.pgsql' works
+    # as expected, as well as relative imports like 'import ..leadership'
+    # or 'from . import leadership'. Without this, it becomes difficult
+    # for layers to access APIs provided by other layers. This addition
+    # needs to remain in effect, in case discovered modules are doing
+    # late imports.
+    _append_path(hookenv.charm_dir())
+    _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
+
     for search_dir in ('reactive', 'hooks/reactive', 'hooks/relations'):
         search_path = os.path.join(hookenv.charm_dir(), search_dir)
         for dirpath, dirnames, filenames in os.walk(search_path):
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
-                _register_handlers_from_file(filepath)
+                _register_handlers_from_file(search_path, filepath)
 
 
-def _load_module(filepath):
-    realpath = os.path.realpath(filepath)
-    for module in sys.modules.values():
-        if not hasattr(module, '__file__'):
-            continue  # ignore builtins
-        modpath = os.path.realpath(re.sub(r'\.pyc$', '.py', module.__file__))
-        if realpath == modpath:
-            return module
-    else:
-        modname = realpath.replace('.', '_').replace(os.sep, '_')
-        sys.modules[modname] = load_source(modname, realpath)
-        return sys.modules[modname]
+def _append_path(d):
+    if d not in sys.path:
+        sys.path.append(d)
 
 
-def _register_handlers_from_file(filepath):
+if six.PY2:
+    from imp import load_source
+
+    def _load_module(root, filepath):
+        realpath = os.path.realpath(filepath)
+        for module in sys.modules.values():
+            if not hasattr(module, '__file__'):
+                continue  # ignore builtins
+            modpath = os.path.realpath(re.sub(r'\.pyc$', '.py',
+                                              module.__file__))
+            if realpath == modpath:
+                return module
+        else:
+            modname = realpath.replace('.', '_').replace(os.sep, '_')
+            sys.modules[modname] = load_source(modname, realpath)
+            return sys.modules[modname]
+
+else:
+    def _load_module(root, filepath):
+        assert filepath.startswith(root + os.sep)
+        assert filepath.endswith('.py')
+        package = os.path.basename(root)  # 'reactive' or 'relations'
+        assert package in ('reactive', 'relations')
+        module = filepath[len(root):-3].replace(os.sep, '.')
+        if module.endswith('.__init__'):
+            module = module[:-9]
+
+        # Standard import.
+        return importlib.import_module(package + module)
+
+
+def _register_handlers_from_file(root, filepath):
     no_exec_blacklist = (
         '.md', '.yaml', '.txt', '.ini',
         'makefile', '.gitignore',
@@ -481,6 +505,6 @@ def _register_handlers_from_file(filepath):
         # Don't load handlers with one of the blacklisted extensions
         return
     if filepath.endswith('.py'):
-        _load_module(filepath)
+        _load_module(root, filepath)
     elif os.access(filepath, os.X_OK):
         ExternalHandler.register(filepath)
