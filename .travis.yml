@@ -5,6 +5,7 @@ python:
   - "2.7"
   - "3.4"
 before_install:
+  - python -c 'import platform; print(platform.linux_distribution())'
   - echo 'NAME="Ubuntu"' | sudo tee /etc/os-release
   - echo 'VERSION="14.04.5 LTS, Trusty Tahr"' | sudo tee -a /etc/os-release
   - echo 'ID=ubuntu' | sudo tee -a /etc/os-release
@@ -12,5 +13,6 @@ before_install:
   - echo 'PRETTY_NAME="Ubuntu 14.04.5 LTS"' | sudo tee -a /etc/os-release
   - echo 'VERSION_ID="14.04"' | sudo tee -a /etc/os-release
   - echo 'HOME_URL="http://www.ubuntu.com/"' | sudo tee -a /etc/os-release
+  - python -c 'import platform; print(platform.linux_distribution())'
 install: pip install tox-travis
 script: tox
