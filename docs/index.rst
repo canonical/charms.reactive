@@ -20,9 +20,10 @@ and admin password were available, and, if and only if that file was changed,
 the appropriate service would be restarted:
 
 .. code-block:: python
+    from charms.core.templating import render
 
     @when('db.database.available', 'admin-pass')
-    def render_config(pgsql):
+    def render(pgsql):
         render_template('app-config.j2', '/etc/app.conf', {
             'db_conn': pgsql.connection_string(),
             'admin_pass': hookenv.config('admin-pass'),
