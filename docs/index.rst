@@ -20,10 +20,12 @@ and admin password were available, and, if and only if that file was changed,
 the appropriate service would be restarted:
 
 .. code-block:: python
+    from charms.reactive import when, when_file_changed
+    from charmhelpers.core import templating, hookenv
 
     @when('db.database.available', 'admin-pass')
     def render_config(pgsql):
-        render_template('app-config.j2', '/etc/app.conf', {
+        templating.render('app-config.j2', '/etc/app.conf', {
             'db_conn': pgsql.connection_string(),
             'admin_pass': hookenv.config('admin-pass'),
         })
@@ -31,9 +33,6 @@ the appropriate service would be restarted:
     @when_file_changed('/etc/app.conf')
     def restart_service():
         hookenv.service_restart('myapp')
-
-    if __name__ == '__main__':
-        reactive.main()
 
 
 Structure of a Reactive Charm

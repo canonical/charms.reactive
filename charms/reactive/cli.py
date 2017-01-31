@@ -183,4 +183,4 @@ def render_template(source, target):
     Render a Jinja2 template from $CHARM_DIR/templates using the current
     environment variables as the template context.
     """
-    templating.render_template(source, target, os.environ)
+    templating.render(source, target, os.environ)
