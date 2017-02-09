@@ -246,7 +246,7 @@ class TestReactiveDecorators(unittest.TestCase):
 
         @reactive.decorators.only_once
         def test():
-            calls.append(len(calls)+1)
+            calls.append(len(calls) + 1)
 
         handler = reactive.bus.Handler.get(test)
 
@@ -260,7 +260,7 @@ class TestReactiveDecorators(unittest.TestCase):
 
         @reactive.decorators.only_once()
         def test():
-            calls.append(len(calls)+1)
+            calls.append(len(calls) + 1)
 
         handler = reactive.bus.Handler.get(test)
 

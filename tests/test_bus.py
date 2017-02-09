@@ -621,24 +621,24 @@ class TestReactiveBus(unittest.TestCase):
         ext_path = [root_path, os.path.join(root_path, 'hooks')]
         with extended_sys_path(ext_path):
             top_mod = reactive.bus._load_module(os.path.join(root_path,
-                                                            'reactive'),
+                                                             'reactive'),
                                                 os.path.join(root_path,
-                                                            'reactive',
-                                                            'top_level.py'))
+                                                             'reactive',
+                                                             'top_level.py'))
             sub_mod = reactive.bus._load_module(os.path.join(root_path,
-                                                            'reactive'),
+                                                             'reactive'),
                                                 os.path.join(root_path,
-                                                            'reactive',
-                                                            'nested',
-                                                            'nested.py'))
+                                                             'reactive',
+                                                             'nested',
+                                                             'nested.py'))
             hyp_mod = reactive.bus._load_module(os.path.join(root_path,
-                                                            'hooks',
-                                                            'relations'),
+                                                             'hooks',
+                                                             'relations'),
                                                 os.path.join(root_path,
-                                                            'hooks',
-                                                            'relations',
-                                                            'hyphen-ated',
-                                                            'peer.py'))
+                                                             'hooks',
+                                                             'relations',
+                                                             'hyphen-ated',
+                                                             'peer.py'))
 
         self.assertEqual(top_mod.test_marker, 'top level')
         self.assertEqual(sub_mod.test_marker, 'nested')
@@ -664,8 +664,8 @@ class TestReactiveBus(unittest.TestCase):
         register.assert_called_once_with('reactive/foo')
 
         register.reset_mock()
-        reactive.bus._register_handlers_from_file(
-                'hooks/relations', 'hooks/relations/foo/README.md')
+        reactive.bus._register_handlers_from_file('hooks/relations',
+                                                  'hooks/relations/foo/README.md')
         assert not register.called
 
 

@@ -114,7 +114,7 @@ def mark_invoked(*handler_ids):
         helpers.mark_invoked(handler_id)
 
 
-@cmdline.subcommand()
+@cmdline.subcommand()  # noqa: C901
 def test(*handlers):
     """
     Combined test function to apply one or more tests to multiple handlers.

@@ -5,7 +5,7 @@ build/
 MANIFEST
 charmhelpers/version.py
 .coverage
-.tox
+.tox/
 .env/
 coverage.xml
 docs/_build
