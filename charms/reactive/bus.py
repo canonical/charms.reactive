@@ -16,14 +16,11 @@
 
 import importlib
 import os
-import re
 import sys
 import errno
 import subprocess
 from itertools import chain
 from functools import partial
-
-import six
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
@@ -465,35 +462,17 @@ def _append_path(d):
         sys.path.append(d)
 
 
-if six.PY2:
-    from imp import load_source
+def _load_module(root, filepath):
+    assert filepath.startswith(root + os.sep)
+    assert filepath.endswith('.py')
+    package = os.path.basename(root)  # 'reactive' or 'relations'
+    assert package in ('reactive', 'relations')
+    module = filepath[len(root):-3].replace(os.sep, '.')
+    if module.endswith('.__init__'):
+        module = module[:-9]
 
-    def _load_module(root, filepath):
-        realpath = os.path.realpath(filepath)
-        for module in sys.modules.values():
-            if not hasattr(module, '__file__'):
-                continue  # ignore builtins
-            modpath = os.path.realpath(re.sub(r'\.pyc$', '.py',
-                                              module.__file__))
-            if realpath == modpath:
-                return module
-        else:
-            modname = realpath.replace('.', '_').replace(os.sep, '_')
-            sys.modules[modname] = load_source(modname, realpath)
-            return sys.modules[modname]
-
-else:
-    def _load_module(root, filepath):
-        assert filepath.startswith(root + os.sep)
-        assert filepath.endswith('.py')
-        package = os.path.basename(root)  # 'reactive' or 'relations'
-        assert package in ('reactive', 'relations')
-        module = filepath[len(root):-3].replace(os.sep, '.')
-        if module.endswith('.__init__'):
-            module = module[:-9]
-
-        # Standard import.
-        return importlib.import_module(package + module)
+    # Standard import.
+    return importlib.import_module(package + module)
 
 
 def _register_handlers_from_file(root, filepath):

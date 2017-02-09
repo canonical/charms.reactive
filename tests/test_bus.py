@@ -23,12 +23,10 @@ import tempfile
 import unittest
 import subprocess
 from subprocess import Popen
-from collections import OrderedDict
 from contextlib import contextmanager
 
 import mock
 from nose.plugins.attrib import attr
-import six
 
 from charmhelpers.core import unitdata
 from charms import reactive
@@ -571,27 +569,6 @@ class TestReactiveBus(unittest.TestCase):
         sys.path.pop()  # Repair sys.path
         sys.path.pop()
 
-    @unittest.skipUnless(six.PY2, 'Python2 only')
-    @mock.patch.object(reactive.bus, 'sys')
-    @mock.patch.object(reactive.bus.os.path, 'realpath')
-    @mock.patch.object(reactive.bus, 'load_source')
-    def test_load_module_py2(self, load_source, realpath, sys):
-        realpath.side_effect = lambda p: os.path.join('real', os.path.basename(p))
-        mod1 = mock.Mock(name='mod1', __file__='else/file1.pyc')
-        mod2 = mock.Mock(name='mod2', __file__='file2.pyc')
-        sys.modules = OrderedDict({'real_file1_py': mod1})
-        load_source.return_value = mod2
-        self.assertEqual(reactive.bus._load_module('ign', 'file1.py'), mod1)
-        self.assertEqual(reactive.bus._load_module('ign', 'file2.py'), mod2)
-        self.assertEqual(reactive.bus._load_module('ign', 'file2.py'), mod2)
-        load_source.assert_called_once_with('real_file2_py', 'real/file2.py')
-        self.assertEqual(realpath.call_args_list, [
-            mock.call('file1.py'), mock.call('else/file1.py'),
-            mock.call('file2.py'), mock.call('else/file1.py'),
-            mock.call('file2.py'), mock.call('else/file1.py'), mock.call('file2.py'),
-        ])
-
-    @unittest.skipIf(six.PY2, 'Python3 only')
     @mock.patch.object(reactive.bus.importlib, 'import_module')
     def test_load_module_py3(self, import_module):
         import_module.side_effect = lambda x: x
@@ -644,11 +621,10 @@ class TestReactiveBus(unittest.TestCase):
         self.assertEqual(sub_mod.test_marker, 'nested')
         self.assertEqual(hyp_mod.test_marker, 'hyphenated-relation')
 
-        if six.PY3:
-            self.assertIn('reactive.top_level', sys.modules)
-            self.assertIn('reactive.nested.nested', sys.modules)
-            self.assertIs(top_mod, sys.modules['reactive.top_level'])
-            self.assertIs(sub_mod, sys.modules['reactive.nested.nested'])
+        self.assertIn('reactive.top_level', sys.modules)
+        self.assertIn('reactive.nested.nested', sys.modules)
+        self.assertIs(top_mod, sys.modules['reactive.top_level'])
+        self.assertIs(sub_mod, sys.modules['reactive.nested.nested'])
 
     @mock.patch.object(reactive.bus.ExternalHandler, 'register')
     @mock.patch.object(reactive.bus.os, 'access')
