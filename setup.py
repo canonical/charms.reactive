@@ -11,15 +11,14 @@ with open(version_file) as v:
 SETUP = {
     'name': "charms.reactive",
     'version': VERSION,
-    'author': "Ubuntu Developers",
-    'author_email': "ubuntu-devel-discuss@lists.ubuntu.com",
+    'author': "Charm Reactive Framework Maintainers",
+    'author_email': "juju@lists.ubuntu.com",
     'url': "https://github.com/juju-solutions/charms.reactive",
     'packages': [
         "charms",
         "charms.reactive",
     ],
     'install_requires': [
-        'six',
         'pyaml',
         'charmhelpers>=0.5.0',
     ],
