@@ -14,12 +14,8 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
-import os
 import sys
 from inspect import isclass
-
-import six
-from six import with_metaclass
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
@@ -28,7 +24,6 @@ from charms.reactive.bus import get_states
 from charms.reactive.bus import get_state
 from charms.reactive.bus import set_state
 from charms.reactive.bus import remove_state
-from charms.reactive.bus import _load_module
 from charms.reactive.bus import StateList
 
 
@@ -94,7 +89,7 @@ class AutoAccessors(type):
         return __accessor
 
 
-class RelationBase(with_metaclass(AutoAccessors, object)):
+class RelationBase(object, metaclass=AutoAccessors):
     """
     The base class for all relation implementations.
     """
@@ -203,19 +198,7 @@ class RelationBase(with_metaclass(AutoAccessors, object)):
         """
         Find relation implementation based on its role and interface.
         """
-        if six.PY2:
-            # Looks for the first file matching:
-            # ``$CHARM_DIR/hooks/relations/{iface}/{provides,requires,peer}.py``
-            hooks_dir = os.path.join(hookenv.charm_dir(), 'hooks')
-            try:
-                filepath = os.path.join(hooks_dir, 'relations',
-                                        interface, role + '.py')
-                module = _load_module('relations', filepath)
-                return cls._find_subclass(module)
-            except ImportError:
-                return None
-
-        # Already discovered and imported.
+        # The module has already been discovered and imported.
         module = 'relations.{}.{}'.format(interface, role)
         if module in sys.modules:
             return cls._find_subclass(sys.modules[module])

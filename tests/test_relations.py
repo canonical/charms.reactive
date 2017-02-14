@@ -18,8 +18,6 @@ import sys
 import mock
 import unittest
 
-import six
-
 from charmhelpers.core import hookenv
 from charms.reactive import relations
 
@@ -99,31 +97,9 @@ class TestRelationBase(unittest.TestCase):
         self.assertEqual(res._conversations, ['conv.join'])
         self.assertEqual(res.conversations(), ['conv.join'])
 
-    @unittest.skipUnless(six.PY2, 'Python2 only')
-    @mock.patch.object(relations.hookenv, 'charm_dir')
-    @mock.patch.object(relations.RelationBase, '_find_subclass')
-    @mock.patch.object(relations, '_load_module')
-    def test_find_impl_py2(self, _load_module, find_subclass, charm_dir):
-        charm_dir.return_value = 'charm_dir'
-        _load_module.side_effect = ImportError
-        self.assertIsNone(relations.RelationBase._find_impl('role', 'interface'))
-        _load_module.assert_called_once_with('relations',
-                                             'charm_dir/hooks/relations/interface/role.py')
-        assert not find_subclass.called
-
-        _load_module.reset_mock()
-        _load_module.side_effect = None
-        _load_module.return_value = m1 = mock.Mock(name='m1')
-        find_subclass.return_value = r1 = mock.Mock(name='r1')
-        self.assertIs(relations.RelationBase._find_impl('role', 'interface'), r1)
-        _load_module.assert_called_once_with('relations',
-                                             'charm_dir/hooks/relations/interface/role.py')
-        find_subclass.assert_called_once_with(m1)
-
-    @unittest.skipIf(six.PY2, 'Python3 only')
     @mock.patch.dict('sys.modules')
     @mock.patch.object(relations.RelationBase, '_find_subclass')
-    def test_find_impl_py3(self, find_subclass):
+    def test_find_impl(self, find_subclass):
         self.assertIsNone(relations.RelationBase._find_impl('role',
                                                             'interface'))
         assert not find_subclass.called

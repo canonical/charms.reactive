@@ -1,7 +1,12 @@
 sudo: false
+dist: trusty
 language: python
 python:
-  - "2.7"
-  - "3.4"
-install: pip install tox-travis
+  - "3.4"  # Targetting Trusty (Ubuntu 14.04)
+  - "3.5"  # Targetting Xenial (Ubuntu 16.04)
+  - "3.6"  # Targetting the future
+  - "nightly"
+install:
+  - "python3 -c 'import platform;print(platform.linux_distribution())'"
+  - pip install tox-travis
 script: tox
