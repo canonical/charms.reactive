@@ -12,6 +12,8 @@ This folder contains the design for the charms.reactive 2.0 reboot.
 
 Events trigger (set or unset) flags. Handlers react to flags and change them. Flags can have data attached to them.
 
+<!-- triggers are suggested here: https://github.com/juju-solutions/charms.reactive/issues/97 -->
+
 That's it.
 
 # Types of Events
@@ -28,13 +30,17 @@ The operator has requested that we bring the application into a new state of its
 
 Ex: `install`, `start`, `stop`.
 
+<!-- hooks are just one of the many types of events, decoupling the reactive bus from hooks as proposed here: https://github.com/juju-solutions/charms.reactive/issues/90 -->
+
 ### Our internal state has changed! [internal]
 
 The internal state of the unit has changed and we need to react to that.
 
 Ex: A file changing (`file.changed.<xyz>`), landscape messing about on the system (removal of `apt.installed.xyz`), a flag being toggled or the data of a flag being changed (`config.changed` unsets `config.checked`).
 
-<!-- ### Action requested!
+<!-- Actions is a tricky one. I'd wait a bit to include actions in the story until we're more certain of where we want to go.
+
+### Action requested! [external]
 
 The operator has requested an action that shouldn't significantly impact the state of the application.
 
@@ -46,7 +52,14 @@ The flow of the framework is the following:
 
 1. The reactive framework will run a handler when all its preconditions are met. A handler that has run is inactive. It will not run again until one of the flags it reacts to has changed. This change can be either the flag being toggled, or the flag data changing.
 
-2. After each handler run, all internal events will be processed. The reactive framework will not remove flags itself. Only triggers can.
+2. After each handler run, all internal events will be processed. The reactive framework will not remove flags itself. Only triggers and handlers can do that.
+
+<!-- We should do step 2. recursively. This makes it possible for charmers to create deadlocks/ infinite loops. It would be good if the reactive framework could notice an infinite loop and crash. -->
+
+<!-- Triggers or "Connected States" fix a number of issues:  -->
+<!-- multiple handlers can watch the same file for changes by creating a trigger on `file.changed.xyz` that flags `myhandler.file.changed.xyz` https://github.com/juju-solutions/charms.reactive/issues/25 https://github.com/juju-solutions/charms.reactive/issues/44 -->
+<!-- when_resource_changed is a trigger that flags `resource.changed.xyz` https://github.com/juju-solutions/charms.reactive/issues/87 -->
+
 
 3. After all triggers have been processed, the reactive framework will run the next handler whose preconditions are met. (back to 1.)
 
@@ -61,13 +74,14 @@ Handlers run transactionally. Internal events are processed after a handler run.
 
 # Show me the code!
 
+
 ```python
 # Register triggers
 charms.reactive.register_trigger(
   event='config.changed',
   unset='config.checked')
 
-# Register Handlers
+# Register Handlers See the reference for all the possible decorators
 @when_all(
     "config.changed.my-json-value",
     "config.checked.my-json-value",
@@ -130,3 +144,40 @@ def  check_config():
        event='config.changed',
        unset='config.checked-json')
 ```
+
+# Reference
+
+Multiple decorators on the same handler functions as an `AND`.
+
+## `reactive.register`
+
+Registers a trigger. This trigger will be checked after each handler.
+
+- `event`: Trigger if this flag is set. *Note: after being triggered, it will become inactive until the event flag changes.*
+
+<!-- Handlers and events both become inactive in the same way. This improves consistency. -->
+
+Optional arguments:
+
+- `set`: Set this flag when triggered.
+- `unset`: Unset this flag when triggered.
+
+## `reactive.decorators`
+
+| decorator  	                 |   explanation                                                     |
+|---	                         |---	                                                               |
+| `when`, `when_all`           | Handler runs when all flags are set.                              |
+| `when_any`                   | Handler runs when any of the flags are set.                       |
+| `when_not`, `when_none`      | Handler runs when none of the flags are set.                      |
+| `when_not_all`               | Handler runs when one or more of the flags are **not** set.       |
+
+
+<!-- this proposal removes `hook`, `not_unless`, `only_once`, `when_file_changed` -->
+<!-- fixes: https://github.com/juju-solutions/charms.reactive/issues/22 -->
+
+# TODO
+
+ - Figure out relations
+ - Flesh out the API for flags that contain data
+ - Figure out how to create new events (landscape is messing about)
+ - Figure out what to do with actions
