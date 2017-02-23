@@ -1,12 +1,12 @@
 # Introduction
 
-This folder contains the design for the charms.reactive 2.0 reboot.
+This folder contains the design for the next evolution of charms.reactive: 2.0. We've learned a lot from using and breaking charms.reactive. We'll use this knowledge to tweak some of the core concepts to improve the experience of writing Charms.
 
 *Tip: Forget about hooks!*
 
 # Index
 
-[VISION.md](VISION.md) offers a short description of what charms.reactive is about and where we want to go.
+[VISION.md](VISION.md) provides a narrative of the evolution of charms.reactive and the principal aims of the project.
 
 # In general
 
