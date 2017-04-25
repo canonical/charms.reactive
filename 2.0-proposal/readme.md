@@ -59,7 +59,7 @@ Layer devs will be able to use this to create their own when_file_changed-like f
 
 The Reactive Agent has two modes: `idle` and `executing`. An idle agent waits for events to happen. When an event happens, the agent wakes up, processes the event by changing the linked flags, and runs handlers to react to those flags. You can see the agent state in the "Agent" field of the `juju status` output.
 
-1. Wake up and **process process one external event.**
+1. Wake up and **process one external event.**
   - Set or change the flags corresponding to that external event.
   - Remove the external event from the external event queue.
 
@@ -110,6 +110,35 @@ def set_config():
 ```
 
 # Use Cases
+
+## Reacting to a state that is only know during at runtime
+
+The `java` layer might install the package `openjdk-7-jdk` or `openjdk-8-jdk` depending on what the `java-major` config option is. The Java layer uses the `apt` layer for installation of these packages. After installation, additional configuration needs to happen so we need a flag that reacts to `apt.installed.<java-package>`, but we don't know what the name of `java-package` is until we run the `request_installation` handler.
+
+Without triggers we would have to resort to calling `apt.install_queued` manually, but this has a number of issues because the `apt` layer now doesn't have control over when queued packages are installed. Triggers enable us to create a generic `java.installed` state and the link that state to the correct `apt.installed.x` state at runtime.
+
+```python
+@when_not('java.install-requested')
+def request_installation():
+    charms.apt.queue_install(['openjdk-%s-jre-headless' % config['java_major']])
+    reactive.register_trigger(
+       event='apt.installed.openjdk-%s-jre-headless' % config['java_major'],
+       set='java.installed')
+    set_flag('java.install-requested')
+
+@when('java.installed')
+@when_not('java.ready')
+def configure_java():
+    openjdk.set_java_home()
+    set_flag('java.ready')
+```
+
+*Note that the apt layer currently works around this by using the `atstart` hack (preflight decorator). At the start of each hook, the apt layer initializes and configures sources, clears removed package flags etc. so that when a handlers calls `apt.queue_installed`*
+
+
+## Stop magically removing States
+
+Magically removing states at the start or at the end of a hook triggers strange behavior. A
 
 ## Config Validation
 
