@@ -20,6 +20,7 @@ and admin password were available, and, if and only if that file was changed,
 the appropriate service would be restarted:
 
 .. code-block:: python
+
     from charms.reactive import when, when_file_changed
     from charmhelpers.core import templating, hookenv
 
