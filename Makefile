@@ -46,9 +46,9 @@ docs: lint
 	(cd docs; make html SPHINXBUILD=../.tox/py3/bin/sphinx-build)
 .PHONY: docs
 
-release: test docs
+release: test
 	git remote | xargs -L1 git fetch --tags
-	$(PYTHON) setup.py sdist register upload upload_sphinx
+	$(PYTHON) setup.py sdist register upload
 	git tag release-${VERSION}
 	git remote | xargs -L1 git push --tags
 
