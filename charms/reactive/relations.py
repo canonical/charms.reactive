@@ -14,7 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
+import importlib
 from inspect import isclass
 
 from charmhelpers.core import hookenv
@@ -25,6 +27,7 @@ from charms.reactive.bus import get_state
 from charms.reactive.bus import set_state
 from charms.reactive.bus import remove_state
 from charms.reactive.bus import StateList
+from charms.reactive.bus import _append_path
 
 
 # arbitrary obj instances to use as defaults instead of None
@@ -200,10 +203,14 @@ class RelationBase(object, metaclass=AutoAccessors):
         """
         # The module has already been discovered and imported.
         module = 'relations.{}.{}'.format(interface, role)
-        if module in sys.modules:
-            return cls._find_subclass(sys.modules[module])
-        else:
-            return None
+        if module not in sys.modules:
+            try:
+                _append_path(hookenv.charm_dir())
+                _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
+                importlib.import_module(module)
+            except ImportError:
+                return None
+        return cls._find_subclass(sys.modules[module])
 
     @classmethod
     def _find_subclass(cls, module):

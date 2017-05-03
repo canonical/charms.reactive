@@ -14,6 +14,7 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
 import mock
 import unittest
@@ -98,8 +99,23 @@ class TestRelationBase(unittest.TestCase):
         self.assertEqual(res.conversations(), ['conv.join'])
 
     @mock.patch.dict('sys.modules')
+    @mock.patch.object(relations.Conversation, 'join')
+    @mock.patch.object(relations, 'hookenv')
+    def test_cold_import(self, hookenv, conv_join):
+        tests_dir = os.path.dirname(__file__)
+        hookenv.charm_dir.return_value = os.path.join(tests_dir, 'data')
+        sys.modules.pop('relations.hyphen-ated.peer', None)
+        hookenv.relation_to_role_and_interface.return_value = ('peer',
+                                                               'hyphen-ated')
+        relations.RelationBase._cache.clear()
+        assert relations.RelationBase.from_name('test') is not None
+
+    @mock.patch.dict('sys.modules')
+    @mock.patch.object(relations, 'hookenv')
     @mock.patch.object(relations.RelationBase, '_find_subclass')
-    def test_find_impl(self, find_subclass):
+    def test_find_impl(self, find_subclass, hookenv):
+        tests_dir = os.path.dirname(__file__)
+        hookenv.charm_dir.return_value = os.path.join(tests_dir, 'data')
         self.assertIsNone(relations.RelationBase._find_impl('role',
                                                             'interface'))
         assert not find_subclass.called
