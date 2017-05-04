@@ -7,7 +7,7 @@ Charms.Reactive |badge|
 This module serves as the basis for creating charms and relation
 implementations using the reactive pattern.
 
-The full documentation is available online at: http://pythonhosted.org/charms.reactive/
+The full documentation is available online at: https://charmsreactive.readthedocs.io/en/latest/
 
 
 Usage
