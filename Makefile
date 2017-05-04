@@ -44,6 +44,7 @@ ftest: lint
 docs: lint
 	.tox/py3/bin/pip install sphinx
 	(cd docs; make html SPHINXBUILD=../.tox/py3/bin/sphinx-build)
+	cd docs/_build/html && zip -r ../docs.zip *
 .PHONY: docs
 
 release: test
