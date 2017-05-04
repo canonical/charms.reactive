@@ -23,6 +23,7 @@ from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
 from charms.reactive.relations import RelationBase
 from charms.reactive.helpers import _hook
+from charms.reactive.helpers import _setup
 from charms.reactive.helpers import _when_all
 from charms.reactive.helpers import _when_any
 from charms.reactive.helpers import _when_none
@@ -66,6 +67,48 @@ def hook(*hook_patterns):
         handler.add_args(arg_gen())
         return action
     return _register
+
+
+def setup(action):
+    """
+    Register the decorated function to run first in every hook, before
+    any @hook or other handlers.
+
+    setup actions are run in an undefined order.
+
+    Setup actions may be used to initialize state, or to ensure
+    invariants such as valid configuration values::
+
+        @setup
+        def leadership():
+            helpers.toggle_state('is_leader', hookenv.is_leader())
+
+
+        @setup
+        def validate_config():
+            version = hookenv.config()['version']
+            if version not in ('9.1', '9.2', '9.3'):
+                hookenv.status_set('blocked',
+                                   'Unsupported version {}'.format(version))
+                raise SystemExit(0)  # Terminate hook.
+
+
+        @setup
+        @only_once
+        def execd_preinstall():
+            'Run the pre-install hooks before the install hooks'
+            hookenv.status_set('maintenance',
+                               'Running preinstallation hooks')
+        try:
+            charmhelpers.payload.execd.execd_run()
+            execd.execd_run('charm-pre-install', die_on_error=True)
+        except SystemExit:
+            hookenv.status_set('blocked', 'execd_preinstall failed')
+            raise SystemExit(0)  # Terminate hook.
+    """
+    handler = Handler.get(action)
+    handler.add_predicate(_setup)
+    return action
 
 
 def when(*desired_states):
