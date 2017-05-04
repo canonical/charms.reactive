@@ -49,7 +49,7 @@ docs: lint
 
 release: test
 	git remote | xargs -L1 git fetch --tags
-	$(PYTHON) setup.py sdist register upload
+	$(PYTHON) setup.py sdist upload
 	git tag release-${VERSION}
 	git remote | xargs -L1 git push --tags
 
