@@ -21,6 +21,7 @@ import shutil
 import tempfile
 import unittest
 
+from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charms import reactive
 
@@ -198,6 +199,17 @@ class TestReactiveHelpers(unittest.TestCase):
         any_hook.return_value = False
         assert not reactive.helpers._hook(pats)
         any_hook.assert_called_once_with('pat1', 'pat2')
+
+    @mock.patch.object(hookenv, 'action_name')
+    def test__action(self, action_name):
+        action_name.return_value = mock.sentinel.aname
+        self.kv.set('reactive.dispatch.phase', 'actions')
+        self.assertTrue(reactive.helpers._action(mock.sentinel.aname))
+        self.assertFalse(reactive.helpers._action(mock.sentinel.different))
+        for phase in ['hooks', 'setup', 'other']:
+            self.kv.set('reactive.dispatch.phase', phase)
+            self.assertFalse(reactive.helpers._action(mock.sentinel.aname))
+            self.assertFalse(reactive.helpers._action(mock.sentinel.different))
 
     def test__when_all(self):
         test = lambda: reactive.helpers._when_all(['state1', 'state2'])

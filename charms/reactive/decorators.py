@@ -1,4 +1,4 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -22,7 +22,9 @@ from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
 from charms.reactive.relations import RelationBase
+from charms.reactive.helpers import _action
 from charms.reactive.helpers import _hook
+from charms.reactive.helpers import _setup
 from charms.reactive.helpers import _when_all
 from charms.reactive.helpers import _when_any
 from charms.reactive.helpers import _when_none
@@ -66,6 +68,70 @@ def hook(*hook_patterns):
         handler.add_args(arg_gen())
         return action
     return _register
+
+
+def action(action_name):
+    """
+    Register the decorated function to run when the given action is invoked.
+    It must accept a single argument, which will be a dictionary containing
+    the parameters from the `action-get` hook environment tool.
+
+    Note that action decorators **cannot** be combined with :func:`when` or
+    :func:`when_not` decorators.
+    """
+    def _register(action_func):
+        def arg_gen():
+            # Use a generate to defer the call to hookenv.action_get()
+            params = hookenv.action_get()
+            yield params
+
+        handler = Handler.get(action_func)
+        handler.add_predicate(partial(_action, action_name))
+        handler.add_args(arg_gen())
+        return action_func
+    return _register
+
+
+def setup(action):
+    """
+    Register the decorated function to run first in every hook, before
+    any @hook or other handlers.
+
+    setup actions are run in an undefined order.
+
+    Setup actions may be used to initialize state, or to ensure
+    invariants such as valid configuration values::
+
+        @setup
+        def leadership():
+            helpers.toggle_state('is_leader', hookenv.is_leader())
+
+
+        @setup
+        def validate_config():
+            version = hookenv.config()['version']
+            if version not in ('9.1', '9.2', '9.3'):
+                hookenv.status_set('blocked',
+                                   'Unsupported version {}'.format(version))
+                raise SystemExit(0)  # Terminate hook.
+
+
+        @setup
+        @only_once
+        def execd_preinstall():
+            'Run the pre-install hooks before the install hooks'
+            hookenv.status_set('maintenance',
+                               'Running preinstallation hooks')
+        try:
+            charmhelpers.payload.execd.execd_run()
+            execd.execd_run('charm-pre-install', die_on_error=True)
+        except SystemExit:
+            hookenv.status_set('blocked', 'execd_preinstall failed')
+            raise SystemExit(0)  # Terminate hook.
+    """
+    handler = Handler.get(action)
+    handler.add_predicate(_setup)
+    return action
 
 
 def when(*desired_states):

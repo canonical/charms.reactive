@@ -77,6 +77,58 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
         action.assert_called_once_with()
 
+    @mock.patch.object(hookenv, 'action_get')
+    @mock.patch.object(reactive.decorators, '_action')
+    def test_action(self, _action, action_get):
+        _action.return_value = True
+        action_get.return_value = mock.sentinel.params
+        wabbit = mock.MagicMock()
+
+        @reactive.action('kill-the-wabbit')
+        def kill_wabbit(*args):
+            wabbit.kill(*args)
+
+        handler = reactive.bus.Handler.get(kill_wabbit)
+        assert handler.test()
+        handler.invoke()
+
+        _action.assert_called_once_with('kill-the-wabbit')
+        wabbit.kill.assert_called_once_with(mock.sentinel.params)
+
+    @mock.patch.object(reactive.decorators, '_setup')
+    def test_setup(self, _setup):
+        _setup.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.setup
+        def test_action():
+            action()
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        handler.invoke()
+
+        _setup.assert_called_once_with()
+        action.assert_called_once_with()
+
+    @mock.patch.object(reactive.decorators, '_setup')
+    def test_setup_only_once(self, _setup):
+        _setup.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.setup
+        @reactive.only_once
+        def test_action():
+            action()
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        for _ in range(3):
+            handler.invoke()
+
+        action.assert_called_once_with()
+
+
     @mock.patch.object(reactive.decorators, 'RelationBase')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_all')

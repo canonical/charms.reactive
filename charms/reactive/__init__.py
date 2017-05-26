@@ -25,6 +25,8 @@ from .helpers import all_states  # noqa
 from .relations import scopes  # noqa
 from .relations import RelationBase  # noqa
 from .decorators import hook  # noqa
+from .decorators import action  # noqa
+from .decorators import setup  # noqa
 from .decorators import when  # noqa
 from .decorators import when_all  # noqa
 from .decorators import when_any  # noqa
