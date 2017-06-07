@@ -87,16 +87,26 @@ def relation_factory(relation_name):
     ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``
     """
     role, interface = hookenv.relation_to_role_and_interface(relation_name)
-    hooks_dir = os.path.join(hookenv.charm_dir(), 'hooks')
-    try:
-        filepath = os.path.join(hooks_dir, 'relations',
-                                interface, role + '.py')
-        module = _load_module(filepath)
-        return _find_relation_factory(module)
-    except ImportError:
-        hookenv.log('Missing or invalid hooks/relations/{}/{}.py'
-                    ''.format(interface, role), hookenv.WARNING)
-        return None
+    return _find_relation_factory(_relation_module(role, interface))
+
+
+def _relation_module(role, interface):
+    """
+    Return module for relation based on its role and interface, or None.
+    """
+    # The module has already been discovered and imported.
+    module = 'relations.{}.{}'.format(interface, role)
+    if module not in sys.modules:
+        try:
+            _append_path(hookenv.charm_dir())
+            _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
+            _append_path(os.path.join(hookenv.charm_dir(), 'reactive'))
+            importlib.import_module(module)
+        except ImportError:
+            hookenv.log('Unable to find implementation for relation: '
+                        '{}'.format(module), hookenv.ERROR)
+            return None
+    return sys.modules[module]
 
 
 def _find_relation_factory(module):
@@ -106,6 +116,9 @@ def _find_relation_factory(module):
     Note: RelationFactory and RelationBase are ignored so they may
     be imported to be used as base classes without fear.
     """
+    if not module:
+        return None
+
     # All the RelationFactory subclasses
     candidates = [o for o in (getattr(module, attr) for attr in dir(module))
                   if (o is not RelationFactory and
@@ -121,13 +134,13 @@ def _find_relation_factory(module):
                              if c1 is not c2)]
 
     if not candidates:
-        hookenv.log('No RelationFactory found in {}'.format(module.__path__),
+        hookenv.log('No RelationFactory found in {}'.format(module.__name__),
                     hookenv.WARNING)
         return None
 
     if len(candidates) > 1:
         raise RuntimeError('Too many RelationFactory found in {}'
-                           ''.format(module.__path__))
+                           ''.format(module.__name__))
 
     return candidates[0]
 
@@ -189,11 +202,7 @@ class AutoAccessors(type):
         return __accessor
 
 
-class RelationMeta(AutoAccessors, RelationFactory):
-    pass
-
-
-class RelationBase(object, metaclass=RelationMeta):
+class RelationBase(RelationFactory, metaclass=AutoAccessors):
     """
     A base class for relation implementations.
     """
@@ -302,16 +311,10 @@ class RelationBase(object, metaclass=RelationMeta):
         """
         Find relation implementation based on its role and interface.
         """
-        # The module has already been discovered and imported.
-        module = 'relations.{}.{}'.format(interface, role)
-        if module not in sys.modules:
-            try:
-                _append_path(hookenv.charm_dir())
-                _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
-                importlib.import_module(module)
-            except ImportError:
-                return None
-        return cls._find_subclass(sys.modules[module])
+        module = _relation_module(role, interface)
+        if not module:
+            return None
+        return cls._find_subclass(module)
 
     @classmethod
     def _find_subclass(cls, module):
@@ -768,7 +771,7 @@ class Conversation(object):
         return unitdata.kv().get(key, default)
 
 
-def _migrate_conversations():
+def _migrate_conversations():  # noqa
     """
     Due to issue #28 (https://github.com/juju-solutions/charms.reactive/issues/28),
     conversations needed to be updated to be namespaced per relation ID for SERVICE

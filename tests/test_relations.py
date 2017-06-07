@@ -30,41 +30,39 @@ class DummyRelationSubclass(relations.RelationBase):
 
 class TestFactory(unittest.TestCase):
     @mock.patch.object(relations.hookenv, 'log')
-    @mock.patch.object(relations, '_load_module')
+    @mock.patch.object(relations, 'importlib')
     @mock.patch.object(relations.hookenv, 'charm_dir')
     @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
     def test_relation_factory_import_fail(self, relation_to_role_and_interface,
-                                          charm_dir, load_module, log):
+                                          charm_dir, importlib, log):
         relation_to_role_and_interface.return_value = ('role', 'interface')
         charm_dir.return_value = 'charm_dir'
-        load_module.side_effect = ImportError
+        importlib.import_module.side_effect = ImportError
         self.assertIsNone(relations.relation_factory('relname'))
         relation_to_role_and_interface.assert_called_once_with('relname')
-        load_module.assert_called_once_with(
-            'charm_dir/hooks/relations/interface/role.py')
-        log.assert_called_once_with(mock.ANY, relations.hookenv.WARNING)
+        importlib.import_module.assert_called_once_with('relations.interface.role')
+        log.assert_called_once_with(mock.ANY, relations.hookenv.ERROR)
 
     @mock.patch.object(relations, '_find_relation_factory')
     @mock.patch.object(relations.hookenv, 'log')
-    @mock.patch.object(relations, '_load_module')
+    @mock.patch.object(relations, '_relation_module')
     @mock.patch.object(relations.hookenv, 'charm_dir')
     @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
     def test_relation_factory(self, relation_to_role_and_interface,
-                              charm_dir, load_module, log, find_factory):
+                              charm_dir, rel_mod, log, find_factory):
         relation_to_role_and_interface.return_value = ('role', 'interface')
         charm_dir.return_value = 'charm_dir'
-        load_module.return_value = 'module'
+        rel_mod.return_value = 'module'
         find_factory.return_value = 'fact'
 
         self.assertEqual(relations.relation_factory('relname'), 'fact')
         relation_to_role_and_interface.assert_called_once_with('relname')
-        load_module.assert_called_once_with(
-            'charm_dir/hooks/relations/interface/role.py')
+        rel_mod.assert_called_once_with('role', 'interface')
         find_factory.assert_called_once_with('module')
 
     def test_find_relation_factory(self):
         mod = types.ModuleType('mod')
-        mod.__path__ = 'here'
+        mod.__name__ = 'here'
 
         # Noise to be ignored
         mod.RelationFactory = relations.RelationFactory
@@ -113,9 +111,6 @@ class TestFactory(unittest.TestCase):
 
         relation_factory.assert_called_once_with('relname')
         relation_factory('relname').from_name.assert_called_once_with('relname')
-
-
-
 
 
 class TestAutoAccessors(unittest.TestCase):
