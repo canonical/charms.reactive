@@ -53,6 +53,11 @@ def main(relation_name=None):
 
     :param str relation_name: Optional name of the relation which is being handled.
     """
+    # do not migrate conversations for hooks that are known to have a limited context.
+    if hookenv.hook_name() in ['collect-metrics', 'meter-status-changed']:
+        hookenv.log('Reactive main not running for hook %s' % hookenv.hook_name(), level = hookenv.WARNING)
+        return
+    
     hookenv.log('Reactive main running for hook %s' % hookenv.hook_name(), level=hookenv.INFO)
 
     # work-around for https://bugs.launchpad.net/juju-core/+bug/1503039
