@@ -234,9 +234,18 @@ Optional arguments:
 <!-- this proposal removes `hook`, `not_unless`, `only_once`, `when_file_changed` -->
 <!-- fixes: https://github.com/juju-solutions/charms.reactive/issues/22 -->
 
+# Relations
+
+Improvements to how interface layers are implemented will leverage many of
+the above improvements, and will start out as a backwards-compatible
+alternative that can be used on a per-layer basis.  From the point of view
+of the charm, whether an interface layer uses the new style or old shouldn't
+matter.
+
+More details can be found in [RELATIONS.md](RELATIONS.md).
+
 # TODO
 
- - Figure out relations
  - Flesh out the API for flags that contain data
  - Figure out how to create new events (landscape is messing about)
  - Figure out what to do with actions
