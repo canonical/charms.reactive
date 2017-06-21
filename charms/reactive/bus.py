@@ -276,6 +276,9 @@ class Handler(object):
         """
         Invoke this handler.
         """
+        config = hookenv.config()
+        if config.get('dry-run', False):
+            return
         args = self._get_args()
         self._action(*args)
         for callback in self._post_callbacks:
