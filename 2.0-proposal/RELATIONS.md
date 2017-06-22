@@ -94,12 +94,14 @@ related to any remote application.
 
 # The SimpleRelation API
 
-The `SimpleRelation` base class will provide a couple of automatically managed
-reactive flags, as well as providing collections for introspecting the state of
-the relation, including related applications and units, relation data provided
-by those units, and for associating reactive flags with particular related
-applications or units and filtering related applications and units by those
-flags.
+The `SimpleRelation` base class provides
+
+ - a couple of automatically managed reactive flags that signal the state of the relationship,
+ - collections of related applications and their units,
+ - the relation data sent by those units,
+ - collections to send relation data to those units,
+ - methods to associates reactive flags with particular related applications or units,
+ - and methods to filter the applications and units based on those flags.
 
 ## Managed Flags
 
@@ -117,10 +119,10 @@ the relation, and will be updated whenever the list of related units changes so
 that any handler watching the flag will be re-invoked.
 
 The `changed` flag will be set as long as at least one remote unit is
-related and has set data on the relation, and it will be updated whenever
-either a unit updates its relation data or if a related unit goes away.  The
-interface can select only units whose relation data has changed using the
-`with_flag` filter method described below and this flag.
+related and has sent data over the relation. The `changed` flag and it will be
+updated whenever either a unit changes that data or if a related unit goes
+away. The interface can select only units whose relation data has changed using
+the `with_flag` filter method described below and this flag.
 
 ## Application and Unit Collections
 
@@ -136,7 +138,7 @@ class MyRelation(SimpleRelation):
     def changed(self):
         for app in self.applications:
             for unit in app.units:
-                print('Unit {} has data: {}'.format(unit.name, unit.data))
+                print('Unit {} sent data: {}'.format(unit.name, unit.receive))
 ```
 
 Applications and units can have flags associated with them.  Flags that are
@@ -157,7 +159,7 @@ class MyRelation(SimpleRelation):
     def changed(self):
         for app in self.applications:
             for unit in app.units.with_flag(self.flags.changed):
-                host = unit.data.host
+                host = unit.receive['host']
                 print('unit {} host changed: {}'.format(unit.name, host))
                 if host:
                     unit.add_flag(self.flags.ready)
@@ -166,12 +168,12 @@ class MyRelation(SimpleRelation):
                 # or unit.toggle_flag(self.flags.ready, host)
 
         for app in self.applications.without_flag(self.flags.ready):
-            print('Waiting on {}'.format(app.name))
+            print('Waiting on {} ({})'.format(app.name, app.relid))
 
     def get_hosts(self):
         for app in self.applications.with_flag(self.flags.ready):
             for unit in app.units.with_flag(self.flags.ready):
-                yield unit.data.host
+                yield unit.receive['host']
 ```
 
 In the relatively common case that you don't expect or care about multiple
@@ -187,16 +189,26 @@ and flags associated with the application or units will be kept separate.  You
 can distinguish between the application instances by their `relation_id`
 property.
 
-## Relation Data
+## Sending and Receiving Relation Data
 
-As shown above, each unit has a data attribute.  This behaves like a
-read-only `defaultdict(None)` which allows the keys to be accessed as
-attributes (with dashes converted to underscores).  The values are always
-strings or `None`.
+Units on each side of a relation communicate by sending and receiving relation
+data in key-value pairs. Each `unit` has a `receive` attribute which behaves
+like a read-only `defaultdict(None)` that contains the data you received from
+that `unit`. The values are always non-empty strings or `None`.
 
-There is also a helper view for the relation data set by remote units, in case
-you expect only the leader to be providing data or for the remote units to
-agree on (some subset) of the data.  For example:
+```python
+for app in self.applications:
+    for unit in app.units:
+        host = unit.receive['host']
+        if host:
+            unit.add_flag(self.flags.ready)
+        else:
+            unit.remove_flag(self.flags.ready)
+```
+
+There is also a helper view that merges the received data from all the units.
+This is useful if you expect only the leader to be sending data or if you expect
+the remote units to agree on (some subset) of the data.  For example:
 
 ```python
 class MySQLClient(SimpleRelation):
@@ -206,15 +218,16 @@ class MySQLClient(SimpleRelation):
 
     @when(flags.changed)
     def changed(self):
-        data = self.all_units.merged_data
-        # we assume data.host to be the master
-        if all([data.host, data.database, data.user, data.password]):
+        data = self.all_units.receive
+        # we assume data['host'] to be the master
+        if all([data['host'], data['database'],
+                data['user'], data['password']]):
             self.add_flag(self.flags.ready)
 ```
 
-To set relation data for the current unit, there is a `set_data` collection on
-each application which behaves like the read-only data collection, but which
-allows setting attributes or dictionary values.  For example:
+To send relation data to all the units of a remote application, you can use the
+`send` attribute of an application. This is a dictionary that you use to send
+key-value data. For example:
 
 ```python
 class MySQL(SimpleRelation):
@@ -225,17 +238,18 @@ class MySQL(SimpleRelation):
         return self.applications.without_flag(self.flags.provided)
 
     def provide_database(self, app, host, port, db, user, pass):
-        app.set_data.host = host
-        app.set_data.port = port
-        app.set_data.database = db
-        app.set_data.user = user
-        app.set_data.password = pass
+        app.send['host'] = host
+        app.send['port'] = port
+        app.send['database'] = db
+        app.send['user'] = user
+        app.send['password'] = pass
         app.add_flag(self.flags.provided)
 ```
 
-It is often useful to have typed or structured data, which involves encoding
-and decoding to something like JSON.  To make this easy, the data collections
-support a JSON version which do automatic JSON encoding / decoding.
+It is often useful to exchange typed or structured data. This involves encoding
+and decoding data to JSON. To make this easy, the `send` and `receive`
+collections have json counterparts: `send_json` and `receive_json`. These
+collections do automatic encoding and decoding of serializable Python objects.
 
 ```python
 class MyServicePeer(SimpleRelation):
@@ -246,13 +260,13 @@ class MyServicePeer(SimpleRelation):
     @when(flags.joined)
     def send_data(self):
         for app in self.applications:
-            app.set_json_data.my_list = ['one', 'two']
-            app.set_json_data.my_bool = True
+            app.send_json['my-list'] = ['one', 'two']
+            app.send_json['my-bool'] = True
 
     @when(flags.changed)
     def recv_data(self):
         for unit in self.all_units.with_flag(self.flags.changed):
-            print('Peer {} list is {}'.format(unit, ', '.join(unit.json_data.my_list)))
-            if unit.json_data.my_bool:
-                print('Peer says my_bool is True.')
+            print('Peer {} list is {}'.format(unit, ', '.join(unit.receive_json['my-list'])))
+            if unit.receive_json['my-bool']:
+                print('Peer says my-bool is True.')
 ```
