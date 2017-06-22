@@ -236,13 +236,13 @@ class MyServicePeer(SimpleRelation):
     @when(flags.joined)
     def send_data(self):
         for app in self.applications:
-            app.set_json_data.list = ['one', 'two']
-            app.set_json_data.bool = True
+            app.set_json_data.my_list = ['one', 'two']
+            app.set_json_data.my_bool = True
 
     @when(flags.changed)
     def recv_data(self):
         for unit in self.all_units.with_flag(self.flags.changed):
-            print('Peer {} list is {}'.format(unit, ', '.join(unit.json_data.list)))
-            if unit.json_data.bool:
-                print('Peer is bool')
+            print('Peer {} list is {}'.format(unit, ', '.join(unit.json_data.my_list)))
+            if unit.json_data.my_bool:
+                print('Peer says my_bool is True.')
 ```
