@@ -74,6 +74,16 @@ assert context.relations.db
 assert context.relations.peers
 ```
 
+An example of how these instances could be used:
+
+```python
+from charms.reactive.context import relations
+
+@when('relation.db.changed')
+def reconfigure_database():
+    db_credentials = relations.db.get_credentials()
+```
+
 Note that the `apache_website` instance would be of the class that was found in
 the `reactive/relations/apache_website/provides.py` file, the `db` instance
 would be from `reactive/relations/mysql/requires.py`, and the `peers` instance
