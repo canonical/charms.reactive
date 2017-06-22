@@ -13,7 +13,7 @@ and ended up being more difficult and confusing for interface layer authors.
 
 The current incarnation, as described in this document, tries to stick
 as close to the underlying Juju model as possible yet still provide
-convience methods for working with relations.
+convenient methods for working with relations.
 
 # Interface Layers
 
@@ -22,7 +22,7 @@ to which one or more remote applications can be connected (related).  A layer
 which provides an interface implementation is a normal layer, but has to
 conform to a certain set of requirements.  The layer must provide one or two
 files with specific paths, containing classes that implement both the provides
-and requires side of an interface, or the single peer interface impelmentation.
+and requires side of an interface, or the single peer interface implementation.
 
 The files should be under the `reactive/relations/` directory, in a
 sub-directory named after the interface name (with dashes changed to
