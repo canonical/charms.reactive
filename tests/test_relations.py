@@ -1,8 +1,8 @@
 # Copyright 2014-2016 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive.
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
@@ -16,6 +16,7 @@
 
 import os
 import sys
+import types
 import mock
 import unittest
 
@@ -25,6 +26,91 @@ from charms.reactive import relations
 
 class DummyRelationSubclass(relations.RelationBase):
     auto_accessors = ['field-one', 'field-two']
+
+
+class TestFactory(unittest.TestCase):
+    @mock.patch.object(relations.hookenv, 'log')
+    @mock.patch.object(relations, 'importlib')
+    @mock.patch.object(relations.hookenv, 'charm_dir')
+    @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
+    def test_relation_factory_import_fail(self, relation_to_role_and_interface,
+                                          charm_dir, importlib, log):
+        relation_to_role_and_interface.return_value = ('role', 'interface')
+        charm_dir.return_value = 'charm_dir'
+        importlib.import_module.side_effect = ImportError
+        self.assertIsNone(relations.relation_factory('relname'))
+        relation_to_role_and_interface.assert_called_once_with('relname')
+        importlib.import_module.assert_called_once_with('relations.interface.role')
+        log.assert_called_once_with(mock.ANY, relations.hookenv.ERROR)
+
+    @mock.patch.object(relations, '_find_relation_factory')
+    @mock.patch.object(relations.hookenv, 'log')
+    @mock.patch.object(relations, '_relation_module')
+    @mock.patch.object(relations.hookenv, 'charm_dir')
+    @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
+    def test_relation_factory(self, relation_to_role_and_interface,
+                              charm_dir, rel_mod, log, find_factory):
+        relation_to_role_and_interface.return_value = ('role', 'interface')
+        charm_dir.return_value = 'charm_dir'
+        rel_mod.return_value = 'module'
+        find_factory.return_value = 'fact'
+
+        self.assertEqual(relations.relation_factory('relname'), 'fact')
+        relation_to_role_and_interface.assert_called_once_with('relname')
+        rel_mod.assert_called_once_with('role', 'interface')
+        find_factory.assert_called_once_with('module')
+
+    def test_find_relation_factory(self):
+        mod = types.ModuleType('mod')
+        mod.__name__ = 'here'
+
+        # Noise to be ignored
+        mod.RelationFactory = relations.RelationFactory
+        mod.RelationBase = relations.RelationBase
+
+        # One subclass of RelationFactory
+        class Rel(relations.RelationFactory):
+            pass
+        mod.Rel = Rel
+        self.assertIs(relations._find_relation_factory(mod), Rel)
+
+        # One subclass of RelationBase
+        class Rel2(relations.RelationBase):
+            pass
+        del mod.Rel
+        mod.Rel2 = Rel2
+        self.assertIs(relations._find_relation_factory(mod), Rel2)
+
+        # Subclass, and a subclass of it.
+        class Rel3(Rel2):
+            pass
+        mod.Rel3 = Rel3
+        self.assertIs(relations._find_relation_factory(mod), Rel3)
+
+        # A 2nd valid choice
+        mod.Rel4 = Rel3
+        with self.assertRaises(RuntimeError):
+            relations._find_relation_factory(mod)
+
+    def test_relation_from_name_missing_name(self):
+        self.assertIsNone(relations.relation_from_name(None))
+
+    @mock.patch.object(relations, 'relation_factory')
+    def test_relation_from_name_missing_factory(self, relation_factory):
+        relation_factory.return_value = None
+        self.assertIsNone(relations.relation_from_name('relname'))
+        relation_factory.assert_called_once_with('relname')
+
+    @mock.patch.object(relations, 'relation_factory')
+    def test_relation_from_name(self, relation_factory):
+        relation_factory('relname').from_name.return_value = 'relinstance'
+        relation_factory.reset_mock()
+
+        self.assertEqual(relations.relation_from_name('relname'),
+                         'relinstance')
+
+        relation_factory.assert_called_once_with('relname')
+        relation_factory('relname').from_name.assert_called_once_with('relname')
 
 
 class TestAutoAccessors(unittest.TestCase):
@@ -616,11 +702,11 @@ class TestMigrateConvs(unittest.TestCase):
 class TestRelationCall(unittest.TestCase):
     def setUp(self):
         self.r1 = mock.Mock(name='r1')
-        from_name_p = mock.patch.object(relations.RelationBase, 'from_name')
+        from_name_p = mock.patch.object(relations, 'relation_from_name')
         self.from_name = from_name_p.start()
         self.addCleanup(from_name_p.stop)
         self.from_name.side_effect = lambda name: self.r1
-        from_state_p = mock.patch.object(relations.RelationBase, 'from_state')
+        from_state_p = mock.patch.object(relations, 'relation_from_state')
         self.from_state = from_state_p.start()
         self.addCleanup(from_state_p.stop)
         self.from_state.side_effect = lambda name: self.r1
@@ -645,7 +731,10 @@ class TestRelationCall(unittest.TestCase):
         self.r1.method.assert_called_once_with('arg1', 'arg2')
         self.from_state.assert_called_once_with('state')
 
-    def test_call_conversations(self):
+    @mock.patch.object(relations, 'isinstance')
+    def test_call_conversations(self, isinst):
+        isinst.return_value = True
         self.r1.conversations.return_value = list(mock.Mock(scope=scope) for scope in ['s1', 's2'])
         result = relations.relation_call('conversations', 'rel')
         self.assertEqual(result, ['s1', 's2'])
+        isinst.assert_called_once_with(self.r1, relations.RelationBase)

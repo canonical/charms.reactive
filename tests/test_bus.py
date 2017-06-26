@@ -1,8 +1,8 @@
 # Copyright 2014-2016 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive.
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
@@ -457,12 +457,13 @@ class TestReactiveBus(unittest.TestCase):
 
     @attr('slow')
     @mock.patch.dict('sys.modules')
+    @mock.patch('charmhelpers.core.hookenv.relation_to_role_and_interface')
     @mock.patch('subprocess.check_call')
     @mock.patch('subprocess.Popen')
     @mock.patch('charmhelpers.core.hookenv.relation_type')
     @mock.patch('charmhelpers.core.hookenv.hook_name')
     @mock.patch('charmhelpers.core.hookenv.charm_dir')
-    def test_full_stack(self, charm_dir, hook_name, relation_type, mPopen, mcheck_call):
+    def test_full_stack(self, charm_dir, hook_name, relation_type, mPopen, mcheck_call, rtrai):
         test_dir = os.path.dirname(__file__)
         charm_dir.return_value = os.path.join(test_dir, 'data')
         hook_name.return_value = 'config-changed'
@@ -552,6 +553,9 @@ class TestReactiveBus(unittest.TestCase):
 
             hook_name.return_value = 'test-rel-relation-joined'
             relation_type.return_value = 'test-rel'
+            rtrai.return_value = ('requires', 'test')
+            self.assertIsNotNone(reactive.relations.relation_factory('test-rel'))
+            self.assertIsNotNone(reactive.relations.relation_factory('test-rel').from_name('test'))
             with mock.patch.dict(os.environ, {'JUJU_HOOK_NAME': 'test-rel-relation-joined'}):
                 reactive.bus.dispatch()
             assert reactive.helpers.all_states('test-rel.ready')

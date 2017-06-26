@@ -1,12 +1,12 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2016 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
-# charm-helpers is distributed in the hope that it will be useful,
+# charms.reactive is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -21,7 +21,7 @@ from charms.reactive.bus import Handler
 from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
-from charms.reactive.relations import RelationBase
+from charms.reactive.relations import relation_from_name, relation_from_state
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _when_all
 from charms.reactive.helpers import _when_any
@@ -57,7 +57,7 @@ def hook(*hook_patterns):
     def _register(action):
         def arg_gen():
             # use a generator to defer calling of hookenv.relation_type, for tests
-            rel = RelationBase.from_name(hookenv.relation_type())
+            rel = relation_from_name(hookenv.relation_type())
             if rel:
                 yield rel
 
@@ -89,7 +89,7 @@ def when_all(*desired_states):
     def _register(action):
         handler = Handler.get(action)
         handler.add_predicate(partial(_when_all, desired_states))
-        handler.add_args(filter(None, map(RelationBase.from_state, desired_states)))
+        handler.add_args(filter(None, map(relation_from_state, desired_states)))
         handler.register_states(desired_states)
         return action
     return _register
@@ -104,7 +104,7 @@ def when_any(*desired_states):
     parameter bindings ambiguous.  Therefore, it is not generally recommended
     to use this with relation states; however, if you do need to, you can get
     the relation instance associated with a state using
-    :func:`~charms.reactive.relations.RelationBase.from_state`.
+    :func:`~charms.reactive.relations.relation_from_state`.
 
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
