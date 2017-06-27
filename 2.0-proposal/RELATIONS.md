@@ -1,58 +1,43 @@
 # Background
 
-Interface layers provide a valuable encapsulation of the protocol of
-exchanging data over relations between charms that ensures all charms
-using a given interface protocol know exactly what to expect and have
-a documented API to use for interacting over the relation.
+Interface Layers codify the protocol that Charms use to exchange data over a relationship. A relationship connects two deployed Charms by connecting the `requires` endpoint of one Charm to the `provides` endpoint of the other Charm. This can only be done if both endpoints use the same interface. Both Charms then use this relation to send data to each other. **Both the `requires` and `provides` endpoint of an interface are encapsulated in the same Interface Layer to ensure that both sides understand the data that is being sent and received.**
 
-In previous implementations of the base classes for interface layers
-attempts were made to model the flow of information over the relation
-as a set of "conversations."  Unfortunately, this had too much mismatch
-with how the underlying communication over the relations actually worked
-and ended up being more difficult and confusing for interface layer authors.
+Charms define relationship endpoints in their `metadata.yaml` using the `provides`, `requires` and `peers` keywords. In the following example, three endpoints are defined:
 
-The current incarnation, as described in this document, tries to stick
-as close to the underlying Juju model as possible yet still provide
-convenient methods for working with relations.
-
-# Interface Layers
-
-In Juju, relations consist of one or more endpoints on the local application
-to which one or more remote applications can be connected (related).  A layer
-which provides an interface implementation is a normal layer, but has to
-conform to a certain set of requirements.  The layer must provide one or two
-files with specific paths, containing classes that implement both the provides
-and requires side of an interface, or the single peer interface implementation.
-
-The files should be under the `reactive/relations/` directory, in a
-sub-directory named after the interface name (with dashes changed to
-underscores), and in files named one of `provides.py`, `requires.py`,
-or `peers.py`.  Thus, the layer implementing the `apache-website` interface
-would need to provide the following files:
-
-  * `reactive/relations/apache_website/provides.py`
-  * `reactive/relations/apache_website/requires.py`
-
-The class in each of these files must be a subclass of
-`charms.reactive.SimpleRelation`.
-
-## Documenting Interface Layers
-
-The classes provided by an interface layer are expected to use docstrings to
-well document their API.  There is a `charm interface-doc` command that will
-convert the docstrings into Markdown and inject them into the `README.md` file
-between special comments of the form: &lt;!--interface-doc--&gt; and
-&lt;!--/interface-doc--&gt;.  This way, all interface layers have consistent
-and comprehensive documentation.
-
-# Accessing Relation Instances
-
-An instance of the appropriate interface layer class will be created and
-added to the global reactive context variable, where it can be accessed
-by the name of the relation (with dashes changed to underscores).  For example,
-if a charm had the following in its `metadata.yaml`:
+ - the endpoint `website` using the interface `apache-website`,
+ - the endpoint `db` using the interface `mysql`,
+ - and the endpoint `backup-db` using the interface `mysql`.
 
 ```yaml
+provides:
+  website:
+    interface: apache-website
+requires:
+  db:
+    interface: mysql
+  backup-db:
+    interface: mysql
+```
+
+This means that an operator can create a relationship between this Charm and a Charm implementing the requires endpoint of the `apache-website` or the provides endpoint of the `myqsl` interface.
+
+## Interface Layers
+
+Interface layers contain code for the `requires` and `provides` and `peer` side of a relationship in the `requires.py`, `provides.py` and `peers.py` files in the `reactive/interface/<interface_name>` directory (with dashes in the interface name changed to
+underscores). Thus, the layer implementing the `apache-website` interface
+would need to provide the following files:
+
+  * `reactive/endpoint/apache_website/provides.py`
+  * `reactive/endpoint/apache_website/requires.py`
+
+Each file must contain a class that is a subclass of `charms.reactive.Endpoint`.
+
+# Using Interface Layers
+
+**Create the endpoints in `metadata.yaml`:**
+
+```yaml
+# ...
 provides:
   apache-website:
     interface: apache-website
@@ -64,37 +49,48 @@ peers:
     interface: myapp
 ```
 
-Then the following context attributes would be available:
+**Add the interface layer in `layer.yaml`:**
 
-```python
-from charms.reactive import context
-
-assert context.relations.apache_website
-assert context.relations.db
-assert context.relations.peers
+```yaml
+# ...
+includes:
+  - layer:basic
+  - interface:apache-website
+  - interface:mysql
+  - interface:myapp
 ```
 
-An example of how these instances could be used:
+**Respond to the flags of the interface layers in your handlers**
+
+`charms.reactive` creates an instance of the endpoint class for each endpoint specified in `metadata.yaml`. You can find the instance at `charms.reactive.context.endpoint.<endpoint_name>` (with dashes in the interface name changed to underscores).
+
+For example, the `metadata.yaml` from above will create the following instances:
 
 ```python
-from charms.reactive.context import relations
+from charms.reactive import context.endpoint as endpoint
 
-@when('relation.db.changed')
+assert endpoint.apache_website
+assert endpoint.db
+assert endpoint.peers
+# Yes, the instances exist!
+
+@when('endpoint.db.changed')
 def reconfigure_database():
-    db_credentials = relations.db.get_credentials()
+    db_credentials = endpoint.db.get_credentials()
+    #...
 ```
 
-Note that the `apache_website` instance would be of the class that was found in
-the `reactive/relations/apache_website/provides.py` file, the `db` instance
-would be from `reactive/relations/mysql/requires.py`, and the `peers` instance
-would be from `reactive/relations/myapp/peers.py`, in their respective layers.
+*Note that the `apache_website` instance would be of the class that was found in
+the `reactive/endpoint/apache_website/provides.py` file, the `db` instance
+would be from `reactive/endpoint/mysql/requires.py`, and the `peers` instance
+would be from `reactive/endpoint/myapp/peers.py`, in their respective layers.*
 
-Also note that those instances would be available even if their relation is not
-related to any remote application.
+*Also note that those instances would be available even if their relation is not
+related to any remote application.*
 
-# The SimpleRelation API
+# Writing Interface Layers
 
-The `SimpleRelation` base class provides
+The `Endpoint` base class provides
 
  - a couple of automatically managed reactive flags that signal the state of the relationship,
  - collections of related applications and their units,
@@ -119,75 +115,59 @@ the relation, and will be updated whenever the list of related units changes so
 that any handler watching the flag will be re-invoked.
 
 The `changed` flag will be set as long as at least one remote unit is
-related and has sent data over the relation. The `changed` flag and it will be
+related and has sent data over the endpoint. The `changed` flag and it will be
 updated whenever either a unit changes that data or if a related unit goes
-away. The interface can select only units whose relation data has changed using
-the `with_flag` filter method described below and this flag.
+away.
 
-## Application and Unit Collections
+## Relation and Unit Collections
 
-The interface layer can iterate over related applications and units using the
-provided collections.  For example:
+The endpoint class can iterate over the relations and units using the provided
+collections. One endpoint can have multiple relations. Each relation can have
+multiple units corresponding to the units of the related application.
+
+For example:
 
 ```python
-class MyRelation(SimpleRelation):
-    class flags:
-        joined = 'relation.{relation_name}.joined'
+class MyEndpoint(Endpoint):
 
-    @when(flags.joined)
+    @when('endpoint.{relation_name}.joined')
     def changed(self):
-        for app in self.applications:
-            for unit in app.units:
+        for rel in self.relations:
+            for unit in rel.units:
                 print('Unit {} sent data: {}'.format(unit.name, unit.receive))
 ```
 
-Applications and units can have flags associated with them.  Flags that are
-added to an application are automatically added to all of that application's
-units, even ones that join after the fact, and if a flag is added to at least
-one of an application's units, that application will be considered to have that
-flag.
-
-You can filter the list of applications and units by flags.  For example:
+Endpoint classes can use flags to signal the state of the relationship. Flags
+set by Endpoint classes are identical to flags set in the handlers of normal
+layers.
 
 ```python
-class MyRelation(SimpleRelation):
+class MyRelation(Endpoint):
     class flags:
-        changed = 'relation.{relation_name}.changed'
-        ready = 'relation.{relation_name}.ready'
+        changed = 'endpoint.{relation_name}.changed'
+        ready = 'endpoint.{relation_name}.ready'
 
-    @when(flags.changed)
+    @when('endpoint.{relation_name}.changed')
     def changed(self):
-        for app in self.applications:
-            for unit in app.units.with_flag(self.flags.changed):
-                host = unit.receive['host']
-                print('unit {} host changed: {}'.format(unit.name, host))
-                if host:
-                    unit.add_flag(self.flags.ready)
-                else:
-                    unit.remove_flag(self.flags.ready)
-                # or unit.toggle_flag(self.flags.ready, host)
-
-        for app in self.applications.without_flag(self.flags.ready):
-            print('Waiting on {} ({})'.format(app.name, app.relid))
+        if self.get_hosts():
+            add_flag('endpoint.{relation_name}.ready')
+        else:
+            remove_flag('endpoint.{relation_name}.ready')
 
     def get_hosts(self):
-        for app in self.applications.with_flag(self.flags.ready):
-            for unit in app.units.with_flag(self.flags.ready):
-                yield unit.receive['host']
+        hosts = []
+        for rel in self.relations:
+            for unit in rel.units:
+                host = unit.receive['host']
+                if host:
+                    hosts.append('host')
+                    print('unit {} hostname is: {}'.format(unit.name, host))
+        return hosts
 ```
 
 In the relatively common case that you don't expect or care about multiple
 related applications, you can use the `self.all_units` view, which is roughly
-analogous to `[u for a in self.applications for u in a.units]` except that it
-also supports the filter and flag setting / removing methods.
-
-It's important to note that each application in the collection actually
-represents a relation, and so a given remote application might actually appear
-in the collection multiple times if it is related more than once (for example,
-if an application needed multiple databases).  However, the collection of units
-and flags associated with the application or units will be kept separate.  You
-can distinguish between the application instances by their `relation_id`
-property.
+analogous to `[u for r in self.relations for u in r.units]`.
 
 ## Sending and Receiving Relation Data
 
@@ -197,13 +177,13 @@ like a read-only `defaultdict(None)` that contains the data you received from
 that `unit`. The values are always non-empty strings or `None`.
 
 ```python
-for app in self.applications:
-    for unit in app.units:
+for rel in self.relations:
+    for unit in rel.units:
         host = unit.receive['host']
         if host:
-            unit.add_flag(self.flags.ready)
+            add_flag('endpoint.{relation_name}.ready')
         else:
-            unit.remove_flag(self.flags.ready)
+            remove_flag('endpoint.{relation_name}.ready')
 ```
 
 There is also a helper view that merges the received data from all the units.
@@ -211,31 +191,31 @@ This is useful if you expect only the leader to be sending data or if you expect
 the remote units to agree on (some subset) of the data.  For example:
 
 ```python
-class MySQLClient(SimpleRelation):
+class MySQLClient(Endpoint):
     class flags:
-        changed = 'relation.{relation_name}.changed'
-        ready = 'relation.{relation_name}.ready'
+        changed = 'endpoint.{relation_name}.changed'
+        ready = 'endpoint.{relation_name}.ready'
 
-    @when(flags.changed)
+    @when('endpoint.{relation_name}.changed')
     def changed(self):
         data = self.all_units.receive
         # we assume data['host'] to be the master
         if all([data['host'], data['database'],
                 data['user'], data['password']]):
-            self.add_flag(self.flags.ready)
+            self.add_flag('endpoint.{relation_name}.ready')
 ```
 
-To send relation data to all the units of a remote application, you can use the
+To send relation data to a unit of a remote application, you can use the
 `send` attribute of an application. This is a dictionary that you use to send
 key-value data. For example:
 
 ```python
-class MySQL(SimpleRelation):
+class MySQL(Endpoint):
     class flags:
-        provided = 'relation.{relation_name}.provided'
+        provided = 'endpoint.{relation_name}.provided'
 
     def requested_databases(self):
-        return self.applications.without_flag(self.flags.provided)
+        return self.relations.without_flag(self.flags.provided)
 
     def provide_database(self, app, host, port, db, user, pass):
         app.send['host'] = host
@@ -252,21 +232,26 @@ collections have json counterparts: `send_json` and `receive_json`. These
 collections do automatic encoding and decoding of serializable Python objects.
 
 ```python
-class MyServicePeer(SimpleRelation):
-    class flags:
-        joined = 'relation.{relation_name}.joined'
-        changed = 'relation.{relation_name}.changed'
-
-    @when(flags.joined)
+class MyServicePeer(Endpoint):
+    @when('endpoint.{relation_name}.joined')
     def send_data(self):
-        for app in self.applications:
+        for app in self.relations:
             app.send_json['my-list'] = ['one', 'two']
             app.send_json['my-bool'] = True
 
-    @when(flags.changed)
+    @when('endpoint.{relation_name}.changed')
     def recv_data(self):
-        for unit in self.all_units.with_flag(self.flags.changed):
-            print('Peer {} list is {}'.format(unit, ', '.join(unit.receive_json['my-list'])))
+        for unit in self.all_units:
+            print('The Peer {} sent us list {}.'.format(unit, ', '.join(unit.receive_json['my-list'])))
             if unit.receive_json['my-bool']:
                 print('Peer says my-bool is True.')
 ```
+
+## Documenting Interface Layers
+
+The classes provided by an interface layer are expected to use docstrings to
+document their API. There is a `charm interface-doc` command that converts
+the docstrings into Markdown and inject them into the `README.md` file
+between special comments of the form: &lt;!--interface-doc--&gt; and
+&lt;!--/interface-doc--&gt;.  This way, all interface layers have consistent
+and comprehensive documentation.
