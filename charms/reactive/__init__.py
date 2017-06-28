@@ -17,10 +17,15 @@
 import os
 import sys
 
+from .bus import set_flag  # noqa
 from .bus import set_state  # noqa
+from .bus import clear_flag  # noqa
 from .bus import remove_state  # noqa
+from .helpers import toggle_flag  # noqa
 from .helpers import toggle_state  # noqa
+from .helpers import is_flag_set  # noqa
 from .helpers import is_state  # noqa
+from .helpers import all_flags_set  # noqa
 from .helpers import all_states  # noqa
 from .relations import scopes  # noqa
 from .relations import RelationBase  # noqa

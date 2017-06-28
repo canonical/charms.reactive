@@ -34,56 +34,56 @@ def hook(*hook_patterns):
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when(*desired_states):
+def when(*desired_flags):
     """
     Alias of when_all.
     """
-    return helpers._when_all(desired_states)
+    return helpers._when_all(desired_flags)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when_all(*desired_states):
+def when_all(*desired_flags):
     """
-    Check if all of the desired_states are active and have changed.
+    Check if all of the desired_flags are active and have changed.
     """
-    return helpers._when_all(desired_states)
+    return helpers._when_all(desired_flags)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when_any(*desired_states):
+def when_any(*desired_flags):
     """
-    Check if any of the desired_states are active and have changed.
+    Check if any of the desired_flags are active and have changed.
     """
-    return helpers._when_any(desired_states)
+    return helpers._when_any(desired_flags)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when_not(*desired_states):
+def when_not(*desired_flags):
     """
     Alias of when_none.
     """
-    return helpers._when_none(desired_states)
+    return helpers._when_none(desired_flags)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when_none(*desired_states):
+def when_none(*desired_flags):
     """
-    Check if none of the desired_states are active and have changed.
+    Check if none of the desired_flags are active and have changed.
     """
-    return helpers._when_none(desired_states)
+    return helpers._when_none(desired_flags)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
-def when_not_all(*desired_states):
+def when_not_all(*desired_flags):
     """
-    Check if at least one of the desired_states is not active.
+    Check if at least one of the desired_flags is not active.
     """
-    return helpers._when_not_all(desired_states)
+    return helpers._when_not_all(desired_flags)
 
 
 @cmdline.subcommand()
@@ -161,7 +161,7 @@ def test(*handlers):
             else:
                 raise ValueError('Invalid test: %s' % test_name)
         if states:
-            result &= bus.StateWatch.watch(handler_id, states)
+            result &= bus.FlagWatch.watch(handler_id, states)
         if result:
             passed.append(handler_name)
     return ','.join(passed)

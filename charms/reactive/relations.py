@@ -22,10 +22,11 @@ from inspect import isclass
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
+from charms.reactive import deprecated
 from charms.reactive.bus import get_states
-from charms.reactive.bus import get_state
-from charms.reactive.bus import set_state
-from charms.reactive.bus import remove_state
+from charms.reactive.bus import get_flag_value
+from charms.reactive.bus import set_flag
+from charms.reactive.bus import clear_flag
 from charms.reactive.bus import StateList
 from charms.reactive.bus import _append_path
 
@@ -48,19 +49,20 @@ def relation_from_name(relation_name):
         return factory.from_name(relation_name)
 
 
-def relation_from_state(state):
-    """The object used for interacting with relations tied to a state, or None.
+@deprecated.alias('relation_from_state')
+def relation_from_flag(flag):
+    """The object used for interacting with relations tied to a flag, or None.
 
     This will be a RelationBase instance, unless the interface is using
     a custom implementation.
     """
-    value = get_state(state)
+    value = get_flag_value(flag)
     if value is None:
         return None
     relation_name = value['relation']
     factory = relation_factory(relation_name)
     if factory:
-        return factory.from_state(state)
+        return factory.from_state(flag)
 
 
 class RelationFactory(object):
@@ -278,7 +280,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         Find relation implementation in the current charm, based on the
         name of an active state.
         """
-        value = get_state(state)
+        value = get_flag_value(state)
         if value is None:
             return None
         relation_name = value['relation']
@@ -609,13 +611,13 @@ class Conversation(object):
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_state(state, {
+        value = get_flag_value(state, {
             'relation': self.relation_name,
             'conversations': [],
         })
         if self.key not in value['conversations']:
             value['conversations'].append(self.key)
-        set_state(state, value)
+        set_flag(state, value)
 
     def remove_state(self, state):
         """
@@ -633,22 +635,22 @@ class Conversation(object):
         conversations are in this the state, will deactivate it.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_state(state)
+        value = get_flag_value(state)
         if not value:
             return
         if self.key in value['conversations']:
             value['conversations'].remove(self.key)
         if value['conversations']:
-            set_state(state, value)
+            set_flag(state, value)
         else:
-            remove_state(state)
+            clear_flag(state)
 
     def is_state(self, state):
         """
         Test if this conversation is in the given state.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_state(state)
+        value = get_flag_value(state)
         if not value:
             return False
         return self.key in value['conversations']
@@ -812,7 +814,7 @@ def _migrate_conversations():  # noqa
                     continue
                 value['conversations'].remove(key)
                 value['conversations'].extend(new_keys)
-                set_state(state, value)
+                set_flag(state, value)
 
 
 @cmdline.subcommand()
@@ -823,7 +825,7 @@ def relation_call(method, relation_name=None, state=None, *args):
         if relation is None:
             raise ValueError('Relation not found: %s' % relation_name)
     elif state:
-        relation = relation_from_state(state)
+        relation = relation_from_flag(state)
         if relation is None:
             raise ValueError('Relation not found: %s' % state)
     else:
