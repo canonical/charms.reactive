@@ -818,18 +818,18 @@ def _migrate_conversations():  # noqa
 
 
 @cmdline.subcommand()
-def relation_call(method, relation_name=None, state=None, *args):
+def relation_call(method, relation_name=None, flag=None, state=None, *args):
     """Invoke a method on the class implementing a relation via the CLI"""
     if relation_name:
         relation = relation_from_name(relation_name)
         if relation is None:
             raise ValueError('Relation not found: %s' % relation_name)
-    elif state:
-        relation = relation_from_flag(state)
+    elif flag or state:
+        relation = relation_from_flag(flag or state)
         if relation is None:
-            raise ValueError('Relation not found: %s' % state)
+            raise ValueError('Relation not found: %s' % (flag or state))
     else:
-        raise ValueError('Must specify either relation_name or state')
+        raise ValueError('Must specify either relation_name or flag')
     result = getattr(relation, method)(*args)
     if isinstance(relation, RelationBase) and method == 'conversations':
         # special case for conversations to make them work from CLI

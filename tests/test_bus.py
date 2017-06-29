@@ -540,7 +540,7 @@ class TestReactiveBus(unittest.TestCase):
             assert 'Will invoke: %s' % ','.join(invoked) in mPopen.stderr
             for handler in invoked:
                 assert 'Invoking bash reactive handler: %s' % handler in mPopen.stderr
-            assert '++ charms.reactive set_state bash-when-not-all' in mPopen.stderr
+            assert '++ charms.reactive set_flag bash-when-not-all' in mPopen.stderr
             bash_debug = False
             debug_debug = False
             for line in mPopen.stderr:

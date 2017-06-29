@@ -719,17 +719,21 @@ class TestRelationCall(unittest.TestCase):
 
     def test_call_name(self):
         self.r1.method.return_value = 'result'
-        result = relations.relation_call('method', 'rel', None, 'arg1', 'arg2')
+        result = relations.relation_call('method',
+                                         'rel', None, None,
+                                         'arg1', 'arg2')
         self.assertEqual(result, 'result')
         self.r1.method.assert_called_once_with('arg1', 'arg2')
         self.from_name.assert_called_once_with('rel')
 
-    def test_call_state(self):
+    def test_call_flag(self):
         self.r1.method.return_value = 'result'
-        result = relations.relation_call('method', None, 'state', 'arg1', 'arg2')
+        result = relations.relation_call('method',
+                                         None, 'flag', None,
+                                         'arg1', 'arg2')
         self.assertEqual(result, 'result')
         self.r1.method.assert_called_once_with('arg1', 'arg2')
-        self.from_flag.assert_called_once_with('state')
+        self.from_flag.assert_called_once_with('flag')
 
     @mock.patch.object(relations, 'isinstance')
     def test_call_conversations(self, isinst):
