@@ -22,74 +22,9 @@ from charmhelpers.core import host
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-from charms.reactive import deprecated
-from charms.reactive.bus import set_flag, clear_flag, get_flags
-
-
-@deprecated.alias('toggle_state')
-def toggle_flag(flag, should_set):
-    """
-    Helper that calls either :func:`set_flag` or :func:`clear_flag`,
-    depending on the value of `should_set`.
-
-    Equivalent to::
-
-        if should_set:
-            set_flag(flag)
-        else:
-            clear_flag(flag)
-
-    :param str flag: Name of flag to toggle.
-    :param bool should_set: Whether to set the flag, or clear it.
-    """
-    if should_set:
-        set_flag(flag)
-    else:
-        clear_flag(flag)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def is_flag_set(flag):
-    """Assert that a flag is set"""
-    return any_flags_set(flag)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def is_state(state):
-    """DEPRECATED Alias for is_flag_set"""
-    return is_flag_set(state)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def all_flags_set(*desired_flags):
-    """Assert that all desired_flags are set"""
-    active_flags = get_flags()
-    return all(flag in active_flags for flag in desired_flags)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def all_states(*desired_states):
-    """DEPRECATED Alias for all_flags_set"""
-    return all_flags_set(*desired_states)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def any_flags_set(*desired_flags):
-    """Assert that any of the desired_flags are set"""
-    active_flags = get_flags()
-    return any(flag in active_flags for flag in desired_flags)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def any_states(*desired_states):
-    """DEPRECATED Alias for any_flags_set"""
-    return any_flags_set(*desired_states)
+from charms.reactive.flags import any_flags_set, all_flags_set
+# import deprecated functions for backwards compatibility
+from charms.reactive.flags import is_state, all_states, any_states  # noqa
 
 
 def _expand_replacements(pat, subf, values):

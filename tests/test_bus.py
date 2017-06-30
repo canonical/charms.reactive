@@ -295,20 +295,20 @@ class TestReactiveBus(unittest.TestCase):
 
     @mock.patch.object(reactive.bus.FlagWatch, 'change')
     def test_set_get_clear_flag(self, change):
-        class states(reactive.bus.StateList):
-            qux = reactive.bus.State('qux')
+        class states(reactive.flags.StateList):
+            qux = reactive.flags.State('qux')
 
-        reactive.bus.set_flag('foo')
-        reactive.bus.set_flag('bar.ready', 'bar')
-        reactive.bus.set_flag(states.qux)
-        self.assertEqual(reactive.bus.get_states(), {
+        reactive.set_flag('foo')
+        reactive.set_flag('bar.ready', 'bar')
+        reactive.set_flag(states.qux)
+        self.assertEqual(reactive.flags.get_states(), {
             'foo': None,
             'bar.ready': 'bar',
             'qux': None,
         })
-        reactive.bus.clear_flag('foo')
-        reactive.bus.clear_flag('bar.ready')
-        self.assertEqual(reactive.bus.get_states(), {
+        reactive.clear_flag('foo')
+        reactive.clear_flag('bar.ready')
+        self.assertEqual(reactive.flags.get_states(), {
             'qux': None,
         })
         self.assertEqual(change.call_args_list, [
@@ -381,7 +381,7 @@ class TestReactiveBus(unittest.TestCase):
     @mock.patch.object(reactive.bus.Handler, 'get_handlers')
     def test_dispatch_remove(self, get_handlers):
         a = mock.Mock(name='a')
-        a1 = lambda: a('h1') and reactive.bus.clear_flag('foo')
+        a1 = lambda: a('h1') and reactive.clear_flag('foo')
         a2 = lambda: a('h2')
         a3 = lambda: a('h3')
         reactive.decorators.when('foo')(a1)
@@ -391,8 +391,8 @@ class TestReactiveBus(unittest.TestCase):
         h2 = reactive.bus.Handler.get(a2)
         h3 = reactive.bus.Handler.get(a3)
 
-        reactive.bus.set_flag('foo')
-        reactive.bus.set_flag('bar')
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
         get_handlers.return_value = [h1, h2, h3]
         reactive.bus.dispatch()
         self.assertEqual(a.call_args_list, [
@@ -401,7 +401,7 @@ class TestReactiveBus(unittest.TestCase):
         ])
 
         a.reset_mock()
-        reactive.bus.set_flag('foo')
+        reactive.set_flag('foo')
         get_handlers.return_value = [h2, h1, h3]
         reactive.bus.dispatch()
         self.assertEqual(a.call_args_list, [
@@ -414,7 +414,7 @@ class TestReactiveBus(unittest.TestCase):
     @mock.patch.object(reactive.bus.Handler, 'get_handlers')
     def test_dispatch_hook(self, get_handlers, hook_name):
         hook_name.return_value = 'fook'
-        reactive.bus.set_flag('foos')
+        reactive.set_flag('foos')
         a = mock.Mock(name='a')
         a1 = lambda: a('h1')
         a2 = lambda: a('h2')

@@ -149,7 +149,7 @@ class TestRelationBase(unittest.TestCase):
 
     @mock.patch.object(relations.RelationBase, 'from_name')
     @mock.patch.object(relations.Conversation, 'load')
-    @mock.patch.object(relations, 'get_flag_value')
+    @mock.patch.object(relations, '_get_flag_value')
     def test_from_state(self, get_flag_value, load, from_name):
         load.return_value = 'conv.load'
         get_flag_value.side_effect = [{'relation': 'relname', 'conversations': ['conv']}, None]
@@ -436,7 +436,7 @@ class TestConversation(unittest.TestCase):
         ])
 
     @mock.patch.object(relations, 'set_flag')
-    @mock.patch.object(relations, 'get_flag_value')
+    @mock.patch.object(relations, '_get_flag_value')
     def test_set_state(self, get_flag_value, set_flag):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
         get_flag_value.return_value = {'conversations': ['foo']}
@@ -449,7 +449,7 @@ class TestConversation(unittest.TestCase):
 
     @mock.patch.object(relations, 'clear_flag')
     @mock.patch.object(relations, 'set_flag')
-    @mock.patch.object(relations, 'get_flag_value')
+    @mock.patch.object(relations, '_get_flag_value')
     def test_remove_state(self, get_flag_value, set_flag, clear_flag):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
         get_flag_value.side_effect = [
@@ -472,7 +472,7 @@ class TestConversation(unittest.TestCase):
         assert not set_flag.called
         clear_flag.assert_called_once_with('rel.bar')
 
-    @mock.patch.object(relations, 'get_flag_value')
+    @mock.patch.object(relations, '_get_flag_value')
     def test_is_state(self, get_flag_value):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
         get_flag_value.side_effect = [
@@ -615,11 +615,12 @@ class TestConversation(unittest.TestCase):
 
 
 class TestMigrateConvs(unittest.TestCase):
+    @mock.patch.object(relations, '_get_flag_value')
     @mock.patch.object(relations, 'set_flag')
-    @mock.patch.object(relations, 'get_states')
+    @mock.patch.object(relations, 'get_flags')
     @mock.patch.object(relations, 'hookenv')
     @mock.patch.object(relations.unitdata, 'kv')
-    def test_migrate(self, kv, mhookenv, get_states, set_flag):
+    def test_migrate(self, kv, mhookenv, get_flags, set_flag, _get_flag_value):
         kv().getrange.side_effect = [
             {'reactive.conversations.rel:0.service': {
                 'namespace': 'rel:0',
@@ -645,15 +646,12 @@ class TestMigrateConvs(unittest.TestCase):
             ['service/0', 'service/2'], ['service/3'],
             ['service/0', 'service/2'], ['service/3'],
         ]
-        get_states.side_effect = [
-            {
-                'rel.joined': {'conversations': ['reactive.conversations.rel.service']},
-                'foo': None,
-            },
-            {
-                'rel.joined': {'conversations': ['reactive.conversations.rel.service/3']},
-                'foo': {'conversations': []},
-            },
+        get_flags.side_effect = [['rel.joined', 'foo'], ['rel.joined', 'foo']]
+        _get_flag_value.side_effect = [
+            {'conversations': ['reactive.conversations.rel.service']},
+            None,
+            {'conversations': ['reactive.conversations.rel.service/3']},
+            {'conversations': []},
         ]
         relations._migrate_conversations()
         assert not kv().set.called

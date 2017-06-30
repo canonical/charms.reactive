@@ -228,9 +228,9 @@ class TestReactiveDecorators(unittest.TestCase):
         self.assertEqual(test.__doc__, 'Doc string.')
 
         test()
-        reactive.bus.set_state('foo')
+        reactive.set_flag('foo')
         test()
-        reactive.bus.set_state('bar')
+        reactive.set_flag('bar')
         test()
 
         self.assertEqual(action.call_count, 3)
@@ -284,8 +284,8 @@ class TestReactiveDecorators(unittest.TestCase):
         def test2():
             action2()
 
-        reactive.set_state('foo')
-        reactive.set_state('bar')
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
         reactive.bus.dispatch()
         assert action1.called
         assert not action2.called
@@ -301,7 +301,7 @@ class TestReactiveDecorators(unittest.TestCase):
             action3()
             reactive.remove_state('bar')
 
-        reactive.set_state('bar')
+        reactive.set_flag('bar')
         action2.reset_mock()
         reactive.bus.dispatch()
         assert action3.called

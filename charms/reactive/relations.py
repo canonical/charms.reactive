@@ -23,11 +23,11 @@ from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
 from charms.reactive import deprecated
-from charms.reactive.bus import get_states
-from charms.reactive.bus import get_flag_value
-from charms.reactive.bus import set_flag
-from charms.reactive.bus import clear_flag
-from charms.reactive.bus import StateList
+from charms.reactive.flags import get_flags
+from charms.reactive.flags import _get_flag_value
+from charms.reactive.flags import set_flag
+from charms.reactive.flags import clear_flag
+from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
 
@@ -56,7 +56,7 @@ def relation_from_flag(flag):
     This will be a RelationBase instance, unless the interface is using
     a custom implementation.
     """
-    value = get_flag_value(flag)
+    value = _get_flag_value(flag)
     if value is None:
         return None
     relation_name = value['relation']
@@ -280,7 +280,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         Find relation implementation in the current charm, based on the
         name of an active state.
         """
-        value = get_flag_value(state)
+        value = _get_flag_value(state)
         if value is None:
             return None
         relation_name = value['relation']
@@ -611,7 +611,7 @@ class Conversation(object):
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_flag_value(state, {
+        value = _get_flag_value(state, {
             'relation': self.relation_name,
             'conversations': [],
         })
@@ -635,7 +635,7 @@ class Conversation(object):
         conversations are in this the state, will deactivate it.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_flag_value(state)
+        value = _get_flag_value(state)
         if not value:
             return
         if self.key in value['conversations']:
@@ -650,7 +650,7 @@ class Conversation(object):
         Test if this conversation is in the given state.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_flag_value(state)
+        value = _get_flag_value(state)
         if not value:
             return False
         return self.key in value['conversations']
@@ -807,14 +807,15 @@ def _migrate_conversations():  # noqa
             unitdata.kv().unset(key)
             # update the states pointing to the old conv key to point to the
             # (potentially multiple) new key(s)
-            for state, value in get_states().items():
+            for flag in get_flags():
+                value = _get_flag_value(flag)
                 if not value:
                     continue
                 if key not in value['conversations']:
                     continue
                 value['conversations'].remove(key)
                 value['conversations'].extend(new_keys)
-                set_flag(state, value)
+                set_flag(flag, value)
 
 
 @cmdline.subcommand()

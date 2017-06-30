@@ -18,9 +18,9 @@ from functools import wraps, partial
 
 from charmhelpers.core import hookenv
 from charms.reactive.bus import Handler
-from charms.reactive.bus import get_flags
 from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
+from charms.reactive.flags import get_flags
 from charms.reactive.relations import relation_from_name, relation_from_state
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _when_all

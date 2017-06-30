@@ -53,30 +53,30 @@ class TestReactiveHelpers(unittest.TestCase):
 
     def test_is_state(self):
         assert not reactive.is_state('foo')
-        reactive.set_state('foo')
+        reactive.set_flag('foo')
         assert reactive.is_state('foo')
 
-    def test_all_states(self):
-        reactive.bus.set_state('foo')
-        reactive.bus.set_state('bar')
-        assert reactive.helpers.all_states('foo')
-        assert reactive.helpers.all_states('bar')
-        assert reactive.helpers.all_states('foo', 'bar')
-        assert not reactive.helpers.all_states('foo', 'bar', 'qux')
-        assert not reactive.helpers.all_states('foo', 'qux')
-        assert not reactive.helpers.all_states('bar', 'qux')
-        assert not reactive.helpers.all_states('qux')
+    def test_all_flags(self):
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
+        assert reactive.all_flags_set('foo')
+        assert reactive.all_flags_set('bar')
+        assert reactive.all_flags_set('foo', 'bar')
+        assert not reactive.all_flags_set('foo', 'bar', 'qux')
+        assert not reactive.all_flags_set('foo', 'qux')
+        assert not reactive.all_flags_set('bar', 'qux')
+        assert not reactive.all_flags_set('qux')
 
-    def test_any_states(self):
-        reactive.bus.set_state('foo')
-        reactive.bus.set_state('bar')
-        assert reactive.helpers.any_states('foo')
-        assert reactive.helpers.any_states('bar')
-        assert reactive.helpers.any_states('foo', 'bar')
-        assert reactive.helpers.any_states('foo', 'bar', 'qux')
-        assert reactive.helpers.any_states('foo', 'qux')
-        assert reactive.helpers.any_states('bar', 'qux')
-        assert not reactive.helpers.any_states('qux')
+    def test_any_flags(self):
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
+        assert reactive.any_flags_set('foo')
+        assert reactive.any_flags_set('bar')
+        assert reactive.any_flags_set('foo', 'bar')
+        assert reactive.any_flags_set('foo', 'bar', 'qux')
+        assert reactive.any_flags_set('foo', 'qux')
+        assert reactive.any_flags_set('bar', 'qux')
+        assert not reactive.any_flags_set('qux')
 
     def test_expand_replacements(self):
         er = reactive.helpers._expand_replacements
@@ -209,14 +209,14 @@ class TestReactiveHelpers(unittest.TestCase):
         assert not test(), 'when_all: other; none'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state1')
+        reactive.set_flag('state1')
         assert not test(), 'when_all: hooks; one'
 
         self.kv.set('reactive.dispatch.phase', 'other')
         assert not test(), 'when_all: other; one'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state2')
+        reactive.set_flag('state2')
         assert not test(), 'when_all: hooks; both'
 
         self.kv.set('reactive.dispatch.phase', 'other')
@@ -232,14 +232,14 @@ class TestReactiveHelpers(unittest.TestCase):
         assert not test(), 'when_any: other; none'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state1')
+        reactive.set_flag('state1')
         assert not test(), 'when_any: hooks; one'
 
         self.kv.set('reactive.dispatch.phase', 'other')
         assert test(), 'when_any: other; one'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state2')
+        reactive.set_flag('state2')
         assert not test(), 'when_any: hooks; both'
 
         self.kv.set('reactive.dispatch.phase', 'other')
@@ -255,14 +255,14 @@ class TestReactiveHelpers(unittest.TestCase):
         assert test(), 'when_none: other; none'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state1')
+        reactive.set_flag('state1')
         assert not test(), 'when_none: hooks; one'
 
         self.kv.set('reactive.dispatch.phase', 'other')
         assert not test(), 'when_none: other; one'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state2')
+        reactive.set_flag('state2')
         assert not test(), 'when_none: hooks; both'
 
         self.kv.set('reactive.dispatch.phase', 'other')
@@ -278,14 +278,14 @@ class TestReactiveHelpers(unittest.TestCase):
         assert test(), 'when_not_all: other; none'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state1')
+        reactive.set_flag('state1')
         assert not test(), 'when_not_all: hooks; one'
 
         self.kv.set('reactive.dispatch.phase', 'other')
         assert test(), 'when_not_all: other; one'
 
         self.kv.set('reactive.dispatch.phase', 'hooks')
-        reactive.bus.set_state('state2')
+        reactive.set_flag('state2')
         assert not test(), 'when_not_all: hooks; both'
 
         self.kv.set('reactive.dispatch.phase', 'other')
