@@ -1,0 +1,7 @@
+.rst-content code.literal {
+    color: #444;
+}
+
+.rst-content code.xref {
+    color: #2980B9;
+}

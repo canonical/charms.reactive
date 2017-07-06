@@ -1,5 +1,5 @@
 Reactive API Documentation
---------------------------
+==========================
 
 
 .. toctree::
@@ -8,6 +8,10 @@ Reactive API Documentation
     charms.reactive.decorators
     charms.reactive.helpers
     charms.reactive.relations
+
+
+charms.reactive.main
+--------------------
 
 .. automodule:: charms.reactive
     :members:

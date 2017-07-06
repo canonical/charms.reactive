@@ -40,7 +40,7 @@ the appropriate service would be restarted:
     from charms.reactive.helpers import any_file_changed
     from charmhelpers.core import templating, hookenv
 
-    @when('db.database.available', 'admin-pass')
+    @when('db.database.available', 'config.set.admin-pass')
     def render_config(pgsql):
         templating.render('app-config.j2', '/etc/app.conf', {
             'db_conn': pgsql.connection_string(),
@@ -63,7 +63,6 @@ Table of Contents
    :maxdepth: 3
 
    structure
-   dispatch
-   interface-layers
    bash-reactive
    api
+   internals
