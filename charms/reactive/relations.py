@@ -22,7 +22,6 @@ from inspect import isclass
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-from charms.reactive import deprecated
 from charms.reactive.flags import get_flags
 from charms.reactive.flags import _get_flag_value
 from charms.reactive.flags import set_flag
@@ -49,7 +48,6 @@ def relation_from_name(relation_name):
         return factory.from_name(relation_name)
 
 
-@deprecated.alias('relation_from_state')
 def relation_from_flag(flag):
     """The object used for interacting with relations tied to a flag, or None.
 
@@ -63,6 +61,12 @@ def relation_from_flag(flag):
     factory = relation_factory(relation_name)
     if factory:
         return factory.from_state(flag)
+
+
+def relations_from_state(state):
+    """DEPRECATED Alias of relation_from_flag.
+    """
+    return relation_from_flag(state)
 
 
 class RelationFactory(object):

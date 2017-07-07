@@ -10,9 +10,9 @@ Overview
 
 Juju is an open source tool for modelling a connected set of applications in a
 way that allows for that model to be deployed repeatably and consistently
-across different clouds and substrates.  Juju Charms model the individual
-applications, their configuration, and the relations between them and other
-applications.
+across different clouds and substrates.  Juju Charms implement the model for
+individual applications, their configuration, and the relations between them
+and other applications.
 
 In order for the charm to know what actions to take, Juju informs it of
 life-cycle events in the form of hooks.  These hooks inform the charm of things
