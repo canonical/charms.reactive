@@ -63,7 +63,7 @@ def relation_from_flag(flag):
         return factory.from_state(flag)
 
 
-def relations_from_state(state):
+def relation_from_state(state):
     """DEPRECATED Alias of relation_from_flag.
     """
     return relation_from_flag(state)
