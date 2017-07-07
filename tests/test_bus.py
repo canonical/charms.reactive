@@ -1,4 +1,4 @@
-# Copyright 2014-2016 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
 # This file is part of charms.reactive.
 #
@@ -32,10 +32,10 @@ from charmhelpers.core import unitdata
 from charms import reactive
 
 
-class TestStateWatch(unittest.TestCase):
+class TestFlagWatch(unittest.TestCase):
     def setUp(self):
-        self.key = reactive.bus.StateWatch.key
-        store_p = mock.patch.object(reactive.bus.StateWatch, '_store')
+        self.key = reactive.bus.FlagWatch.key
+        store_p = mock.patch.object(reactive.bus.FlagWatch, '_store')
         store = store_p.start()
         self.addCleanup(store_p.stop)
         self._data = {}
@@ -45,55 +45,55 @@ class TestStateWatch(unittest.TestCase):
 
     @property
     def data(self):
-        return self._data.get(reactive.bus.StateWatch.key, None)
+        return self._data.get(reactive.bus.FlagWatch.key, None)
 
     def test_reset(self):
-        reactive.bus.StateWatch.change('foo')
-        reactive.bus.StateWatch.reset()
+        reactive.bus.FlagWatch.change('foo')
+        reactive.bus.FlagWatch.reset()
         self.assertIsNone(self.data)
 
     def test_watch(self):
-        reactive.bus.StateWatch.reset()
-        assert reactive.bus.StateWatch.watch('foo', ['foos']), 'iter 0 (reset)'
+        reactive.bus.FlagWatch.reset()
+        assert reactive.bus.FlagWatch.watch('foo', ['foos']), 'iter 0 (reset)'
 
-        reactive.bus.StateWatch.iteration(0)
-        assert reactive.bus.StateWatch.watch('foo', ['foos']), 'iter 0'
+        reactive.bus.FlagWatch.iteration(0)
+        assert reactive.bus.FlagWatch.watch('foo', ['foos']), 'iter 0'
 
-        reactive.bus.StateWatch.iteration(1)
-        assert not reactive.bus.StateWatch.watch('foo', ['foos']), 'iter 1'
+        reactive.bus.FlagWatch.iteration(1)
+        assert not reactive.bus.FlagWatch.watch('foo', ['foos']), 'iter 1'
 
-        reactive.bus.StateWatch.change('foos')
-        assert not reactive.bus.StateWatch.watch('foo', ['foos']), 'uncommitted'
+        reactive.bus.FlagWatch.change('foos')
+        assert not reactive.bus.FlagWatch.watch('foo', ['foos']), 'uncommitted'
 
-        reactive.bus.StateWatch.commit()
-        assert reactive.bus.StateWatch.watch('foo', ['foos']), 'committed'
+        reactive.bus.FlagWatch.commit()
+        assert reactive.bus.FlagWatch.watch('foo', ['foos']), 'committed'
 
-        reactive.bus.StateWatch.change('bars')
-        reactive.bus.StateWatch.commit()
-        assert not reactive.bus.StateWatch.watch('foo', ['foos']), 'non-watched change'
-        assert reactive.bus.StateWatch.watch('bar', ['bars']), 'other watcher change'
-        assert reactive.bus.StateWatch.watch('foobar', ['foos', 'bars']), 'multi-watcher'
+        reactive.bus.FlagWatch.change('bars')
+        reactive.bus.FlagWatch.commit()
+        assert not reactive.bus.FlagWatch.watch('foo', ['foos']), 'non-watched change'
+        assert reactive.bus.FlagWatch.watch('bar', ['bars']), 'other watcher change'
+        assert reactive.bus.FlagWatch.watch('foobar', ['foos', 'bars']), 'multi-watcher'
 
-        reactive.bus.StateWatch.commit()
-        assert not reactive.bus.StateWatch.watch('bar', ['bars']), 'already seen'
-        assert not reactive.bus.StateWatch.watch('foobar', ['foos', 'bars']), 'already seen multi'
+        reactive.bus.FlagWatch.commit()
+        assert not reactive.bus.FlagWatch.watch('bar', ['bars']), 'already seen'
+        assert not reactive.bus.FlagWatch.watch('foobar', ['foos', 'bars']), 'already seen multi'
 
-        reactive.bus.StateWatch.change('foos')
-        reactive.bus.StateWatch.change('bars')
-        reactive.bus.StateWatch.commit()
-        assert reactive.bus.StateWatch.watch('foo', ['foos']), 'multi-change, foo'
-        assert reactive.bus.StateWatch.watch('bar', ['bars']), 'multi-change, bar'
-        assert reactive.bus.StateWatch.watch('foobar', ['foos', 'bars']), 'multi-change, multi'
-        assert not reactive.bus.StateWatch.watch('qux', ['quxs']), 'multi-change, other'
+        reactive.bus.FlagWatch.change('foos')
+        reactive.bus.FlagWatch.change('bars')
+        reactive.bus.FlagWatch.commit()
+        assert reactive.bus.FlagWatch.watch('foo', ['foos']), 'multi-change, foo'
+        assert reactive.bus.FlagWatch.watch('bar', ['bars']), 'multi-change, bar'
+        assert reactive.bus.FlagWatch.watch('foobar', ['foos', 'bars']), 'multi-change, multi'
+        assert not reactive.bus.FlagWatch.watch('qux', ['quxs']), 'multi-change, other'
 
-        reactive.bus.StateWatch.commit()
-        assert not reactive.bus.StateWatch.watch('foo', ['foos']), 'pre-reset'
-        reactive.bus.StateWatch.reset()
-        assert reactive.bus.StateWatch.watch('foo', ['foos']), 'post-reset'
+        reactive.bus.FlagWatch.commit()
+        assert not reactive.bus.FlagWatch.watch('foo', ['foos']), 'pre-reset'
+        reactive.bus.FlagWatch.reset()
+        assert reactive.bus.FlagWatch.watch('foo', ['foos']), 'post-reset'
 
     def test_change(self):
-        reactive.bus.StateWatch.change('foo')
-        reactive.bus.StateWatch.change('bar')
+        reactive.bus.FlagWatch.change('foo')
+        reactive.bus.FlagWatch.change('bar')
         self.assertEqual(self.data, {
             'iteration': 0,
             'pending': ['foo', 'bar'],
@@ -101,9 +101,9 @@ class TestStateWatch(unittest.TestCase):
         })
 
     def test_commit(self):
-        reactive.bus.StateWatch.change('foo')
-        reactive.bus.StateWatch.change('bar')
-        reactive.bus.StateWatch.commit()
+        reactive.bus.FlagWatch.change('foo')
+        reactive.bus.FlagWatch.change('bar')
+        reactive.bus.FlagWatch.commit()
         self.assertEqual(self.data, {
             'iteration': 0,
             'pending': [],
@@ -166,13 +166,13 @@ class TestHandler(unittest.TestCase):
         assert handler.test()
         assert not action.called
 
-        handler.register_states(['state1', 'state2'])
+        handler.register_flags(['state1', 'state2'])
         assert handler.test()
-        reactive.bus.StateWatch.iteration(1)
+        reactive.bus.FlagWatch.iteration(1)
         assert not handler.test()
-        reactive.bus.StateWatch.change('state1')
+        reactive.bus.FlagWatch.change('state1')
         assert not handler.test()
-        reactive.bus.StateWatch.commit()
+        reactive.bus.FlagWatch.commit()
         assert handler.test()
 
     def test_args(self):
@@ -293,22 +293,22 @@ class TestReactiveBus(unittest.TestCase):
         reactive.bus.Handler.clear()
         self.kv.cursor.execute('delete from kv')
 
-    @mock.patch.object(reactive.bus.StateWatch, 'change')
-    def test_set_get_remove_state(self, change):
-        class states(reactive.bus.StateList):
-            qux = reactive.bus.State('qux')
+    @mock.patch.object(reactive.bus.FlagWatch, 'change')
+    def test_set_get_clear_flag(self, change):
+        class states(reactive.flags.StateList):
+            qux = reactive.flags.State('qux')
 
-        reactive.bus.set_state('foo')
-        reactive.bus.set_state('bar.ready', 'bar')
-        reactive.bus.set_state(states.qux)
-        self.assertEqual(reactive.bus.get_states(), {
+        reactive.set_flag('foo')
+        reactive.set_flag('bar.ready', 'bar')
+        reactive.set_flag(states.qux)
+        self.assertEqual(reactive.flags.get_states(), {
             'foo': None,
             'bar.ready': 'bar',
             'qux': None,
         })
-        reactive.bus.remove_state('foo')
-        reactive.bus.remove_state('bar.ready')
-        self.assertEqual(reactive.bus.get_states(), {
+        reactive.clear_flag('foo')
+        reactive.clear_flag('bar.ready')
+        self.assertEqual(reactive.flags.get_states(), {
             'qux': None,
         })
         self.assertEqual(change.call_args_list, [
@@ -325,7 +325,7 @@ class TestReactiveBus(unittest.TestCase):
         @reactive.when('foo')
         def foo():
             calls.append('foo')
-            reactive.set_state('bar')
+            reactive.set_flag('bar')
 
         @reactive.when('bar')
         @reactive.only_once
@@ -335,7 +335,7 @@ class TestReactiveBus(unittest.TestCase):
         @reactive.when('foo', 'bar')
         def both():
             calls.append('both')
-            reactive.set_state('qux')
+            reactive.set_flag('qux')
 
         @reactive.when('qux')
         def qux():
@@ -352,7 +352,7 @@ class TestReactiveBus(unittest.TestCase):
         reactive.bus.dispatch()
         self.assertEqual(calls, [])
 
-        reactive.set_state('foo')
+        reactive.set_flag('foo')
         reactive.bus.dispatch()
         self.assertItemsEqual(calls[0:2], [
             'foo',
@@ -381,7 +381,7 @@ class TestReactiveBus(unittest.TestCase):
     @mock.patch.object(reactive.bus.Handler, 'get_handlers')
     def test_dispatch_remove(self, get_handlers):
         a = mock.Mock(name='a')
-        a1 = lambda: a('h1') and reactive.bus.remove_state('foo')
+        a1 = lambda: a('h1') and reactive.clear_flag('foo')
         a2 = lambda: a('h2')
         a3 = lambda: a('h3')
         reactive.decorators.when('foo')(a1)
@@ -391,8 +391,8 @@ class TestReactiveBus(unittest.TestCase):
         h2 = reactive.bus.Handler.get(a2)
         h3 = reactive.bus.Handler.get(a3)
 
-        reactive.bus.set_state('foo')
-        reactive.bus.set_state('bar')
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
         get_handlers.return_value = [h1, h2, h3]
         reactive.bus.dispatch()
         self.assertEqual(a.call_args_list, [
@@ -401,7 +401,7 @@ class TestReactiveBus(unittest.TestCase):
         ])
 
         a.reset_mock()
-        reactive.bus.set_state('foo')
+        reactive.set_flag('foo')
         get_handlers.return_value = [h2, h1, h3]
         reactive.bus.dispatch()
         self.assertEqual(a.call_args_list, [
@@ -414,7 +414,7 @@ class TestReactiveBus(unittest.TestCase):
     @mock.patch.object(reactive.bus.Handler, 'get_handlers')
     def test_dispatch_hook(self, get_handlers, hook_name):
         hook_name.return_value = 'fook'
-        reactive.bus.set_state('foos')
+        reactive.set_flag('foos')
         a = mock.Mock(name='a')
         a1 = lambda: a('h1')
         a2 = lambda: a('h2')
@@ -507,40 +507,40 @@ class TestReactiveBus(unittest.TestCase):
             reactive.bus.discover()
             self.assertEqual(len(reactive.bus.Handler.get_handlers()), 9)
 
-            reactive.set_state('test')
-            reactive.set_state('to-remove')
-            assert not reactive.helpers.any_states('top-level', 'nested', 'test-rel.ready', 'relation', 'bash')
+            reactive.set_flag('test')
+            reactive.set_flag('to-remove')
+            assert not reactive.helpers.any_flags_set('top-level', 'nested', 'test-rel.ready', 'relation', 'bash')
             reactive.bus.dispatch()
-            assert reactive.helpers.all_states('top-level')
-            assert reactive.helpers.all_states('nested')
-            assert not reactive.helpers.any_states('relation')
-            assert not reactive.helpers.any_states('test-rel.ready')
-            assert not reactive.helpers.any_states('top-level-repeat')
-            assert reactive.helpers.all_states('bash-when')
-            assert not reactive.helpers.all_states('bash-when-repeat')
-            assert not reactive.helpers.all_states('bash-when-neg')
-            assert reactive.helpers.all_states('bash-when-any')
-            assert not reactive.helpers.all_states('bash-when-any-repeat')
-            assert reactive.helpers.all_states('bash-when-not')
-            assert not reactive.helpers.all_states('bash-when-not-repeat')
-            assert not reactive.helpers.all_states('bash-when-not-neg')
-            assert reactive.helpers.all_states('bash-when-not-all')
-            assert not reactive.helpers.all_states('bash-when-not-all-repeat')
-            assert reactive.helpers.all_states('bash-only-once')
-            assert not reactive.helpers.all_states('bash-only-once-repeat')
-            assert not reactive.helpers.all_states('bash-hook')
-            assert not reactive.helpers.all_states('bash-hook-repeat')
-            assert reactive.helpers.all_states('bash-multi')
-            assert not reactive.helpers.all_states('bash-multi-repeat')
-            assert not reactive.helpers.all_states('bash-multi-neg')
-            assert not reactive.helpers.all_states('bash-multi-neg2')
+            assert reactive.helpers.all_flags_set('top-level')
+            assert reactive.helpers.all_flags_set('nested')
+            assert not reactive.helpers.any_flags_set('relation')
+            assert not reactive.helpers.any_flags_set('test-rel.ready')
+            assert not reactive.helpers.any_flags_set('top-level-repeat')
+            assert reactive.helpers.all_flags_set('bash-when')
+            assert not reactive.helpers.all_flags_set('bash-when-repeat')
+            assert not reactive.helpers.all_flags_set('bash-when-neg')
+            assert reactive.helpers.all_flags_set('bash-when-any')
+            assert not reactive.helpers.all_flags_set('bash-when-any-repeat')
+            assert reactive.helpers.all_flags_set('bash-when-not')
+            assert not reactive.helpers.all_flags_set('bash-when-not-repeat')
+            assert not reactive.helpers.all_flags_set('bash-when-not-neg')
+            assert reactive.helpers.all_flags_set('bash-when-not-all')
+            assert not reactive.helpers.all_flags_set('bash-when-not-all-repeat')
+            assert reactive.helpers.all_flags_set('bash-only-once')
+            assert not reactive.helpers.all_flags_set('bash-only-once-repeat')
+            assert not reactive.helpers.all_flags_set('bash-hook')
+            assert not reactive.helpers.all_flags_set('bash-hook-repeat')
+            assert reactive.helpers.all_flags_set('bash-multi')
+            assert not reactive.helpers.all_flags_set('bash-multi-repeat')
+            assert not reactive.helpers.all_flags_set('bash-multi-neg')
+            assert not reactive.helpers.all_flags_set('bash-multi-neg2')
             invoked = ['test_when_not_all', 'test_when_any', 'test_when',
                        'test_when_not', 'test_multi', 'test_only_once']
             self.assertEqual(mPopen.stdout, [','.join(invoked)])
             assert 'Will invoke: %s' % ','.join(invoked) in mPopen.stderr
             for handler in invoked:
                 assert 'Invoking bash reactive handler: %s' % handler in mPopen.stderr
-            assert '++ charms.reactive set_state bash-when-not-all' in mPopen.stderr
+            assert '++ charms.reactive set_flag bash-when-not-all' in mPopen.stderr
             bash_debug = False
             debug_debug = False
             for line in mPopen.stderr:
@@ -558,13 +558,14 @@ class TestReactiveBus(unittest.TestCase):
             self.assertIsNotNone(reactive.relations.relation_factory('test-rel').from_name('test'))
             with mock.patch.dict(os.environ, {'JUJU_HOOK_NAME': 'test-rel-relation-joined'}):
                 reactive.bus.dispatch()
-            assert reactive.helpers.all_states('test-rel.ready')
-            assert reactive.helpers.all_states('relation')
-            assert reactive.helpers.all_states('test-remove-not')
-            assert reactive.helpers.all_states('bash-hook')
-            assert not reactive.helpers.all_states('bash-hook-repeat')
-            assert reactive.helpers.all_states('bash-when-repeat')
-            assert not reactive.helpers.all_states('bash-only-once-repeat')
+            assert reactive.helpers.all_flags_set('test-rel.ready')
+            assert reactive.helpers.all_flags_set('relation')
+            assert reactive.helpers.all_flags_set('test-remove-not')
+            assert reactive.helpers.all_flags_set('bash-hook')
+            assert not reactive.helpers.all_flags_set('bash-hook-repeat')
+            print('\n'.join(mPopen.stderr))
+            assert reactive.helpers.all_flags_set('bash-when-repeat')
+            assert not reactive.helpers.all_flags_set('bash-only-once-repeat')
 
         # The path is extended so discovered modules can perform
         # absolute and relative imports as expected.

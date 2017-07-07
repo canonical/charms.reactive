@@ -1,4 +1,4 @@
-# Copyright 2014-2016 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
 # This file is part of charms.reactive
 #
@@ -17,11 +17,18 @@
 import os
 import sys
 
-from .bus import set_state  # noqa
-from .bus import remove_state  # noqa
-from .helpers import toggle_state  # noqa
-from .helpers import is_state  # noqa
-from .helpers import all_states  # noqa
+from .flags import set_flag  # noqa
+from .flags import clear_flag  # noqa
+from .flags import toggle_flag  # noqa
+from .flags import is_flag_set  # noqa
+from .flags import all_flags_set  # noqa
+from .flags import any_flags_set  # noqa
+from .flags import set_state  # noqa  DEPRECATED
+from .flags import remove_state  # noqa  DEPRECATED
+from .flags import toggle_state  # noqa  DEPRECATED
+from .flags import is_state  # noqa  DEPRECATED
+from .flags import all_states  # noqa  DEPRECATED
+from .flags import any_states  # noqa  DEPRECATED
 from .relations import scopes  # noqa
 from .relations import RelationBase  # noqa
 from .decorators import hook  # noqa
@@ -46,10 +53,9 @@ def main(relation_name=None):
     This is the main entry point for the reactive framework.  It calls
     :func:`~bus.discover` to find and load all reactive handlers (e.g.,
     :func:`@when <decorators.when>` decorated blocks), and then
-    :func:`~bus.dispatch` to trigger hook and state handlers until the
-    state settles out.  Finally,
-    :meth:`unitdata.kv().flush <charmhelpers.core.unitdata.Storage.flush>`
-    is called to persist the state.
+    :func:`~bus.dispatch` to trigger handlers until the queue settles out.
+    Finally, :meth:`unitdata.kv().flush <charmhelpers.core.unitdata.Storage.flush>`
+    is called to persist the flags and other data.
 
     :param str relation_name: Optional name of the relation which is being handled.
     """

@@ -1,4 +1,4 @@
-# Copyright 2014-2016 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
 # This file is part of charms.reactive.
 #
@@ -81,7 +81,7 @@ class TestReactiveDecorators(unittest.TestCase):
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_all')
     def test_when_all(self, _when_all, _action_id, from_state):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
         from_state.side_effect = [None, 'rel', None]
@@ -102,7 +102,7 @@ class TestReactiveDecorators(unittest.TestCase):
             mock.call('qux'),
         ])
         action.assert_called_once_with('rel')
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
         action.reset_mock()
         assert handler.test()
@@ -120,7 +120,7 @@ class TestReactiveDecorators(unittest.TestCase):
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_any')
     def test_when_any(self, _when_any, _action_id, from_state):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_any.return_value = True
         _action_id.return_value = 'f:l:test_action'
         from_state.side_effect = [None, 'rel', None]
@@ -137,13 +137,13 @@ class TestReactiveDecorators(unittest.TestCase):
         _when_any.assert_called_once_with(('foo', 'bar', 'qux'))
         assert not from_state.called
         action.assert_called_once_with()
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'relation_from_state')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_none')
     def test_when_none(self, _when_none, _action_id, from_state):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_none.return_value = True
         _action_id.return_value = 'f:l:test_action'
         from_state.return_value = 'rel'
@@ -160,7 +160,7 @@ class TestReactiveDecorators(unittest.TestCase):
         _when_none.assert_called_once_with(('foo', 'bar', 'qux'))
         assert not from_state.called
         action.assert_called_once_with()
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'when_none')
     def test_when_not(self, when_none):
@@ -173,7 +173,7 @@ class TestReactiveDecorators(unittest.TestCase):
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_not_all')
     def test_when_not_all(self, _when_not_all, _action_id, from_state):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_not_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
         from_state.return_value = 'rel'
@@ -190,7 +190,7 @@ class TestReactiveDecorators(unittest.TestCase):
         _when_not_all.assert_called_once_with(('foo', 'bar', 'qux'))
         assert not from_state.called
         action.assert_called_once_with()
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'any_file_changed')
     def test_when_file_changed(self, any_file_changed):
@@ -228,14 +228,14 @@ class TestReactiveDecorators(unittest.TestCase):
         self.assertEqual(test.__doc__, 'Doc string.')
 
         test()
-        reactive.bus.set_state('foo')
+        reactive.set_flag('foo')
         test()
-        reactive.bus.set_state('bar')
+        reactive.set_flag('bar')
         test()
 
         self.assertEqual(action.call_count, 3)
-        assert log_msg(0).endswith('test called before states: foo, bar'), log_msg(0)
-        assert log_msg(1).endswith('test called before state: bar'), log_msg(1)
+        assert log_msg(0).endswith('test called before flags: foo, bar'), log_msg(0)
+        assert log_msg(1).endswith('test called before flag: bar'), log_msg(1)
         self.assertIn('tests/test_decorators.py:', reactive.bus._action_id(test))
         self.assertIn(':test', reactive.bus._action_id(test))
         self.assertIn('tests/test_decorators.py:', reactive.bus._short_action_id(test))
@@ -284,8 +284,8 @@ class TestReactiveDecorators(unittest.TestCase):
         def test2():
             action2()
 
-        reactive.set_state('foo')
-        reactive.set_state('bar')
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
         reactive.bus.dispatch()
         assert action1.called
         assert not action2.called
@@ -301,7 +301,7 @@ class TestReactiveDecorators(unittest.TestCase):
             action3()
             reactive.remove_state('bar')
 
-        reactive.set_state('bar')
+        reactive.set_flag('bar')
         action2.reset_mock()
         reactive.bus.dispatch()
         assert action3.called

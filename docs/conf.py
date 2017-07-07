@@ -108,7 +108,7 @@ pygments_style = 'sphinx'
 # a list of builtin themes.
 #html_theme = 'classic'
 #html_theme = 'alabaster'         # default on pypi
-#html_theme = 'sphinx_rtd_theme'  # default on rtd
+html_theme = 'sphinx_rtd_theme'  # default on rtd
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -270,3 +270,6 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'http://docs.python.org/': None}
+
+def setup(app):
+    app.add_stylesheet('custom.css')

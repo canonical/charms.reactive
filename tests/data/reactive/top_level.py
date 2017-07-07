@@ -17,9 +17,9 @@
 from charms.reactive import hook
 from charms.reactive import when
 from charms.reactive import when_not
-from charms.reactive import set_state
-from charms.reactive import remove_state
-from charms.reactive.helpers import any_states
+from charms.reactive import set_flag
+from charms.reactive import clear_flag
+from charms.reactive.helpers import any_flags_set
 
 
 test_marker = 'top level'
@@ -27,16 +27,16 @@ test_marker = 'top level'
 
 @when('test')
 def top_level():
-    if any_states('top-level'):
-        set_state('top-level-repeat')
-    set_state('top-level')
+    if any_flags_set('top-level'):
+        set_flag('top-level-repeat')
+    set_flag('top-level')
 
 
 @hook('{requires:test}-relation-{changed,joined}')
 def test_remove(trel):
-    remove_state('to-remove')
+    clear_flag('to-remove')
 
 
 @when_not('to-remove')
 def test_remove_not():
-    set_state('test-remove-not')
+    set_flag('test-remove-not')

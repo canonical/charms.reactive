@@ -1,4 +1,4 @@
-# Copyright 2014-2016 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
 # This file is part of charm-helpers.
 #
@@ -24,7 +24,6 @@ from functools import partial
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
-from charmhelpers.cli import cmdline
 
 
 _log_opts = os.environ.get('REACTIVE_LOG_OPTS', '').split(',')
@@ -39,123 +38,6 @@ class BrokenHandlerException(Exception):
                    "execution failed. Only handler files may be marked "
                    "as executable.".format(path))
         super(BrokenHandlerException, self).__init__(message)
-
-
-class State(str):
-    """
-    A reactive state that can be set.
-
-    States are essentially just strings, but this class should be used to enable them
-    to be discovered and introspected, for documentation, composition, or linting.
-
-    This should be used with :class:`StateList`.
-    """
-    pass
-
-
-class StateList(object):
-    """
-    Base class for a set of states that can be set by a relation or layer.
-
-    This class should be used so that they can be discovered and introspected,
-    for documentation, composition, or linting.
-
-    Example usage::
-
-        class MyRelation(RelationBase):
-            class states(StateList):
-                connected = State('{relation_name}.connected')
-                available = State('{relation_name}.available')
-    """
-    pass
-
-
-@cmdline.subcommand()
-@cmdline.no_output
-def set_state(state, value=None):
-    """
-    Set the given state as active, optionally associating with a relation.
-    """
-    old_states = get_states()
-    unitdata.kv().update({state: value}, prefix='reactive.states.')
-    if state not in old_states:
-        StateWatch.change(state)
-
-
-@cmdline.subcommand()
-@cmdline.no_output
-def remove_state(state):
-    """
-    Remove / deactivate a state.
-    """
-    old_states = get_states()
-    unitdata.kv().unset('reactive.states.%s' % state)
-    unitdata.kv().set('reactive.dispatch.removed_state', True)
-    if state in old_states:
-        StateWatch.change(state)
-
-
-@cmdline.subcommand()
-def get_states():
-    """
-    Return a mapping of all active states to their values.
-    """
-    return unitdata.kv().getrange('reactive.states.', strip=True) or {}
-
-
-class StateWatch(object):
-    key = 'reactive.state_watch'
-
-    @classmethod
-    def _store(cls):
-        return unitdata.kv()
-
-    @classmethod
-    def _get(cls):
-        return cls._store().get(cls.key, {
-            'iteration': 0,
-            'changes': [],
-            'pending': [],
-        })
-
-    @classmethod
-    def _set(cls, data):
-        cls._store().set(cls.key, data)
-
-    @classmethod
-    def reset(cls):
-        cls._store().unset(cls.key)
-
-    @classmethod
-    def iteration(cls, i):
-        data = cls._get()
-        data['iteration'] = i
-        cls._set(data)
-
-    @classmethod
-    def watch(cls, watcher, states):
-        data = cls._get()
-        iteration = data['iteration']
-        changed = bool(set(states) & set(data['changes']))
-        return iteration == 0 or changed
-
-    @classmethod
-    def change(cls, state):
-        data = cls._get()
-        data['pending'].append(state)
-        cls._set(data)
-
-    @classmethod
-    def commit(cls):
-        data = cls._get()
-        data['changes'] = data['pending']
-        data['pending'] = []
-        cls._set(data)
-
-
-def get_state(state, default=None):
-    """Return the value associated with an active state, or None"""
-    return unitdata.kv().get('reactive.states.%s' % state, default)
 
 
 def _action_id(action):
@@ -177,10 +59,10 @@ def _short_action_id(action):
 
 class Handler(object):
     """
-    Class representing a reactive state handler.
+    Class representing a reactive flag handler.
     """
     _HANDLERS = {}
-    _CONSUMED_STATES = set()
+    _CONSUMED_FLAGS = set()
 
     @classmethod
     def get(cls, action):
@@ -223,7 +105,7 @@ class Handler(object):
         self._args = []
         self._predicates = []
         self._post_callbacks = []
-        self._states = set()
+        self._flags = set()
 
     def id(self):
         return self._action_id
@@ -259,7 +141,7 @@ class Handler(object):
         """
         Check the predicate(s) and return True if this handler should be invoked.
         """
-        if self._states and not StateWatch.watch(self._action_id, self._states):
+        if self._flags and not FlagWatch.watch(self._action_id, self._flags):
             return False
         return all(predicate() for predicate in self._predicates)
 
@@ -268,7 +150,7 @@ class Handler(object):
         Lazily evaluate the args.
         """
         if not hasattr(self, '_args_evaled'):
-            # cache the args in case handler is re-invoked due to states change
+            # cache the args in case handler is re-invoked due to flags change
             self._args_evaled = list(chain.from_iterable(self._args))
         return self._args_evaled
 
@@ -281,21 +163,21 @@ class Handler(object):
         for callback in self._post_callbacks:
             callback()
 
-    def register_states(self, states):
+    def register_flags(self, flags):
         """
-        Register states as being relevant to this handler.
+        Register flags as being relevant to this handler.
 
-        Relevant states will be used to determine if the handler should
-        be re-invoked due to changes in the set of active states.  If this
+        Relevant flags will be used to determine if the handler should
+        be re-invoked due to changes in the set of active flags.  If this
         handler has already been invoked during this :func:`dispatch` run
-        and none of its relevant states have been set or removed since then,
+        and none of its relevant flags have been set or removed since then,
         then the handler will be skipped.
 
         This is also used for linting and composition purposes, to determine
-        if a layer has unhandled states.
+        if a layer has unhandled flags.
         """
-        self._CONSUMED_STATES.update(states)
-        self._states.update(states)
+        self._CONSUMED_FLAGS.update(flags)
+        self._flags.update(flags)
 
 
 class ExternalHandler(Handler):
@@ -338,8 +220,8 @@ class ExternalHandler(Handler):
         """
         Call the external handler to test whether it should be invoked.
         """
-        # flush to ensure external process can see states as they currently
-        # are, and write states (flush releases lock)
+        # flush to ensure external process can see flags as they currently
+        # are, and write flags (flush releases lock)
         unitdata.kv().flush()
         try:
             proc = subprocess.Popen([self._filepath, '--test'], stdout=subprocess.PIPE, env=os.environ)
@@ -354,10 +236,60 @@ class ExternalHandler(Handler):
         """
         Call the external handler to be invoked.
         """
-        # flush to ensure external process can see states as they currently
-        # are, and write states (flush releases lock)
+        # flush to ensure external process can see flags as they currently
+        # are, and write flags (flush releases lock)
         unitdata.kv().flush()
         subprocess.check_call([self._filepath, '--invoke', self._test_output], env=os.environ)
+
+
+class FlagWatch(object):
+    key = 'reactive.state_watch'
+
+    @classmethod
+    def _store(cls):
+        return unitdata.kv()
+
+    @classmethod
+    def _get(cls):
+        return cls._store().get(cls.key, {
+            'iteration': 0,
+            'changes': [],
+            'pending': [],
+        })
+
+    @classmethod
+    def _set(cls, data):
+        cls._store().set(cls.key, data)
+
+    @classmethod
+    def reset(cls):
+        cls._store().unset(cls.key)
+
+    @classmethod
+    def iteration(cls, i):
+        data = cls._get()
+        data['iteration'] = i
+        cls._set(data)
+
+    @classmethod
+    def watch(cls, watcher, flags):
+        data = cls._get()
+        iteration = data['iteration']
+        changed = bool(set(flags) & set(data['changes']))
+        return iteration == 0 or changed
+
+    @classmethod
+    def change(cls, flag):
+        data = cls._get()
+        data['pending'].append(flag)
+        cls._set(data)
+
+    @classmethod
+    def commit(cls):
+        data = cls._get()
+        data['changes'] = data['pending']
+        data['pending'] = []
+        cls._set(data)
 
 
 def dispatch():
@@ -375,24 +307,24 @@ def dispatch():
 
     * In subsequent iterations, other handlers are invoked, if they match.
 
-    * Added states will not trigger new handlers until the next iteration,
-      to ensure that chained states are invoked in a predictable order.
+    * Added flags will not trigger new handlers until the next iteration,
+      to ensure that chained flags are invoked in a predictable order.
 
-    * Removed states will cause the current set of matched handlers to be
+    * Removed flags will cause the current set of matched handlers to be
       re-tested, to ensure that no handler is invoked after its matching
-      state has been removed.
+      flag has been removed.
 
     * Other than the guarantees mentioned above, the order in which matching
       handlers are invoked is undefined.
 
-    * States are preserved between hook and action invocations, and all matching
+    * Flags are preserved between hook and action invocations, and all matching
       handlers are re-invoked for every hook and action.  There are
       :doc:`decorators <charms.reactive.decorators>` and
       :doc:`helpers <charms.reactive.helpers>`
       to prevent unnecessary reinvocations, such as
       :func:`~charms.reactive.decorators.only_once`.
     """
-    StateWatch.reset()
+    FlagWatch.reset()
 
     def _test(to_test):
         return list(filter(lambda h: h.test(), to_test))
@@ -408,7 +340,7 @@ def dispatch():
                     # re-test remaining handlers
                     to_invoke = _test(to_invoke)
                     break
-        StateWatch.commit()
+        FlagWatch.commit()
 
     unitdata.kv().set('reactive.dispatch.phase', 'hooks')
     hook_handlers = _test(Handler.get_handlers())
@@ -416,13 +348,13 @@ def dispatch():
 
     unitdata.kv().set('reactive.dispatch.phase', 'other')
     for i in range(100):
-        StateWatch.iteration(i)
+        FlagWatch.iteration(i)
         other_handlers = _test(Handler.get_handlers())
         if not other_handlers:
             break
         _invoke(other_handlers)
 
-    StateWatch.reset()
+    FlagWatch.reset()
 
 
 def discover():

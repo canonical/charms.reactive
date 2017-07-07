@@ -1,4 +1,4 @@
-# Copyright 2016 Canonical Limited.
+# Copyright 2017 Canonical Limited.
 #
 # This file is part of charms.reactive.
 #
