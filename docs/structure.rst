@@ -1,7 +1,7 @@
 Structure of a Reactive Charm
 =============================
 
-A reactive charm should be built using layers, with the "top" layer being called
+A reactive charm is built using layers, with the "top" layer being called
 the "charm layer." The charm layer would then reference other layers that it
 builds upon, which are generally thought of in two types: base layers, and
 interface layers. The charm indicates which layers it builds upon via its
@@ -33,9 +33,9 @@ interface layer, so the total hierarchy of the charm would look like this:
                   │ layer:apache2 │ │ interface:mysql │
                   └──────┬────────┘ └────────┬────────┘
                          └─────────┬─────────┘
-                               ┌───┴───┐
-                               │ myapp │
-                               └───────┘
+                              ┌────┴───┐
+                              │ my_app │
+                              └────────┘
 
 The ``options`` section in the ``layer.yaml`` allows the charm to set
 configuration for other layers. In this case, specifying to the ``basic`` layer
@@ -57,7 +57,7 @@ A charm layer consists, at a bare minimum, of the following files:
   charm name, summary, description, maintainer, and what relations the charm
   supports.
 * ``layer.yaml``: This file indicates what other layers this charm builds upon.
-* ``reactive/<charm-name>.py``: This file, where ``<charm-name>`` is replaced by the
+* ``reactive/<charm_name>.py``: This file, where ``<charm_name>`` is replaced by the
   name of the charm (using underscores in place of dashes), is the reactive
   entry point for the charm. It should contain or import files containing all
   of the handlers provided by this charm layer.
@@ -86,7 +86,7 @@ An example tree for a charm layer might thus look like this:
     ├── config.yaml
     ├── layer.yaml
     ├── reactive/
-    │   └── myapp.py
+    │   └── my_app.py
     ├── actions.yaml
     ├── actions/
     │   └── do-something
@@ -104,9 +104,9 @@ Base Layers
 -----------
 
 Base layers provide functionality that is common across several charms. These
-layers should provide a set of handlers in ``reactive/<layer-name>.py`` which
+layers should provide a set of handlers in ``reactive/<layer_name>.py`` which
 will set additional flags that will drive behavior in the charm layer. They may
-also include a Python module in ``lib/charms/layer/<layer-name>.py`` which can
+also include a Python module in ``lib/charms/layer/<layer_name>.py`` which can
 be imported from the charm layer to provide functions or classes to be used by
 the charm layer.
 
