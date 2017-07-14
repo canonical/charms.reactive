@@ -290,3 +290,17 @@ class TestReactiveHelpers(unittest.TestCase):
 
         self.kv.set('reactive.dispatch.phase', 'other')
         assert not test(), 'when_not_all: other; both'
+
+    @mock.patch('charmhelpers.core.hookenv.hook_name')
+    def test_restricted_hook(self, hook_name):
+        self.kv.set('reactive.dispatch.phase', 'restricted')
+        hook_name.return_value = 'meter-status-changed'
+        assert not reactive.helpers._restricted_hook('bar')
+        assert not reactive.helpers._restricted_hook('config-changed')
+        assert reactive.helpers._restricted_hook('meter-status-changed')
+
+        self.kv.set('reactive.dispatch.phase', 'other')
+        hook_name.return_value = 'meter-status-changed'
+        assert not reactive.helpers._restricted_hook('bar')
+        assert not reactive.helpers._restricted_hook('config-changed')
+        assert not reactive.helpers._restricted_hook('meter-status-changed')

@@ -292,9 +292,11 @@ class FlagWatch(object):
         cls._set(data)
 
 
-def dispatch():
+def dispatch(restricted=False):
     """
     Dispatch registered handlers.
+
+    When dispatching in restricted mode, only matching hook handlers are executed.
 
     Handlers are dispatched according to the following rules:
 
@@ -341,6 +343,13 @@ def dispatch():
                     to_invoke = _test(to_invoke)
                     break
         FlagWatch.commit()
+
+    # When in restricted context, only run hooks for that context.
+    if restricted:
+        unitdata.kv().set('reactive.dispatch.phase', 'restricted')
+        hook_handlers = _test(Handler.get_handlers())
+        _invoke(hook_handlers)
+        return
 
     unitdata.kv().set('reactive.dispatch.phase', 'hooks')
     hook_handlers = _test(Handler.get_handlers())

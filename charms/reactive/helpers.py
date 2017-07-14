@@ -149,6 +149,12 @@ def _hook(hook_patterns):
     return dispatch_phase == 'hooks' and any_hook(*hook_patterns)
 
 
+def _restricted_hook(hook_name):
+    current_hook = hookenv.hook_name()
+    dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
+    return dispatch_phase == 'restricted' and current_hook == hook_name
+
+
 def _when_all(flags):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
     return dispatch_phase == 'other' and all_flags_set(*flags)
