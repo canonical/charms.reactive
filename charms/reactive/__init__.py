@@ -76,16 +76,19 @@ def main(relation_name=None):
         # update data to be backwards compatible after fix for issue 28
         relations._migrate_conversations()
 
-    def flush_kv():
-        if unitdata._KV:
-            unitdata._KV.flush()
-    hookenv.atexit(flush_kv)
-
     if hookenv.hook_name().endswith('-relation-departed'):
         def depart_conv():
             rel = relations.relation_from_name(hookenv.relation_type())
             rel.conversation().depart()
         hookenv.atexit(depart_conv)
+
+    if restricted_mode:  # limit what gets run in restricted mode
+        def done():
+            unitdata._KV.flush()
+    else:
+        def done():
+            hookenv._run_atexit()
+            unitdata._KV.flush()
 
     try:
         bus.discover()
@@ -94,6 +97,6 @@ def main(relation_name=None):
         bus.dispatch(restricted=restricted_mode)
     except SystemExit as x:
         if x.code is None or x.code == 0:
-            hookenv._run_atexit()
+            done()
         raise
-    hookenv._run_atexit()
+    done()
