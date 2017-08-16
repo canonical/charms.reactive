@@ -50,6 +50,11 @@ def set_flag(flag, value=None):
     unitdata.kv().update({flag: value}, prefix='reactive.states.')
     if flag not in old_flags:
         FlagWatch.change(flag)
+        trigger = _get_trigger(flag)
+        for flag_name in trigger['set_flag']:
+            set_flag(flag_name)
+        for flag_name in trigger['clear_flag']:
+            clear_flag(flag_name)
 
 
 @cmdline.subcommand()
@@ -86,6 +91,39 @@ def toggle_flag(flag, should_set):
         set_flag(flag)
     else:
         clear_flag(flag)
+
+
+@cmdline.subcommand()
+@cmdline.no_output
+def register_trigger(when, set_flag=None, clear_flag=None):
+    """
+    Register a trigger to set or clear a flag when a given flag is set.
+
+    Note: Flag triggers are handled at the same time that the given flag is set.
+
+    :param str when: Flag to trigger on.
+    :param str set_flag: If given, this flag will be set when `when` is set.
+    :param str clear_flag: If given, this flag will be cleared when `when` is set.
+    """
+    trigger = _get_trigger(when)
+    if set_flag and set_flag not in trigger['set_flag']:
+        trigger['set_flag'].append(set_flag)
+    if clear_flag and clear_flag not in trigger['clear_flag']:
+        trigger['clear_flag'].append(clear_flag)
+    _save_trigger(when, trigger)
+
+
+def _get_trigger(when):
+    key = 'reactive.flag_triggers.{}'.format(when)
+    return unitdata.kv().get(key, {
+        'set_flag': [],
+        'clear_flag': [],
+    })
+
+
+def _save_trigger(when, data):
+    key = 'reactive.flag_triggers.{}'.format(when)
+    return unitdata.kv().set(key, data)
 
 
 @cmdline.subcommand()

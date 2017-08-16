@@ -20,6 +20,7 @@ import sys
 from .flags import set_flag  # noqa
 from .flags import clear_flag  # noqa
 from .flags import toggle_flag  # noqa
+from .flags import register_trigger  # noqa
 from .flags import is_flag_set  # noqa
 from .flags import all_flags_set  # noqa
 from .flags import any_flags_set  # noqa
