@@ -43,8 +43,8 @@ from .decorators import when_not_all  # noqa
 from .decorators import not_unless  # noqa
 from .decorators import only_once  # noqa
 from .decorators import when_file_changed  # noqa
-from .decorators import collect_metrics # noqa
-from .decorators import meter_status_changed # noqa
+from .decorators import collect_metrics  # noqa
+from .decorators import meter_status_changed  # noqa
 
 from . import bus
 from . import relations
@@ -52,6 +52,7 @@ from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 
 
+# flake8: noqa: C901
 def main(relation_name=None):
     """
     This is the main entry point for the reactive framework.  It calls
