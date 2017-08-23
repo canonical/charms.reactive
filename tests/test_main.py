@@ -35,7 +35,30 @@ class TestReactiveMain(unittest.TestCase):
         _run_atstart.assert_called_once_with()
         log.assert_called_once_with('Reactive main running for hook hook_name', level=reactive.hookenv.INFO)
         discover.assert_called_once_with()
-        dispatch.assert_called_once_with()
+        dispatch.assert_called_once_with(restricted=False)
+        _KV.flush.assert_called_once_with()
+
+        _KV.flush.reset_mock()
+        discover.side_effect = SystemExit
+        self.assertRaises(SystemExit, reactive.main)
+        _KV.flush.assert_called_once_with()
+
+
+class TestReactiveRestrictedMain(unittest.TestCase):
+    @mock.patch.object(unitdata, '_KV')
+    @mock.patch.object(reactive.bus, 'dispatch')
+    @mock.patch.object(reactive.bus, 'discover')
+    @mock.patch.object(reactive.hookenv, '_run_atstart')
+    @mock.patch.object(reactive.hookenv, 'log')
+    @mock.patch.object(reactive.hookenv, 'hook_name')
+    def test_main(self, hook_name, log, _run_atstart, discover, dispatch, _KV):
+        hook_name.return_value = 'meter-status-changed'
+        reactive.main()
+        _run_atstart.assert_not_called()
+        log.any_call('Reactive restricted main running for hook meter-status-changed', level=reactive.hookenv.INFO)
+        log.any_call('Restricted mode.', level=reactive.hookenv.INFO)
+        discover.assert_called_once_with()
+        dispatch.assert_called_once_with(restricted=True)
         _KV.flush.assert_called_once_with()
 
         _KV.flush.reset_mock()

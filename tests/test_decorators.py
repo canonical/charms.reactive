@@ -306,3 +306,35 @@ class TestReactiveDecorators(unittest.TestCase):
         reactive.bus.dispatch()
         assert action3.called
         assert action2.called  # should be called on second iteration
+
+    @mock.patch.object(reactive.decorators, '_restricted_hook')
+    def test_collect_metrics(self, _restricted_hook):
+        _restricted_hook.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.collect_metrics()
+        def test_action(*args):
+            action(*args)
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        handler.invoke()
+
+        _restricted_hook.assert_called_once_with('collect-metrics')
+        action.assert_called_once()
+
+    @mock.patch.object(reactive.decorators, '_restricted_hook')
+    def test_meter_status_changed(self, _restricted_hook):
+        _restricted_hook.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.meter_status_changed()
+        def test_action(*args):
+            action(*args)
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        handler.invoke()
+
+        _restricted_hook.assert_called_once_with('meter-status-changed')
+        action.assert_called_once()

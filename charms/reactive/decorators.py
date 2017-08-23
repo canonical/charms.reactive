@@ -23,6 +23,7 @@ from charms.reactive.bus import _short_action_id
 from charms.reactive.flags import get_flags
 from charms.reactive.relations import relation_from_name, relation_from_state
 from charms.reactive.helpers import _hook
+from charms.reactive.helpers import _restricted_hook
 from charms.reactive.helpers import _when_all
 from charms.reactive.helpers import _when_any
 from charms.reactive.helpers import _when_none
@@ -222,3 +223,25 @@ def only_once(action=None):
     handler.add_predicate(lambda: not was_invoked(action_id))
     handler.add_post_callback(partial(mark_invoked, action_id))
     return action
+
+
+def collect_metrics():
+    """
+    Register the decorated function to run for the collect_metrics hook.
+    """
+    def _register(action):
+        handler = Handler.get(action)
+        handler.add_predicate(partial(_restricted_hook, 'collect-metrics'))
+        return action
+    return _register
+
+
+def meter_status_changed():
+    """
+    Register the decorated function to run when a meter status change has been detected.
+    """
+    def _register(action):
+        handler = Handler.get(action)
+        handler.add_predicate(partial(_restricted_hook, 'meter-status-changed'))
+        return action
+    return _register
