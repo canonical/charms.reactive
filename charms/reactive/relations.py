@@ -60,7 +60,7 @@ def relation_from_flag(flag):
     relation_name = value['relation']
     factory = relation_factory(relation_name)
     if factory:
-        return factory.from_state(flag)
+        return factory.from_flag(flag)
 
 
 def relation_from_state(state):
@@ -84,7 +84,7 @@ class RelationFactory(object):
         raise NotImplementedError()
 
     @classmethod
-    def from_state(cls, state):
+    def from_flag(cls, state):
         raise NotImplementedError()
 
 
@@ -101,19 +101,24 @@ def relation_factory(relation_name):
 def _relation_module(role, interface):
     """
     Return module for relation based on its role and interface, or None.
+
+    Prefers new location (reactive/relations) over old (hooks/relations).
     """
-    # The module has already been discovered and imported.
-    module = 'relations.{}.{}'.format(interface, role)
-    if module not in sys.modules:
+    _append_path(hookenv.charm_dir())
+    _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
+    base_module = 'relations.{}.{}'.format(interface, role)
+    for module in ('reactive.{}'.format(base_module), base_module):
+        if module in sys.modules:
+            break
         try:
-            _append_path(hookenv.charm_dir())
-            _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
-            _append_path(os.path.join(hookenv.charm_dir(), 'reactive'))
             importlib.import_module(module)
+            break
         except ImportError:
-            hookenv.log('Unable to find implementation for relation: '
-                        '{}'.format(module), hookenv.ERROR)
-            return None
+            continue
+    else:
+        hookenv.log('Unable to find implementation for relation: '
+                    '{}'.format(module), hookenv.ERROR)
+        return None
     return sys.modules[module]
 
 
@@ -269,6 +274,16 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
     recommended that this be used only with :attr:`scopes.GLOBAL` scope.
     """
 
+    @classmethod
+    def _startup(cls):
+        # update data to be backwards compatible after fix for issue 28
+        _migrate_conversations()
+
+        if hookenv.hook_name().endswith('-relation-departed'):
+            def depart_conv():
+                cls(hookenv.relation_type()).conversation().depart()
+            hookenv.atexit(depart_conv)
+
     def __init__(self, relation_name, conversations=None):
         self._relation_name = relation_name
         self._conversations = conversations or [Conversation.join(self.scope)]
@@ -281,12 +296,12 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         return self._relation_name
 
     @classmethod
-    def from_state(cls, state):
+    def from_flag(cls, flag):
         """
         Find relation implementation in the current charm, based on the
         name of an active state.
         """
-        value = _get_flag_value(state)
+        value = _get_flag_value(flag)
         if value is None:
             return None
         relation_name = value['relation']
@@ -842,3 +857,6 @@ def relation_call(method, relation_name=None, flag=None, state=None, *args):
         # special case for conversations to make them work from CLI
         result = [c.scope for c in result]
     return result
+
+
+hookenv.atstart(RelationBase._startup)

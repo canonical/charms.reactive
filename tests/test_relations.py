@@ -40,7 +40,10 @@ class TestFactory(unittest.TestCase):
         importlib.import_module.side_effect = ImportError
         self.assertIsNone(relations.relation_factory('relname'))
         relation_to_role_and_interface.assert_called_once_with('relname')
-        importlib.import_module.assert_called_once_with('relations.interface.role')
+        self.assertEqual(importlib.import_module.call_args_list, [
+            mock.call('reactive.relations.interface.role'),
+            mock.call('relations.interface.role'),
+        ])
         log.assert_called_once_with(mock.ANY, relations.hookenv.ERROR)
 
     @mock.patch.object(relations, '_find_relation_factory')
@@ -154,8 +157,8 @@ class TestRelationBase(unittest.TestCase):
         load.return_value = 'conv.load'
         get_flag_value.side_effect = [{'relation': 'relname', 'conversations': ['conv']}, None]
         from_name.side_effect = lambda rn, c: 'from_name(%s, %s)' % (rn, c)
-        self.assertEqual(relations.RelationBase.from_state('state'), 'from_name(relname, conv.load)')
-        self.assertEqual(relations.RelationBase.from_state('no-state'), None)
+        self.assertEqual(relations.RelationBase.from_flag('state'), 'from_name(relname, conv.load)')
+        self.assertEqual(relations.RelationBase.from_flag('no-state'), None)
 
     @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
     @mock.patch.object(relations.Conversation, 'join')

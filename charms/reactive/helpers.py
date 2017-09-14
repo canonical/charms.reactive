@@ -17,6 +17,7 @@
 import re
 import json
 import hashlib
+from types import SimpleNamespace
 
 from charmhelpers.core import host
 from charmhelpers.core import hookenv
@@ -25,6 +26,19 @@ from charmhelpers.cli import cmdline
 from charms.reactive.flags import any_flags_set, all_flags_set
 # import deprecated functions for backwards compatibility
 from charms.reactive.flags import is_state, all_states, any_states  # noqa
+
+
+class NormalizingNamespace(SimpleNamespace):
+    def __getattr__(self, name):
+        return super().__getattribute__(name.replace('-', '_'))
+
+    def __setattr__(self, name, value):
+        return super().__setattr__(name.replace('-', '_'), value)
+
+
+context = SimpleNamespace(
+    endpoints=NormalizingNamespace(),  # relation endpoints
+)
 
 
 def _expand_replacements(pat, subf, values):

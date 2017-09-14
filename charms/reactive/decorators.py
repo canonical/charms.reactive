@@ -15,13 +15,17 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 from functools import wraps, partial
+from inspect import getfile
+from pathlib import Path
 
 from charmhelpers.core import hookenv
 from charms.reactive.bus import Handler
 from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
 from charms.reactive.flags import get_flags
-from charms.reactive.relations import relation_from_name, relation_from_state
+from charms.reactive.relations import relation_from_name
+from charms.reactive.relations import relation_from_state
+from charms.reactive.helpers import context
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _restricted_hook
 from charms.reactive.helpers import _when_all
@@ -76,6 +80,23 @@ def when(*desired_flags):
     return when_all(*desired_flags)
 
 
+def _when_decorator(predicate, desired_flags, action, legacy_args=False):
+    relation_names = _get_relation_names(action)
+    has_relname_flag = _has_relation_name_flag(desired_flags)
+    for relation_name in relation_names or [None]:
+        handler = Handler.get(action, relation_name)
+        flags = _expand_relation_name(relation_name, desired_flags)
+        handler.add_predicate(partial(predicate, flags))
+        if has_relname_flag:
+            def arg_gen(rel_name):
+                yield getattr(context.endpoints, rel_name)
+            handler.add_args(arg_gen(relation_name))
+        elif legacy_args:
+            handler.add_args(filter(None, map(relation_from_state, desired_flags)))
+        handler.register_flags(flags)
+    return action
+
+
 def when_all(*desired_flags):
     """
     Register the decorated function to run when all of ``desired_flags`` are active.
@@ -87,13 +108,7 @@ def when_all(*desired_flags):
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
     """
-    def _register(action):
-        handler = Handler.get(action)
-        handler.add_predicate(partial(_when_all, desired_flags))
-        handler.add_args(filter(None, map(relation_from_state, desired_flags)))
-        handler.register_flags(desired_flags)
-        return action
-    return _register
+    return partial(_when_decorator, _when_all, desired_flags, legacy_args=True)
 
 
 def when_any(*desired_flags):
@@ -110,12 +125,7 @@ def when_any(*desired_flags):
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
     """
-    def _register(action):
-        handler = Handler.get(action)
-        handler.add_predicate(partial(_when_any, desired_flags))
-        handler.register_flags(desired_flags)
-        return action
-    return _register
+    return partial(_when_decorator, _when_any, desired_flags, legacy_args=False)
 
 
 def when_not(*desired_flags):
@@ -135,12 +145,7 @@ def when_none(*desired_flags):
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
     """
-    def _register(action):
-        handler = Handler.get(action)
-        handler.add_predicate(partial(_when_none, desired_flags))
-        handler.register_flags(desired_flags)
-        return action
-    return _register
+    return partial(_when_decorator, _when_none, desired_flags, legacy_args=False)
 
 
 def when_not_all(*desired_flags):
@@ -153,12 +158,7 @@ def when_not_all(*desired_flags):
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
     """
-    def _register(action):
-        handler = Handler.get(action)
-        handler.add_predicate(partial(_when_not_all, desired_flags))
-        handler.register_flags(desired_flags)
-        return action
-    return _register
+    return partial(_when_decorator, _when_not_all, desired_flags, legacy_args=False)
 
 
 def when_file_changed(*filenames, **kwargs):
@@ -250,3 +250,30 @@ def meter_status_changed():
         handler.add_predicate(partial(_restricted_hook, 'meter-status-changed'))
         return action
     return _register
+
+
+def _has_relation_name_flag(flags):
+    """
+    Detect if the given flags contain any that use ``{relation_name}``.
+    """
+    return '{relation_name}' in ''.join(flags)
+
+
+def _get_relation_names(handler):
+    filepath = Path(getfile(handler))
+    role = filepath.stem
+    interface = filepath.parent.name
+    if role not in ('requires', 'provides', 'peers'):
+        return []
+    relation_names = hookenv.role_and_interface_to_relations(role, interface)
+    if not relation_names:
+        return []
+    return relation_names
+
+
+def _expand_relation_name(relation_name, flags):
+    """
+    Populate any ``{relation_name}`` tags in the flag names for the given
+    handler, based on the handlers module / file name.
+    """
+    return tuple(flag.format(relation_name=relation_name) for flag in flags)

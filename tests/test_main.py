@@ -29,7 +29,8 @@ class TestReactiveMain(unittest.TestCase):
     @mock.patch.object(reactive.hookenv, '_run_atstart')
     @mock.patch.object(reactive.hookenv, 'log')
     @mock.patch.object(reactive.hookenv, 'hook_name')
-    def test_main(self, hook_name, log, _run_atstart, discover, dispatch, _KV):
+    @mock.patch.object(reactive.relations, 'relation_factory')
+    def test_main(self, rel_factory, hook_name, log, _run_atstart, discover, dispatch, _KV):
         hook_name.return_value = 'hook_name'
         reactive.main()
         _run_atstart.assert_called_once_with()
@@ -39,9 +40,9 @@ class TestReactiveMain(unittest.TestCase):
         _KV.flush.assert_called_once_with()
 
         _KV.flush.reset_mock()
-        discover.side_effect = SystemExit
+        discover.side_effect = SystemExit(1)
         self.assertRaises(SystemExit, reactive.main)
-        _KV.flush.assert_called_once_with()
+        assert not _KV.flush.called
 
 
 class TestReactiveRestrictedMain(unittest.TestCase):
@@ -62,6 +63,6 @@ class TestReactiveRestrictedMain(unittest.TestCase):
         _KV.flush.assert_called_once_with()
 
         _KV.flush.reset_mock()
-        discover.side_effect = SystemExit
+        discover.side_effect = SystemExit(1)
         self.assertRaises(SystemExit, reactive.main)
-        _KV.flush.assert_called_once_with()
+        assert not _KV.flush.called

@@ -40,21 +40,31 @@ class BrokenHandlerException(Exception):
         super(BrokenHandlerException, self).__init__(message)
 
 
-def _action_id(action):
+def _action_id(action, suffix=None):
     if hasattr(action, '_action_id'):
         return action._action_id
-    return "%s:%s:%s" % (action.__code__.co_filename,
-                         action.__code__.co_firstlineno,
-                         action.__code__.co_name)
+    parts = [
+        action.__code__.co_filename,
+        action.__code__.co_firstlineno,
+        action.__code__.co_name,
+    ]
+    if suffix is not None:
+        parts.append(suffix)
+    return ':'.join(map(str, parts))
 
 
-def _short_action_id(action):
+def _short_action_id(action, suffix=None):
     if hasattr(action, '_short_action_id'):
         return action._short_action_id
     filepath = os.path.relpath(action.__code__.co_filename, hookenv.charm_dir())
-    return "%s:%s:%s" % (filepath,
-                         action.__code__.co_firstlineno,
-                         action.__code__.co_name)
+    parts = [
+        filepath,
+        action.__code__.co_firstlineno,
+        action.__code__.co_name,
+    ]
+    if suffix is not None:
+        parts.append(suffix)
+    return ':'.join(map(str, parts))
 
 
 class Handler(object):
@@ -65,18 +75,19 @@ class Handler(object):
     _CONSUMED_FLAGS = set()
 
     @classmethod
-    def get(cls, action):
+    def get(cls, action, suffix=None):
         """
         Get or register a handler for the given action.
 
         :param func action: Callback that is called when invoking the Handler
         :param func args_source: Optional callback that generates args for the action
         """
-        action_id = _action_id(action)
+        action_id = _action_id(action, suffix)
         if action_id not in cls._HANDLERS:
             if LOG_OPTS['register']:
-                hookenv.log('Registering reactive handler for %s' % _short_action_id(action), level=hookenv.DEBUG)
-            cls._HANDLERS[action_id] = cls(action)
+                hookenv.log('Registering reactive handler for %s' % _short_action_id(action, suffix),
+                            level=hookenv.DEBUG)
+            cls._HANDLERS[action_id] = cls(action, suffix)
         return cls._HANDLERS[action_id]
 
     @classmethod
@@ -93,14 +104,14 @@ class Handler(object):
         """
         cls._HANDLERS = {}
 
-    def __init__(self, action):
+    def __init__(self, action, suffix=None):
         """
         Create a new Handler.
 
         :param func action: Callback that is called when invoking the Handler
         :param func args_source: Optional callback that generates args for the action
         """
-        self._action_id = _short_action_id(action)
+        self._action_id = _short_action_id(action, suffix)
         self._action = action
         self._args = []
         self._predicates = []
