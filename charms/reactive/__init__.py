@@ -47,9 +47,23 @@ from .decorators import collect_metrics  # noqa
 from .decorators import meter_status_changed  # noqa
 
 from . import bus
+from . import flags
+from . import helpers
 from . import relations
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
+
+
+# DEPRECATED: transitional imports for backwards compatibility
+bus.StateList = flags.StateList
+bus.set_state = flags.set_flag
+bus.remove_state = flags.clear_flag
+bus.get_state = flags.get_state
+bus.get_states = flags.get_states
+helpers.is_state = flags.is_flag_set
+helpers.toggle_state = flags.toggle_flag
+helpers.all_states = flags.all_flags_set
+helpers.any_states = flags.any_flags_set
 
 
 # flake8: noqa: C901
