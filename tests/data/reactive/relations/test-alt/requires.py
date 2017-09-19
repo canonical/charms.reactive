@@ -11,3 +11,7 @@ class TestAltRequires(Endpoint):
     @when('relations.{relation_name}.changed')
     def handle_changed(self):
         self.invocations.append('changed: {}'.format(self.relation_name))
+
+    @when('relations.{relation_name}.changed.foo')
+    def handle_changed_foo(self):
+        self.invocations.append('changed.foo: {}'.format(self.relation_name))

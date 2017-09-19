@@ -98,6 +98,6 @@ def main(relation_name=None):
         if x.code not in (None, 0):
             raise
 
-    if restricted_mode:  # limit what gets run in restricted mode
+    if not restricted_mode:  # limit what gets run in restricted mode
         hookenv._run_atexit()
     unitdata._KV.flush()
