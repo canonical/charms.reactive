@@ -80,7 +80,7 @@ class Handler(object):
         Get or register a handler for the given action.
 
         :param func action: Callback that is called when invoking the Handler
-        :param func args_source: Optional callback that generates args for the action
+        :param func suffix: Optional suffix for the handler's ID
         """
         action_id = _action_id(action, suffix)
         if action_id not in cls._HANDLERS:
@@ -109,7 +109,7 @@ class Handler(object):
         Create a new Handler.
 
         :param func action: Callback that is called when invoking the Handler
-        :param func args_source: Optional callback that generates args for the action
+        :param func suffix: Optional suffix for the handler's ID
         """
         self._action_id = _short_action_id(action, suffix)
         self._action = action
