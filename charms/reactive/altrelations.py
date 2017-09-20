@@ -16,7 +16,7 @@
 
 import json
 import weakref
-from collections import UserDict, UserList
+from collections import UserDict
 from itertools import chain
 
 from charmhelpers.core import hookenv
@@ -89,7 +89,8 @@ class Endpoint(RelationFactory):
 
     def __init__(self, relation_name, relation_ids=None):
         self._relation_name = relation_name
-        self._relations = [Relation(rid) for rid in relation_ids or []]
+        self._relations = KeyList(map(Relation, relation_ids or []),
+                                  key='relation_id')
         self._all_units = None
 
     @property
@@ -279,7 +280,24 @@ class RelatedUnit:
         return self.json_receive.data
 
 
-class CombinedUnitsView(UserList):
+class KeyList(list):
+    """
+    List that allows accessing items keyed by an attribute on the items.
+    """
+    def __init__(self, items, key):
+        super().__init__(items)
+        self._key = key
+
+    def __getitem__(self, key):
+        if isinstance(key, int):
+            return super().__getitem__(key)
+        for item in self:
+            if getattr(item, self._key) == key:
+                return item
+        raise KeyError(key)
+
+
+class CombinedUnitsView(KeyList):
     """
     A list view of `RelatedUnit`s, with properties to access a merged view
     of all of the units' data.
@@ -288,6 +306,9 @@ class CombinedUnitsView(UserList):
     `received` or `json_received` properties just like you would on a single
     unit.
     """
+    def __init__(self, items):
+        super().__init__(items, key='unit_name')
+
     @property
     def receive(self):
         """
@@ -303,8 +324,9 @@ class CombinedUnitsView(UserList):
         with automatic JSON decoding.
         """
         if not hasattr(self, '_data'):
+            # NB: units are reversed so that lowest numbered unit takes precedence
             self._data = JSONUnitDataView({key: value
-                                           for unit in reversed(self.data)
+                                           for unit in reversed(self)
                                            for key, value in unit.receive.items()})
 
         return self._data

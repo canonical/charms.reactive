@@ -191,11 +191,13 @@ class TestEndpoint(unittest.TestCase):
         self.assertEqual(len(tep.relations), 2)
         self.assertEqual(len(tep.relations[0].units), 2)
         self.assertEqual(len(tep.relations[1].units), 2)
+        self.assertEqual(tep.relations['test-endpoint:0'].relation_id, 'test-endpoint:0')
         self.assertEqual(len(tep.all_units), 4)
         self.assertEqual([u.unit_name for r in tep.relations for u in r.units],
                          ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
         self.assertEqual([u.unit_name for u in tep.all_units],
                          ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
+        self.assertEqual(tep.relations[0].units['unit/1'].unit_name, 'unit/1')
 
     def test_receive(self):
         Endpoint._startup()
@@ -267,6 +269,12 @@ class TestEndpoint(unittest.TestCase):
         rel.json_send['key'] = {'new': 'complex'}
         rel._flush_data()
         self.relation_set.assert_called_once_with('test-endpoint:0', {'key': '{"new": "complex"}'})
+
+        rel.send.update({'key': 'new-new'})
+        self.assertEqual(rel.send, {'key': 'new-new'})
+
+        rel.json_send.update({'key': {'new': 'new'}})
+        self.assertEqual(rel.send, {'key': '{"new": "new"}'})
 
     def test_handlers(self):
         Handler._HANDLERS = {k: h for k, h in Handler._HANDLERS.items()
