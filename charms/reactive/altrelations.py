@@ -117,11 +117,11 @@ class Endpoint(RelationFactory):
         """
         Complete flag name for this endpoint.
 
-        The flag will be prefixed with ``relations.{relation_name}.``, if it
-        is not already.  Then, ``str.format`` will be used to fill in
-        ``self.relation_name``.
+        If the flag does not already contain ``{relation_name}``, it will be
+        prefixed with ``relations.{relation_name}.``. Then, ``str.format`` will
+        be used to fill in ``{relation_name}`` with ``self.relation_name``.
         """
-        if not flag.startswith('relations.{relation_name}.'):
+        if '{relation_name}' not in flag:
             flag = 'relations.{relation_name}.' + flag
         return flag.format(relation_name=self.relation_name)
 
