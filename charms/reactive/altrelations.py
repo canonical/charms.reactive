@@ -130,11 +130,13 @@ class Endpoint(RelationFactory):
         """
         Manage automatic relation flags.
         """
-        joined_flag = self.flag('joined')
-        already_joined = is_flag_set(joined_flag)
-        rel_hook = hookenv.hook_name().startswith(self.relation_name)
+        already_joined = is_flag_set(self.flag('joined'))
+        hook_name = hookenv.hook_name()
+        rel_hook = hook_name.startswith(self.relation_name + '-relation-')
+        departed_hook = rel_hook and hook_name.endswith('-departed')
 
-        toggle_flag(joined_flag, self.joined)
+        toggle_flag(self.flag('joined'), self.joined)
+        toggle_flag(self.flag('departed'), departed_hook)
 
         if already_joined and not rel_hook:
             # skip checking relation data outside hooks for this relation
