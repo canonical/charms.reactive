@@ -104,6 +104,10 @@ def relation_factory(relation_name):
     ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``
     """
     role, interface = hookenv.relation_to_role_and_interface(relation_name)
+    if not (role and interface):
+        hookenv.log('Unable to determine role and interface for relation '
+                    '{}'.format(relation_name), hookenv.ERROR)
+        return None
     return _find_relation_factory(_relation_module(role, interface))
 
 
@@ -126,7 +130,7 @@ def _relation_module(role, interface):
             continue
     else:
         hookenv.log('Unable to find implementation for relation: '
-                    '{}'.format(module), hookenv.ERROR)
+                    '{} of {}'.format(role, interface), hookenv.ERROR)
         return None
     return sys.modules[module]
 
