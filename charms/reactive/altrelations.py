@@ -238,7 +238,7 @@ class Relation:
         over the relation.  This should be automatically called.
         """
         if self._data and self._data.modified:
-            hookenv.relation_set(self.relation_id, self.json_send.data)
+            hookenv.relation_set(self.relation_id, dict(self.json_send.data))
 
 
 class RelatedUnit:
