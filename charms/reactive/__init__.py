@@ -16,6 +16,7 @@
 
 import os
 import sys
+import traceback
 
 from .flags import set_flag  # noqa
 from .flags import clear_flag  # noqa
@@ -94,6 +95,10 @@ def main(relation_name=None):
         if not restricted_mode:  # limit what gets run in restricted mode
             hookenv._run_atstart()
         bus.dispatch(restricted=restricted_mode)
+    except Exception:
+        tb = traceback.format_exc()
+        hookenv.log('Hook error:\n{}'.format(tb), level=hookenv.ERROR)
+        raise
     except SystemExit as x:
         if x.code not in (None, 0):
             raise
