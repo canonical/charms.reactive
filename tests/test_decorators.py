@@ -77,14 +77,14 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
         action.assert_called_once_with()
 
-    @mock.patch.object(reactive.decorators, 'relation_from_state')
+    @mock.patch.object(reactive.decorators, 'relation_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_all')
-    def test_when_all(self, _when_all, _action_id, from_state):
+    def test_when_all(self, _when_all, _action_id, from_flag):
         reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        from_state.side_effect = [None, 'rel', None]
+        from_flag.side_effect = [None, 'rel', None]
         action = mock.Mock(name='action')
 
         @reactive.when_all('foo', 'bar', 'qux')
@@ -96,7 +96,7 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_all.assert_called_once_with(('foo', 'bar', 'qux'))
-        self.assertEqual(from_state.call_args_list, [
+        self.assertEqual(from_flag.call_args_list, [
             mock.call('foo'),
             mock.call('bar'),
             mock.call('qux'),
@@ -116,14 +116,14 @@ class TestReactiveDecorators(unittest.TestCase):
             pass
         when_all.assert_called_once_with('foo', 'bar', 'qux')
 
-    @mock.patch.object(reactive.decorators, 'relation_from_state')
+    @mock.patch.object(reactive.decorators, 'relation_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_any')
-    def test_when_any(self, _when_any, _action_id, from_state):
+    def test_when_any(self, _when_any, _action_id, from_flag):
         reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_any.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        from_state.side_effect = [None, 'rel', None]
+        from_flag.side_effect = [None, 'rel', None]
         action = mock.Mock(name='action')
 
         @reactive.when_any('foo', 'bar', 'qux')
@@ -135,18 +135,18 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_any.assert_called_once_with(('foo', 'bar', 'qux'))
-        assert not from_state.called
+        assert not from_flag.called
         action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
-    @mock.patch.object(reactive.decorators, 'relation_from_state')
+    @mock.patch.object(reactive.decorators, 'relation_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_none')
-    def test_when_none(self, _when_none, _action_id, from_state):
+    def test_when_none(self, _when_none, _action_id, from_flag):
         reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_none.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        from_state.return_value = 'rel'
+        from_flag.return_value = 'rel'
         action = mock.Mock(name='action')
 
         @reactive.when_none('foo', 'bar', 'qux')
@@ -158,7 +158,7 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_none.assert_called_once_with(('foo', 'bar', 'qux'))
-        assert not from_state.called
+        assert not from_flag.called
         action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
@@ -169,14 +169,14 @@ class TestReactiveDecorators(unittest.TestCase):
             pass
         when_none.assert_called_once_with('foo', 'bar', 'qux')
 
-    @mock.patch.object(reactive.decorators, 'relation_from_state')
+    @mock.patch.object(reactive.decorators, 'relation_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_not_all')
-    def test_when_not_all(self, _when_not_all, _action_id, from_state):
+    def test_when_not_all(self, _when_not_all, _action_id, from_flag):
         reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_not_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        from_state.return_value = 'rel'
+        from_flag.return_value = 'rel'
         action = mock.Mock(name='action')
 
         @reactive.when_not_all('foo', 'bar', 'qux')
@@ -188,7 +188,7 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_not_all.assert_called_once_with(('foo', 'bar', 'qux'))
-        assert not from_state.called
+        assert not from_flag.called
         action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 

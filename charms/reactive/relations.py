@@ -54,13 +54,22 @@ def relation_from_flag(flag):
     This will be a RelationBase instance, unless the interface is using
     a custom implementation.
     """
+    relation_name = None
     value = _get_flag_value(flag)
-    if value is None:
-        return None
-    relation_name = value['relation']
-    factory = relation_factory(relation_name)
-    if factory:
-        return factory.from_flag(flag)
+    if isinstance(value, dict) and 'relation' in value:
+        # old-style RelationBase
+        relation_name = value['relation']
+    elif flag.startswith('endpoint.'):
+        # new-style Endpoint
+        relation_name = flag.split('.')[1]
+    elif '.' in flag:
+        # might be an unprefixed new-style Endpoint
+        relation_name = flag.split('.')[0]
+    if relation_name:
+        factory = relation_factory(relation_name)
+        if factory:
+            return factory.from_flag(flag)
+    return None
 
 
 def relation_from_state(state):

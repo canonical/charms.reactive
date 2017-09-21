@@ -60,14 +60,18 @@ class MinimalRelationBase(RelationFactory):
 class Endpoint(RelationFactory):
     @classmethod
     def from_name(cls, relation_name):
-        return cls(relation_name)
+        return getattr(context.endpoints, relation_name, None)
 
     @classmethod
     def from_flag(cls, flag):
-        parts = flag.split('.')
-        if len(parts) < 3 or parts[0] != 'relations':
+        if '.' not in flag:
             return None
-        return cls.from_name(parts[1])
+        parts = flag.split('.')
+        if parts[0] == 'endpoint':
+            return cls.from_name(parts[1])
+        else:
+            # some older handlers might not use the 'endpoint' prefix
+            return cls.from_name(parts[0])
 
     @classmethod
     def _startup(cls):
@@ -119,11 +123,11 @@ class Endpoint(RelationFactory):
         Complete flag name for this endpoint.
 
         If the flag does not already contain ``{relation_name}``, it will be
-        prefixed with ``relations.{relation_name}.``. Then, ``str.format`` will
+        prefixed with ``endpoint.{relation_name}.``. Then, ``str.format`` will
         be used to fill in ``{relation_name}`` with ``self.relation_name``.
         """
         if '{relation_name}' not in flag:
-            flag = 'relations.{relation_name}.' + flag
+            flag = 'endpoint.{relation_name}.' + flag
         return flag.format(relation_name=self.relation_name)
 
     def _manage_flags(self):
@@ -146,10 +150,10 @@ class Endpoint(RelationFactory):
 
         for unit in self.all_units:
             for key, value in unit.receive.items():
-                data_key = 'relations.{}.{}.{}.{}'.format(self.relation_name,
-                                                          unit.relation.relation_name,
-                                                          unit.unit_name,
-                                                          key)
+                data_key = 'endpoint.{}.{}.{}.{}'.format(self.relation_name,
+                                                         unit.relation.relation_name,
+                                                         unit.unit_name,
+                                                         key)
                 if data_changed(data_key, value):
                     toggle_flag(self.flag('changed'), True)
                     toggle_flag(self.flag('changed.{}'.format(key)), True)

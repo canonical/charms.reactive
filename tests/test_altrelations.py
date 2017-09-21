@@ -23,6 +23,7 @@ from pathlib import Path
 from charmhelpers.core import unitdata
 from charms.reactive import context, Endpoint, is_flag_set, clear_flag
 from charms.reactive.bus import discover, dispatch, Handler
+from charms.reactive.helpers import NormalizingNamespace
 
 
 class TestEndpoint(unittest.TestCase):
@@ -33,6 +34,8 @@ class TestEndpoint(unittest.TestCase):
         tf.close()
         self.test_db = Path(tf.name)
         unitdata._KV = self.kv = unitdata.Storage(str(self.test_db))
+
+        context.endpoints = NormalizingNamespace()
 
         self.log_p = mock.patch('charmhelpers.core.hookenv.log')
         self.log_p.start()
@@ -110,79 +113,83 @@ class TestEndpoint(unittest.TestCase):
         self.atexit_p.stop()
         self.test_db.unlink()
         self.sysm_p.stop()
+        context.endpoints = NormalizingNamespace()
         Handler._HANDLERS.clear()
 
     def test_from_name(self):
-        ep = Endpoint.from_name('foo')
-        self.assertIsInstance(ep, Endpoint)
-        self.assertEqual(ep.relation_name, 'foo')
-        assert not ep.joined
+        context.endpoints.foo = Endpoint('foo')
+
+        self.assertIs(Endpoint.from_name('foo'), context.endpoints.foo)
+        self.assertIsNone(Endpoint.from_name('bar'))
 
     def test_from_flag(self):
-        self.assertIsNone(Endpoint.from_flag('foo'))
-        self.assertIsNone(Endpoint.from_flag('foo.bar.qux'))
+        context.endpoints.foo = Endpoint('foo')
 
-        ep = Endpoint.from_flag('relations.foo.qux')
-        self.assertIsInstance(ep, Endpoint)
-        self.assertEqual(ep.relation_name, 'foo')
-        assert not ep.joined
+        self.assertIsNone(Endpoint.from_flag('foo'))
+        self.assertIsNone(Endpoint.from_flag('bar.qux.zod'))
+
+        self.assertIs(Endpoint.from_flag('endpoint.foo.qux'),
+                      context.endpoints.foo)
+
+        self.assertIs(Endpoint.from_flag('foo.qux'),
+                      context.endpoints.foo)
 
     def test_startup(self):
-        assert not is_flag_set('relations.test-endpoint.joined')
-        assert not is_flag_set('relations.test-endpoint.changed')
-        assert not is_flag_set('relations.test-endpoint.changed.foo')
+        assert not is_flag_set('endpoint.test-endpoint.joined')
+        assert not is_flag_set('endpoint.test-endpoint.changed')
+        assert not is_flag_set('endpoint.test-endpoint.changed.foo')
 
         self.data_changed.return_value = True
         Endpoint._startup()
         assert context.endpoints.test_endpoint is not None
         assert context.endpoints.test_endpoint.relation_name == 'test-endpoint'
         assert context.endpoints.test_endpoint.joined
-        assert is_flag_set('relations.test-endpoint.joined')
-        assert is_flag_set('relations.test-endpoint.changed')
-        assert is_flag_set('relations.test-endpoint.changed.foo')
+        assert is_flag_set('endpoint.test-endpoint.joined')
+        assert is_flag_set('endpoint.test-endpoint.changed')
+        assert is_flag_set('endpoint.test-endpoint.changed.foo')
         assert context.endpoints.test_endpoint2 is not None
         assert context.endpoints.test_endpoint2.relation_name == 'test-endpoint2'
         assert not context.endpoints.test_endpoint2.joined
-        assert not is_flag_set('relations.test-endpoint2.joined')
-        assert not is_flag_set('relations.test-endpoint2.changed')
-        assert not is_flag_set('relations.test-endpoint2.changed.foo')
+        assert not is_flag_set('endpoint.test-endpoint2.joined')
+        assert not is_flag_set('endpoint.test-endpoint2.changed')
+        assert not is_flag_set('endpoint.test-endpoint2.changed.foo')
         self.assertEqual(self.atexit.call_args_list, [
             mock.call(context.endpoints.test_endpoint.relations[0]._flush_data),
             mock.call(context.endpoints.test_endpoint.relations[1]._flush_data),
         ])
 
         # already joined, not relation hook
-        clear_flag('relations.test-endpoint.changed')
-        clear_flag('relations.test-endpoint.changed.foo')
+        clear_flag('endpoint.test-endpoint.changed')
+        clear_flag('endpoint.test-endpoint.changed.foo')
         Endpoint._startup()
-        assert not is_flag_set('relations.test-endpoint.changed')
-        assert not is_flag_set('relations.test-endpoint.changed.foo')
+        assert not is_flag_set('endpoint.test-endpoint.changed')
+        assert not is_flag_set('endpoint.test-endpoint.changed.foo')
 
         # relation hook
         self.hook_name = 'test-endpoint-relation-joined'
-        clear_flag('relations.test-endpoint.changed')
-        clear_flag('relations.test-endpoint.changed.foo')
+        clear_flag('endpoint.test-endpoint.changed')
+        clear_flag('endpoint.test-endpoint.changed.foo')
         Endpoint._startup()
-        assert is_flag_set('relations.test-endpoint.changed')
-        assert is_flag_set('relations.test-endpoint.changed.foo')
+        assert is_flag_set('endpoint.test-endpoint.changed')
+        assert is_flag_set('endpoint.test-endpoint.changed.foo')
 
         # not already joined
         self.hook_name = 'upgrade-charm'
-        clear_flag('relations.test-endpoint.joined')
-        clear_flag('relations.test-endpoint.changed')
-        clear_flag('relations.test-endpoint.changed.foo')
+        clear_flag('endpoint.test-endpoint.joined')
+        clear_flag('endpoint.test-endpoint.changed')
+        clear_flag('endpoint.test-endpoint.changed.foo')
         Endpoint._startup()
-        assert is_flag_set('relations.test-endpoint.changed')
-        assert is_flag_set('relations.test-endpoint.changed.foo')
+        assert is_flag_set('endpoint.test-endpoint.changed')
+        assert is_flag_set('endpoint.test-endpoint.changed.foo')
 
         # data not changed
         self.data_changed.return_value = False
-        clear_flag('relations.test-endpoint.joined')
-        clear_flag('relations.test-endpoint.changed')
-        clear_flag('relations.test-endpoint.changed.foo')
+        clear_flag('endpoint.test-endpoint.joined')
+        clear_flag('endpoint.test-endpoint.changed')
+        clear_flag('endpoint.test-endpoint.changed.foo')
         Endpoint._startup()
-        assert not is_flag_set('relations.test-endpoint.changed')
-        assert not is_flag_set('relations.test-endpoint.changed.foo')
+        assert not is_flag_set('endpoint.test-endpoint.changed')
+        assert not is_flag_set('endpoint.test-endpoint.changed.foo')
 
     def test_collections(self):
         Endpoint._startup()
@@ -283,7 +290,7 @@ class TestEndpoint(unittest.TestCase):
         assert Handler._HANDLERS
         preds = [h._predicates[0].args[0][0] for h in Handler.get_handlers()]
         for pred in preds:
-            self.assertRegex(pred, r'^relations.test-endpoint.')
+            self.assertRegex(pred, r'^endpoint.test-endpoint.')
 
         self.data_changed.return_value = False
         Endpoint._startup()
@@ -296,12 +303,12 @@ class TestEndpoint(unittest.TestCase):
         ])
 
         tep.invocations.clear()
-        clear_flag('relations.test-endpoint.joined')
-        clear_flag('relations.test-endpoint.changed')
-        clear_flag('relations.test-endpoint.changed.foo')
-        clear_flag('relations.test-endpoint2.joined')
-        clear_flag('relations.test-endpoint2.changed')
-        clear_flag('relations.test-endpoint2.changed.foo')
+        clear_flag('endpoint.test-endpoint.joined')
+        clear_flag('endpoint.test-endpoint.changed')
+        clear_flag('endpoint.test-endpoint.changed.foo')
+        clear_flag('endpoint.test-endpoint2.joined')
+        clear_flag('endpoint.test-endpoint2.changed')
+        clear_flag('endpoint.test-endpoint2.changed.foo')
         self.data_changed.return_value = True
         Endpoint._startup()
         dispatch()
@@ -312,12 +319,12 @@ class TestEndpoint(unittest.TestCase):
         ])
 
         tep.invocations.clear()
-        clear_flag('relations.test-endpoint.joined')
-        clear_flag('relations.test-endpoint.changed')
-        clear_flag('relations.test-endpoint.changed.foo')
-        clear_flag('relations.test-endpoint2.joined')
-        clear_flag('relations.test-endpoint2.changed')
-        clear_flag('relations.test-endpoint2.changed.foo')
+        clear_flag('endpoint.test-endpoint.joined')
+        clear_flag('endpoint.test-endpoint.changed')
+        clear_flag('endpoint.test-endpoint.changed.foo')
+        clear_flag('endpoint.test-endpoint2.joined')
+        clear_flag('endpoint.test-endpoint2.changed')
+        clear_flag('endpoint.test-endpoint2.changed.foo')
         self.relations['test-endpoint2'] = [
             {
                 'unit/0': {'foo': 'yes'},

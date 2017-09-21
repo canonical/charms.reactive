@@ -15,7 +15,7 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 from functools import wraps, partial
-from inspect import getfile
+from inspect import getfile, isclass, signature
 from pathlib import Path
 
 from charmhelpers.core import hookenv
@@ -24,8 +24,8 @@ from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
 from charms.reactive.flags import get_flags
 from charms.reactive.relations import relation_from_name
-from charms.reactive.relations import relation_from_state
-from charms.reactive.helpers import context
+from charms.reactive.relations import relation_from_flag
+from charms.reactive.altrelations import Endpoint
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _restricted_hook
 from charms.reactive.helpers import _when_all
@@ -73,16 +73,11 @@ def hook(*hook_patterns):
     return _register
 
 
-def when(*desired_flags):
-    """
-    Alias for `when_all`.
-    """
-    return when_all(*desired_flags)
-
-
 def _when_decorator(predicate, desired_flags, action, legacy_args=False):
     relation_names = _get_relation_names(action)
     has_relname_flag = _has_relation_name_flag(desired_flags)
+    params = signature(action).parameters
+    has_params = len(params) > 0
     if has_relname_flag and not relation_names:
         # If this is an Endpoint handler but there are no endpoints
         # for this interface & role, then we shouldn't register its
@@ -92,14 +87,25 @@ def _when_decorator(predicate, desired_flags, action, legacy_args=False):
         handler = Handler.get(action, relation_name)
         flags = _expand_relation_name(relation_name, desired_flags)
         handler.add_predicate(partial(predicate, flags))
-        if has_relname_flag:
-            def arg_gen(rel_name):
-                yield getattr(context.endpoints, rel_name)
-            handler.add_args(arg_gen(relation_name))
-        elif legacy_args:
-            handler.add_args(filter(None, map(relation_from_state, desired_flags)))
+        if _is_endpoint_method(action):
+            # Endpoint handler methods need self to be passed in because
+            # they can't know the relation name to get the correct instance
+            # from the context.
+            handler.add_args(map(relation_from_name, [relation_name]))
+        elif has_params and legacy_args:
+            # Handlers should all move to not taking any params and getting
+            # the Endpoint instances from the context, but during the
+            # transition, we need to provide for handlers expecting args.
+            handler.add_args(filter(None, map(relation_from_flag, flags)))
         handler.register_flags(flags)
     return action
+
+
+def when(*desired_flags):
+    """
+    Alias for `when_all`.
+    """
+    return when_all(*desired_flags)
 
 
 def when_all(*desired_flags):
@@ -282,3 +288,19 @@ def _expand_relation_name(relation_name, flags):
     handler, based on the handlers module / file name.
     """
     return tuple(flag.format(relation_name=relation_name) for flag in flags)
+
+
+def _is_endpoint_method(handler):
+    """
+    from the context.  Unfortunately, we can't directly detect whether
+    a handler is an Endpoint method, because at the time of decoration,
+    the class doesn't actually exist yet so it's impossible to get a
+    reference to it.  So, we use the heuristic of seeing if the handler
+    takes only a single ``self`` param and there is an Endpoint class in
+    the handler's globals.
+    """
+    params = signature(handler).parameters
+    has_self = len(params) == 1 and list(params.keys())[0] == 'self'
+    has_endpoint_class = any(isclass(g) and issubclass(g, Endpoint)
+                             for g in handler.__globals__.values())
+    return has_self and has_endpoint_class
