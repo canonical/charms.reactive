@@ -83,6 +83,11 @@ def when(*desired_flags):
 def _when_decorator(predicate, desired_flags, action, legacy_args=False):
     relation_names = _get_relation_names(action)
     has_relname_flag = _has_relation_name_flag(desired_flags)
+    if has_relname_flag and not relation_names:
+        # If this is an Endpoint handler but there are no endpoints
+        # for this interface & role, then we shouldn't register its
+        # handlers.  It probably means we only use a different role.
+        return action
     for relation_name in relation_names or [None]:
         handler = Handler.get(action, relation_name)
         flags = _expand_relation_name(relation_name, desired_flags)
