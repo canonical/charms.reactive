@@ -173,7 +173,7 @@ def get_flags():
     Return a list of all flags which are set.
     """
     flags = unitdata.kv().getrange('reactive.states.', strip=True) or {}
-    return flags.keys()
+    return list(flags.keys())
 
 
 def _get_flag_value(flag, default=None):
