@@ -149,7 +149,7 @@ class Endpoint(RelationFactory):
             return
 
         for unit in self.all_units:
-            for key, value in unit.receive.items():
+            for key, value in unit.received.items():
                 data_key = 'endpoint.{}.{}.{}.{}'.format(self.relation_name,
                                                          unit.relation.relation_name,
                                                          unit.unit_name,
@@ -191,7 +191,7 @@ class Relation:
 
         This is actually a `CombinedUnitsView`, so you can access a merged
         view of all of the units' data with ``self.units.received`` and
-        ``self.units.json_received``.
+        ``self.units.received_json``.
         """
         if self._units is None:
             self._units = CombinedUnitsView([
@@ -201,7 +201,7 @@ class Relation:
         return self._units
 
     @property
-    def json_send(self):
+    def send_json(self):
         """
         Returns a writeable `JSONUnitDataView` of this local unit's data
         on this relation.
@@ -230,7 +230,7 @@ class Relation:
         Changes to this unit's relation data are sent out at the end of
         the current hook.
         """
-        return self.json_send.data
+        return self.send_json.data
 
     def _flush_data(self):
         """
@@ -238,7 +238,7 @@ class Relation:
         over the relation.  This should be automatically called.
         """
         if self._data and self._data.modified:
-            hookenv.relation_set(self.relation_id, dict(self.json_send.data))
+            hookenv.relation_set(self.relation_id, dict(self.send_json.data))
 
 
 class RelatedUnit:
@@ -263,12 +263,10 @@ class RelatedUnit:
         return self._relation()
 
     @property
-    def json_receive(self):
+    def received_json(self):
         """
-        Receive data from this unit over the relation, with values being
-        automatically decoded as JSON.
-
-        See `JSONUnitDataView`.
+        A `JSONUnitDataView` of the data received from this remote unit over
+        the relation, with values being automatically decoded as JSON.
         """
         if self._data is None:
             self._data = JSONUnitDataView(hookenv.relation_get(
@@ -277,13 +275,12 @@ class RelatedUnit:
         return self._data
 
     @property
-    def receive(self):
+    def received(self):
         """
-        Receive data from this unit over the relation as raw strings.
-
-        See `UnitDataView`.
+        A `UnitDataView` of the data received from this remote unit over
+        the relation.
         """
-        return self.json_receive.data
+        return self.received_json.data
 
 
 class KeyList(list):
@@ -309,22 +306,22 @@ class CombinedUnitsView(KeyList):
     of all of the units' data.
 
     You can iterate over this view like any other list, or you can use the
-    `received` or `json_received` properties just like you would on a single
+    `received` or `received_json` properties just like you would on a single
     unit.
     """
     def __init__(self, items):
         super().__init__(items, key='unit_name')
 
     @property
-    def receive(self):
+    def received(self):
         """
         Combined `UnitDataView` of the data of all units in this list,
         as raw strings.
         """
-        return self.json_receive.data
+        return self.received_json.data
 
     @property
-    def json_receive(self):
+    def received_json(self):
         """
         Combined `JSONUnitDataView` of the data of all units in this list,
         with automatic JSON decoding.
@@ -333,7 +330,7 @@ class CombinedUnitsView(KeyList):
             # NB: units are reversed so that lowest numbered unit takes precedence
             self._data = JSONUnitDataView({key: value
                                            for unit in reversed(self)
-                                           for key, value in unit.receive.items()})
+                                           for key, value in unit.received.items()})
 
         return self._data
 

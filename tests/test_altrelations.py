@@ -210,54 +210,54 @@ class TestEndpoint(unittest.TestCase):
         Endpoint._startup()
         tep = context.endpoints.test_endpoint
 
-        self.assertEqual(tep.all_units.receive, {'foo': 'yes',
-                                                 'bar': '[1, 2]'})
-        self.assertEqual(tep.all_units.json_receive, {'foo': 'yes',
-                                                      'bar': [1, 2]})
-        self.assertEqual(tep.relations[0].units.receive, {'foo': 'yes'})
-        self.assertEqual(tep.relations[1].units.receive, {'foo': 'no',
-                                                          'bar': '[1, 2]'})
-        self.assertEqual(tep.relations[0].units.json_receive, {'foo': 'yes'})
-        self.assertEqual(tep.relations[1].units.json_receive, {'foo': 'no',
-                                                               'bar': [1, 2]})
-        self.assertEqual(tep.relations[0].units[0].receive, {'foo': 'yes'})
-        self.assertEqual(tep.relations[0].units[1].receive, {})
-        self.assertEqual(tep.relations[1].units[0].receive, {'bar': '[1, 2]'})
-        self.assertEqual(tep.relations[1].units[1].receive, {'foo': 'no'})
-        self.assertEqual(tep.relations[0].units[0].json_receive, {'foo': 'yes'})
-        self.assertEqual(tep.relations[0].units[1].json_receive, {})
-        self.assertEqual(tep.relations[1].units[0].json_receive, {'bar': [1, 2]})
-        self.assertEqual(tep.relations[1].units[1].json_receive, {'foo': 'no'})
+        self.assertEqual(tep.all_units.received, {'foo': 'yes',
+                                                  'bar': '[1, 2]'})
+        self.assertEqual(tep.all_units.received_json, {'foo': 'yes',
+                                                       'bar': [1, 2]})
+        self.assertEqual(tep.relations[0].units.received, {'foo': 'yes'})
+        self.assertEqual(tep.relations[1].units.received, {'foo': 'no',
+                                                           'bar': '[1, 2]'})
+        self.assertEqual(tep.relations[0].units.received_json, {'foo': 'yes'})
+        self.assertEqual(tep.relations[1].units.received_json, {'foo': 'no',
+                                                                'bar': [1, 2]})
+        self.assertEqual(tep.relations[0].units[0].received, {'foo': 'yes'})
+        self.assertEqual(tep.relations[0].units[1].received, {})
+        self.assertEqual(tep.relations[1].units[0].received, {'bar': '[1, 2]'})
+        self.assertEqual(tep.relations[1].units[1].received, {'foo': 'no'})
+        self.assertEqual(tep.relations[0].units[0].received_json, {'foo': 'yes'})
+        self.assertEqual(tep.relations[0].units[1].received_json, {})
+        self.assertEqual(tep.relations[1].units[0].received_json, {'bar': [1, 2]})
+        self.assertEqual(tep.relations[1].units[1].received_json, {'foo': 'no'})
 
-        self.assertEqual(tep.all_units.receive['bar'], '[1, 2]')
-        self.assertEqual(tep.all_units.receive.get('bar'), '[1, 2]')
-        self.assertEqual(tep.all_units.json_receive['bar'], [1, 2])
-        self.assertEqual(tep.all_units.json_receive.get('bar'), [1, 2])
-        self.assertIsNone(tep.all_units.receive['none'])
-        self.assertEqual(tep.all_units.receive.get('none', 'default'), 'default')
-        self.assertIsNone(tep.all_units.json_receive['none'])
-        self.assertEqual(tep.all_units.json_receive.get('none', 'default'), 'default')
+        self.assertEqual(tep.all_units.received['bar'], '[1, 2]')
+        self.assertEqual(tep.all_units.received.get('bar'), '[1, 2]')
+        self.assertEqual(tep.all_units.received_json['bar'], [1, 2])
+        self.assertEqual(tep.all_units.received_json.get('bar'), [1, 2])
+        self.assertIsNone(tep.all_units.received['none'])
+        self.assertEqual(tep.all_units.received.get('none', 'default'), 'default')
+        self.assertIsNone(tep.all_units.received_json['none'])
+        self.assertEqual(tep.all_units.received_json.get('none', 'default'), 'default')
 
-        assert not tep.all_units.receive.writeable
-        assert not tep.all_units.json_receive.writeable
-
-        with self.assertRaises(ValueError):
-            tep.all_units.receive['foo'] = 'nope'
+        assert not tep.all_units.received.writeable
+        assert not tep.all_units.received_json.writeable
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units.receive['foo'] = 'nope'
+            tep.all_units.received['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units[0].receive['foo'] = 'nope'
+            tep.relations[0].units.received['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.all_units.json_receive['foo'] = 'nope'
+            tep.relations[0].units[0].received['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units.json_receive['foo'] = 'nope'
+            tep.all_units.received_json['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units[0].json_receive['foo'] = 'nope'
+            tep.relations[0].units.received_json['foo'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[0].units[0].received_json['foo'] = 'nope'
 
     def test_send(self):
         Endpoint._startup()
@@ -273,14 +273,14 @@ class TestEndpoint(unittest.TestCase):
         self.relation_set.assert_called_once_with('test-endpoint:0', {'key': 'new-value'})
 
         self.relation_set.reset_mock()
-        rel.json_send['key'] = {'new': 'complex'}
+        rel.send_json['key'] = {'new': 'complex'}
         rel._flush_data()
         self.relation_set.assert_called_once_with('test-endpoint:0', {'key': '{"new": "complex"}'})
 
         rel.send.update({'key': 'new-new'})
         self.assertEqual(rel.send, {'key': 'new-new'})
 
-        rel.json_send.update({'key': {'new': 'new'}})
+        rel.send_json.update({'key': {'new': 'new'}})
         self.assertEqual(rel.send, {'key': '{"new": "new"}'})
 
     def test_handlers(self):
