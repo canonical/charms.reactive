@@ -65,6 +65,8 @@ def relation_from_flag(flag):
     elif '.' in flag:
         # might be an unprefixed new-style Endpoint
         relation_name = flag.split('.')[0]
+        if relation_name not in hookenv.relation_types():
+            return None
     if relation_name:
         factory = relation_factory(relation_name)
         if factory:
