@@ -108,6 +108,15 @@ class Endpoint(RelationFactory):
     def relations(self):
         """
         Collection of `Relation`s that are established for this `Endpoint`.
+
+        This is a `KeyList`, so it can be iterated and indexed as a list,
+        or you can look up relations by their ID.  For example::
+
+            rel0 = endpoint.relations[0]
+            assert rel0 is endpoint.relations[rel0.relation_id]
+            assert all(rel is endpoint.relations[rel.relation_id]
+                       for rel in endpoint.relations)
+            print(', '.join(endpoint.relations.keys()))
         """
         return self._relations
 
@@ -120,7 +129,7 @@ class Endpoint(RelationFactory):
 
     def flag(self, flag):
         """
-        Complete flag name for this endpoint.
+        Complete a flag name for this endpoint.
 
         If the flag does not already contain ``{relation_name}``, it will be
         prefixed with ``endpoint.{relation_name}.``. Then, ``str.format`` will
@@ -161,12 +170,16 @@ class Endpoint(RelationFactory):
     @property
     def all_units(self):
         """
-        A `CombinedUnitsView` of all units attached to this `Endpoint`,
-        across all relations.
+        A list view of all the units attached to this `Endpoint`, across all relations.
 
-        Roughly equivalent to ``chain(rel.units for rel in self.relations)``
-        except that it also has properties to access a merged view of all of
-        the units' data as a single dict.
+        This is actually a `CombinedUnitsView`, so the units will be in order by
+        relation ID and then unit name, and you can access a merged view of all
+        the units' data as a single mapping.  You should be very careful when
+        using the merged data collections, however, and consider carefully
+        what will happen when the endpoint has multiple relations and multiple
+        remote units on each.  It is probably better to iterate over each unit
+        and handle its data individually.  See `CombinedUnitsView` for an
+        explanation of how the merged data collections work.
 
         Note that, because a given application might be related multiple times
         on a given endpoint, units may show up in this collection more than once.
@@ -179,19 +192,64 @@ class Endpoint(RelationFactory):
 
 class Relation:
     def __init__(self, relation_id):
-        self.relation_id = relation_id
-        self.relation_name = relation_id.split(':')[0]
+        self._relation_id = relation_id
+        self._relation_name = relation_id.split(':')[0]
+        self._application_name = None
         self._units = None
         self._data = None
 
     @property
+    def relation_id(self):
+        """
+        This relation's relation ID.
+        """
+        return self._relation_id
+
+    @property
+    def relation_name(self):
+        """
+        This relation's relation name.
+
+        This will be the same as the `Endpoint`'s relation name.
+        """
+        return self._relation_name
+
+    @property
+    def application_name(self):
+        """
+        The name of the remote application for this relation, or ``None``.
+
+        This is equivalent to::
+
+            relation.units[0].unit_name.split('/')[0]
+        """
+        if self._application_name is None and self.units:
+            self._application_name = self.units[0].unit_name.split('/')[0]
+        return self._application_name
+
+    @property
     def units(self):
         """
-        A list of all units on this relation.
+        A list view of all the units on this relation.
 
-        This is actually a `CombinedUnitsView`, so you can access a merged
-        view of all of the units' data with ``self.units.received`` and
-        ``self.units.received_json``.
+        This is actually a `CombinedUnitsView`, so the units will be in order
+        by unit name, and you can access a merged view of all of the units'
+        data with ``self.units.received`` and ``self.units.received_json``.
+        You should be very careful when using the merged data collections,
+        however, and consider carefully what will happen when there are
+        multiple remote units.  It is probabaly better to iterate over each
+        unit and handle its data individually.  See `CombinedUnitsView` for
+        an explanation of how the merged data collections work.
+
+        The view can be iterated and indexed as a list, or you can look up
+        units by their unit name.  For example::
+
+            by_index = relation.units[0]
+            by_name = relation.units['unit/0']
+            assert by_index is by_name
+            assert all(unit is relation.units[unit.unit_name]
+                       for unit in relation.units)
+            print(', '.join(relation.units.keys()))
         """
         if self._units is None:
             self._units = CombinedUnitsView([
@@ -285,13 +343,23 @@ class RelatedUnit:
 
 class KeyList(list):
     """
-    List that allows accessing items keyed by an attribute on the items.
+    List that also allows accessing items keyed by an attribute on the items.
+
+    Unlike dicts, the keys don't need to be unique.
     """
     def __init__(self, items, key):
         super().__init__(items)
         self._key = key
 
     def __getitem__(self, key):
+        """
+        Access an item in this `KeyList` by either an integer index or a str key.
+
+        If an integer key is given, it will be used as a list index.
+
+        If a str is given, it will be used as a mapping key.  Since keys may not
+        be unique, only the first item matching the given key will be returned.
+        """
         if isinstance(key, int):
             return super().__getitem__(key)
         for item in self:
@@ -299,18 +367,90 @@ class KeyList(list):
                 return item
         raise KeyError(key)
 
+    def keys(self):
+        """
+        Return the keys for all items in this `KeyList`.
+
+        Unlike a dict, the keys are not necessarily unique, so this list may
+        contain duplicate values.  The keys will be returned in the order of
+        the items in the list.
+        """
+        return [getattr(item, self._key) for item in self]
+
+    def values(self):
+        """
+        Return just the values of this list.
+
+        This is equivalent to ``list(keylist)``.
+        """
+        return list(self)
+
 
 class CombinedUnitsView(KeyList):
     """
-    A list view of `RelatedUnit`s, with properties to access a merged view
+    A `KeyList` view of `RelatedUnit`s, with properties to access a merged view
     of all of the units' data.
 
-    You can iterate over this view like any other list, or you can use the
-    `received` or `received_json` properties just like you would on a single
-    unit.
+    You can iterate over this view like any other list, or you can look up units
+    by their ``unit_name``.  Units will be in order by relation ID and unit name.
+    If a given unit name occurs more than once, accessing it by ``unit_name`` will
+    return the one from the lowest relation ID::
+
+        # given the following relations...
+        {
+            'endpoint:1': {
+                'unit/1': {
+                    'key0': 'value0_1_1',
+                    'key1': 'value1_1_1',
+                },
+                'unit/0': {
+                    'key0': 'value0_1_0',
+                    'key1': 'value1_1_0',
+                },
+            },
+            'endpoint:0': {
+                'unit/1': {
+                    'key0': 'value0_0_1',
+                    'key2': 'value2_0_1',
+                },
+            },
+        }
+
+        from_all = endpoint.all_units['unit/1']
+        by_rel = endpoint.relations['endpoint:0'].units['unit/1']
+        by_index = endpoint.relations[0].units[1]
+        assert from_all is by_rel
+        assert by_rel is by_index
+
+    You can also use the `received` or `received_json` properties just like you
+    would on a single unit.  The data in these collections will have all of the
+    data from every unit, with units with the lowest relation ID and unit name
+    taking precedence if multiple units have set a given field.  For example::
+
+        # given the same relations as above...
+
+        # the values across all relations would be:
+        assert endpoint.all_units.received['key0'] == 'value0_0_0'
+        assert endpoint.all_units.received['key1'] == 'value1_1_0'
+        assert endpoint.all_units.received['key2'] == 'value2_0_1'
+
+        # across individual relations:
+        assert endpoint.relations[0].units.received['key0'] == 'value0_0_1'
+        assert endpoint.relations[0].units.received['key1'] == None
+        assert endpoint.relations[0].units.received['key2'] == 'value2_0_1'
+        assert endpoint.relations[1].units.received['key0'] == 'value0_1_0'
+        assert endpoint.relations[1].units.received['key1'] == 'value1_1_0'
+        assert endpoint.relations[1].units.received['key2'] == None
+
+        # and of course you an access them by individual unit
+        assert endpoint.relations['endpoint:1'].units['unit/1'].received['key0'] \
+                == 'value0_1_1'
+
     """
     def __init__(self, items):
-        super().__init__(items, key='unit_name')
+        super().__init__(sorted(items, key=lambda i: (i.relation.relation_id,
+                                                      i.unit_name)),
+                         key='unit_name')
 
     @property
     def received(self):

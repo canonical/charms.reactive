@@ -205,6 +205,13 @@ class TestEndpoint(unittest.TestCase):
         self.assertEqual([u.unit_name for u in tep.all_units],
                          ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
         self.assertEqual(tep.relations[0].units['unit/1'].unit_name, 'unit/1')
+        self.assertEqual(tep.relations[0].relation_id, 'test-endpoint:0')
+        self.assertEqual(tep.relations[0].relation_name, 'test-endpoint')
+        self.assertEqual(tep.relations[0].application_name, 'unit')
+        self.assertEqual(tep.relations[0].units[0].unit_name, 'unit/0')
+        self.assertEqual(tep.all_units.keys(), ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
+        self.assertEqual(tep.relations[0].units.keys(), ['unit/0', 'unit/1'])
+        self.assertEqual(tep.relations.keys(), ['test-endpoint:0', 'test-endpoint:1'])
 
     def test_receive(self):
         Endpoint._startup()
