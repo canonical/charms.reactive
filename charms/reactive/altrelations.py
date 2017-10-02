@@ -149,7 +149,9 @@ class Endpoint(RelationFactory):
         departed_hook = rel_hook and hook_name.endswith('-departed')
 
         toggle_flag(self.flag('joined'), self.joined)
-        toggle_flag(self.flag('departed'), departed_hook)
+
+        if departed_hook:
+            set_flag(self.flag('departed'))
 
         if already_joined and not rel_hook:
             # skip checking relation data outside hooks for this relation
@@ -164,8 +166,8 @@ class Endpoint(RelationFactory):
                                                          unit.unit_name,
                                                          key)
                 if data_changed(data_key, value):
-                    toggle_flag(self.flag('changed'), True)
-                    toggle_flag(self.flag('changed.{}'.format(key)), True)
+                    set_flag(self.flag('changed'))
+                    set_flag(self.flag('changed.{}'.format(key)))
 
     @property
     def all_units(self):
