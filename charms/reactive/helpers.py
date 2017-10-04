@@ -29,6 +29,13 @@ from charms.reactive.flags import is_state, all_states, any_states  # noqa
 
 
 class NormalizingNamespace(SimpleNamespace):
+    """
+    A namespace collection that automatically translates attribute names that
+    contain hyphens to underscores.
+
+    For example, if the namespace has an attribute of ``foo-bar``, it should be
+    accessed as ``ns.foo_bar``.
+    """
     def __getattr__(self, name):
         return super().__getattribute__(name.replace('-', '_'))
 
@@ -39,6 +46,24 @@ class NormalizingNamespace(SimpleNamespace):
 context = SimpleNamespace(
     endpoints=NormalizingNamespace(),  # relation endpoints
 )
+"""
+A global, non-persistent context namespace object.
+
+Currently, this only contains ``endpoints``, a namespace populated by
+instances :class:`~charms.reactive.altrelations.Endpoint` for each relation
+endpoint, with any hyphens in the endpoint name being changed to underscores.
+
+For example, if a charm defines an ``requires`` endpoint named ``kube-api``
+using the ``kube-control`` interface protocol, then ``context.kube_api`` will
+be an instance of the ``Endpoint`` class defined in the ``requires.py`` file
+of the ``interface:kube-control`` interface layer.  You could then test whether
+this endpoint has any relations joined with::
+
+    from charms.reactive import context
+
+    if context.endpoints.kube_api.joined:
+        pass
+"""
 
 
 def _expand_replacements(pat, subf, values):

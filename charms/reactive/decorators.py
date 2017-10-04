@@ -42,19 +42,11 @@ def hook(*hook_patterns):
     Register the decorated function to run when the current hook matches any of
     the ``hook_patterns``.
 
+    This decorator is generally deprecated and should only be used when
+    absolutely necessary.
+
     The hook patterns can use the ``{interface:...}`` and ``{A,B,...}`` syntax
     supported by :func:`~charms.reactive.bus.any_hook`.
-
-    If the hook is a relation hook, an instance of that relation class will be
-    passed in to the decorated function.
-
-    For example, to match any joined or changed hook for the relation providing
-    the ``mysql`` interface::
-
-        class MySQLRelation(RelationBase):
-            @hook('{provides:mysql}-relation-{joined,changed}')
-            def joined_or_changed(self):
-                pass
 
     Note that hook decorators **cannot** be combined with :func:`when` or
     :func:`when_not` decorators.
@@ -103,7 +95,7 @@ def _when_decorator(predicate, desired_flags, action, legacy_args=False):
 
 def when(*desired_flags):
     """
-    Alias for `when_all`.
+    Alias for :func:`~charms.reactive.decorators.when_all`.
     """
     return when_all(*desired_flags)
 
@@ -112,12 +104,12 @@ def when_all(*desired_flags):
     """
     Register the decorated function to run when all of ``desired_flags`` are active.
 
-    This decorator will pass zero or more relation instances to the handler, if
-    any of the flags are associated with relations.  If so, they will be passed
-    in in the same order that the flags are given to the decorator.
-
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
+
+    For backwards compatibility, this decorator can pass arguments, but it is
+    recommended to use argument-less handlers.  See
+    `the summary <#charms-reactive-decorators>`_ for more information.
     """
     return partial(_when_decorator, _when_all, desired_flags, legacy_args=True)
 
@@ -126,12 +118,7 @@ def when_any(*desired_flags):
     """
     Register the decorated function to run when any of ``desired_flags`` are active.
 
-    This decorator will never cause arguments to be passed into to the handler,
-    even for flags which are set by relations, since that would make the
-    parameter bindings ambiguous.  Therefore, it is not generally recommended
-    to use this with relation flags; however, if you do need to, you can get
-    the relation instance associated with a flag using
-    :func:`~charms.reactive.relations.relation_from_flag`.
+    This decorator will never cause arguments to be passed to the handler.
 
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
@@ -141,7 +128,7 @@ def when_any(*desired_flags):
 
 def when_not(*desired_flags):
     """
-    Alias for `when_none`.
+    Alias for :func:`~charms.reactive.decorators.when_none`.
     """
     return when_none(*desired_flags)
 
