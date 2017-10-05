@@ -16,9 +16,7 @@ To browse the html documentation locally:
 
 ```bash
 make docs
-cd docs/_build/html
-python -m SimpleHTTPServer 8765
-# point web browser to http://localhost:8765
+xdg-open docs/_build/html/index.html
 ```
 
 
