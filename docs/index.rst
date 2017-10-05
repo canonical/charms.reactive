@@ -64,6 +64,7 @@ Table of Contents
 
    structure
    bash-reactive
+   faq
    api
    internals
 
