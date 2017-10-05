@@ -66,3 +66,11 @@ Table of Contents
    bash-reactive
    api
    internals
+
+
+.. toctree::
+   :caption: Changelog
+   :glob:
+   :maxdepth: 3
+
+   changelog
