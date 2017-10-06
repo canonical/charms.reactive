@@ -536,8 +536,16 @@ class TestReactiveBus(unittest.TestCase):
             assert not reactive.helpers.all_flags_set('bash-multi-neg2')
             invoked = ['test_when_not_all', 'test_when_any', 'test_when',
                        'test_when_not', 'test_multi', 'test_only_once']
-            self.assertEqual(mPopen.stdout, [','.join(invoked)])
-            assert 'Will invoke: %s' % ','.join(invoked) in mPopen.stderr
+            invoked.sort()
+            stdout_invoked = mPopen.stdout[0].split(',')
+            stdout_invoked.sort()
+            self.assertEqual(stdout_invoked, invoked)
+            stderr_invoked = next(
+                line for line in mPopen.stderr
+                if line.startswith("Will invoke:")
+            )[13:].split(',')
+            stderr_invoked.sort()
+            self.assertEqual(stderr_invoked, invoked)
             for handler in invoked:
                 assert 'Invoking bash reactive handler: %s' % handler in mPopen.stderr
             assert '++ charms.reactive set_flag bash-when-not-all' in mPopen.stderr
