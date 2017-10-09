@@ -17,7 +17,7 @@ by appending `dev0` to the version number in the `VERSION` file.
 Step 2: Create an override file `override-wheelhouse.txt` that points to your own
 charms.reactive branch. *The format of this file is the same as pip's
 [`requirements.txt`](https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format)
-file.
+file.*
 
     # Override charms.reactive by the version found in folder
     -e /path/to/charms.reactive
