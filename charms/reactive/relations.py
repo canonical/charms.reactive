@@ -696,7 +696,7 @@ class Conversation(object):
         the data will be set for all of those services.
 
         :param str key: The name of a field to set.
-        :param value: A value to set.
+        :param value: A value to set. This value must be json serializable.
         :param dict data: A mapping of keys to values.
         :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
         """
@@ -756,7 +756,7 @@ class Conversation(object):
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
 
         :param str key: The name of a field to set.
-        :param value: A value to set.
+        :param value: A value to set. This value must be json serializable.
         :param dict data: A mapping of keys to values.
         :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
         """
