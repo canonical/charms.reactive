@@ -31,7 +31,7 @@ handler, or at the top level of your handlers file:
 
     from charms.reactive.flags import register_trigger
     from charms.reactive.flags import set_flag
-    from charms.reactive.flags import when
+    from charms.reactive.decorators import when
 
 
     register_trigger(when='flag_a',
