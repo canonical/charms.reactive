@@ -117,6 +117,14 @@ in the ``actions.yaml`` file.  The ``actions.yaml`` file from the charm layer
 will then be merged onto the one provided by the base layer, and both sets of
 actions will be available.
 
+`layer:basic`_ is a useful base layer:
+
+ - It provides hooks for other layers to react to such as `install`,
+`config-changed`, `upgrade-charm`, and `update-status`.
+ - It provides a `set of useful flags to react to changing config <https://github.com/juju-solutions/layer-basic#layer-configuration>`_.
+ - You can tell it to `install dependencies of your handlers <https://github.com/juju-solutions/layer-basic#layer-configuration>`_.
+
+
 
 Interface Layers
 ----------------
@@ -137,3 +145,4 @@ More information about interface layers can be found in `the docs`_.
 
 
 .. _`the docs`: https://jujucharms.com/docs/stable/developer-layers-interfaces
+.. _`layer:basic`: https://github.com/juju-solutions/layer-basic/blob/master/README.md
