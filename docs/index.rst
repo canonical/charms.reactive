@@ -59,6 +59,12 @@ Table of Contents
 -----------------
 
 .. toctree::
+   :hidden:
+
+   self
+
+
+.. toctree::
    :glob:
    :maxdepth: 3
 

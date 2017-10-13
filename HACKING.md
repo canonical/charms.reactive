@@ -2,6 +2,9 @@
 
 ## Run testsuite
 
+    # Run the linter check
+    make lint
+    # Run the tests
     make test
 
 Run `make` without arguments for more options.
