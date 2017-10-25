@@ -61,11 +61,11 @@ if [[ "$0" == "$BASH_SOURCE" ]]; then
     echo '  @when_not STATES             Run decorated function if states not active'
     echo '  @when_file_changed FILENAME  Run decorated function if file(s) changed'
     echo '  @only_once                   Run decorated function only once'
-    echo '  set_state                    Set / activate a state'
-    echo '  remove_state                 Remove a state'
+    echo '  set_flag                     Set / activate a flag'
+    echo '  clear_flag                   Remove a flag'
     echo '  relation_call                Call a method on a relation by flag or relation name'
-    echo '  all_states                   Check all states are active'
-    echo '  any_states                   Check any states are active'
+    echo '  all_flags_set                Check all flags are active'
+    echo '  any_flags_set                Check any flags are active'
     echo '  name_relation_get            Get a relation value by relation name (vs ID)'
     exit 0
 fi
