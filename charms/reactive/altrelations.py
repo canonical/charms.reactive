@@ -61,8 +61,8 @@ class Endpoint(RelationFactory):
     """
     New base class for creating interface layers.
 
-    Endpoints will have a few flags automatically set, which they should
-    use to drive their handlers with ``@when``, etc.:
+    Four flags are automatically managed for each endpoint. Endpoint handlers
+    can react to these flags using the :class:`~charms.reactive.decorators`.
 
       * ``endpoint.{relation_name}.joined`` When the endpoint is :meth:`joined`
       * ``endpoint.{relation_name}.changed``  When any relation data has changed
@@ -73,12 +73,20 @@ class Endpoint(RelationFactory):
     all relations, but the others must be manually removed by the interface
     layer.
 
-    Endpoints will also be automatically populated into the
-    :data:`~charms.reactive.helpers.context` namespace based on their endpoint
-    name and can always be accessed from there, even if not joined.
+    *Note that these flags can be used in the decorators of all handlers, not
+    just endpoint handlers, although this should be done with caution.*
 
-    You can iterate over the list of joined relations for an endpoint via the
-    :meth:`~charms.reactive.altrelations.Endpoint.relations` collection.
+    The reactive framework automatically creates endpoint objects in the
+    :data:`~charms.reactive.helpers.context` namespace. Handlers can access the
+    endpoint objects from there, even if that endpoint doesn't have a joined
+    relation. The name of the endpoint object is based on the endpoints
+    configured in `metadata.yaml`. Note that endpoints will only be created
+    **if the interface layer of that endpoint is included in the `layer.yaml`
+    file.**
+
+    Endpoint handlers can iterate over the list of joined relations for an
+    endpoint via the :meth:`~charms.reactive.altrelations.Endpoint.relations`
+    collection.
     """
 
     @classmethod
@@ -195,8 +203,8 @@ class Endpoint(RelationFactory):
     @property
     def all_units(self):
         """
-        A list view of all the units attached to this
-        :class:`~charms.reactive.altrelations.Endpoint`, across all relations.
+        A list view of all the units of all relations attached to this
+        :class:`~charms.reactive.altrelations.Endpoint`.
 
         This is actually a
         :class:`~charms.reactive.altrelations.CombinedUnitsView`, so the units
@@ -293,17 +301,19 @@ class Relation:
     @property
     def send_json(self):
         """
-        Returns a writeable
-        :class:`~charms.reactive.altrelations.JSONUnitDataView` of this local
-        unit's data on this relation.
+        This is the relation data that the local unit publishes so it is
+        visible to all related units. Use this to communicate with related
+        units. It is a writeable
+        :class:`~charms.reactive.altrelations.JSONUnitDataView`.
 
-        Data stored in this collection will be automatically JSON encoded.
-        Mappings stored in this collection will be encoded with sorted keys, to
-        ensure that the encoded representation will only change if the actual
-        data changes.
+        All values stored in this collection will be automatically JSON
+        encoded when they are published. This means that they need to be JSON
+        serializable! Mappings stored in this collection will be encoded with
+        sorted keys, to ensure that the encoded representation will only change
+        if the actual data changes.
 
-        Changes to this unit's relation data are sent out at the end of the
-        current hook.
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
         """
         if self._data is None:
             self._data = JSONUnitDataView(
@@ -315,18 +325,22 @@ class Relation:
     @property
     def send(self):
         """
-        Returns a writeable :class:`~charms.reactive.altrelations.UnitDataView`
-        of this local unit's data on this relation.
+        This is the raw relation data that the local unit publishes so it is
+        visible to all related units. It is a writeable
+        :class:`~charms.reactive.altrelations.UnitDataView`. **Only use this
+        for backwards compatibility with interfaces that do not use JSON
+        encoding.** Use
+        :func:`~charms.reactive.altrelations.Relation.send_json` instead.
 
-        Changes to this unit's relation data are sent out at the end of the
-        current hook.
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
         """
         return self.send_json.data
 
     def _flush_data(self):
         """
         If this relation's local unit data has been modified, send it out
-        over the relation.  This should be automatically called.
+        over the relation. This should be automatically called.
         """
         if self._data and self._data.modified:
             hookenv.relation_set(self.relation_id, dict(self.send_json.data))
