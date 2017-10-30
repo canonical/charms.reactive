@@ -64,17 +64,20 @@ class Endpoint(RelationFactory):
     Four flags are automatically managed for each endpoint. Endpoint handlers
     can react to these flags using the :class:`~charms.reactive.decorators`.
 
-      * ``endpoint.{relation_name}.joined`` When the endpoint is :meth:`joined`
-      * ``endpoint.{relation_name}.changed``  When any relation data has changed
-      * ``endpoint.{relation_name}.changed.{field}``  When a specific field has changed
-      * ``endpoint.{relation_name}.departed`` When a remote unit is leaving
+      * ``endpoint.{relation_name}.joined`` When the endpoint is :meth:`joined`.
+      * ``endpoint.{relation_name}.changed`` When any relation data has changed.
+      * ``endpoint.{relation_name}.changed.{field}`` When a specific field has changed.
+      * ``endpoint.{relation_name}.departed`` When a remote unit is leaving.
 
     The ``joined`` flag will be automatically removed if all remote units leave
     all relations, but the others must be manually removed by the interface
     layer.
 
-    *Note that these flags can be used in the decorators of all handlers, not
-    just endpoint handlers, although this should be done with caution.*
+    These flags should only be used by the decorators of the endpoint handlers.
+    While it is possible to use them with any decorators in any layer, these
+    flags should be considered internal, private implementation details. It is
+    the interface layers responsibility to manage and document the public flags
+    that make up part of its API.
 
     The reactive framework automatically creates endpoint objects in the
     :data:`~charms.reactive.helpers.context` namespace. Handlers can access the
@@ -360,11 +363,10 @@ class RelatedUnit:
     def relation(self):
         """
         The relation to which this unit belongs.
-
-        To prevent circular references, the relation is kept as a weakref.  If
-        the relation is garbage-collected before this property is accessed, it
-        will be ``None``.
         """
+        # To prevent circular references, the relation is kept as a weakref. If
+        # the relation is garbage-collected before this property is accessed,
+        # it will be ``None``.
         return self._relation()
 
     @property
