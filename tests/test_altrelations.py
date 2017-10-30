@@ -266,29 +266,29 @@ class TestEndpoint(unittest.TestCase):
         with self.assertRaises(ValueError):
             tep.relations[0].units[0].received_json['foo'] = 'nope'
 
-    def test_send(self):
+    def test_to_publish(self):
         Endpoint._startup()
         tep = context.endpoints.test_endpoint
         rel = tep.relations[0]
 
-        self.assertEqual(rel.send, {'key': 'value'})
+        self.assertEqual(rel.to_publish_raw, {'key': 'value'})
         rel._flush_data()
         assert not self.relation_set.called
 
-        rel.send['key'] = 'new-value'
+        rel.to_publish_raw['key'] = 'new-value'
         rel._flush_data()
         self.relation_set.assert_called_once_with('test-endpoint:0', {'key': 'new-value'})
 
         self.relation_set.reset_mock()
-        rel.send_json['key'] = {'new': 'complex'}
+        rel.to_publish['key'] = {'new': 'complex'}
         rel._flush_data()
         self.relation_set.assert_called_once_with('test-endpoint:0', {'key': '{"new": "complex"}'})
 
-        rel.send.update({'key': 'new-new'})
-        self.assertEqual(rel.send, {'key': 'new-new'})
+        rel.to_publish_raw.update({'key': 'new-new'})
+        self.assertEqual(rel.to_publish_raw, {'key': 'new-new'})
 
-        rel.send_json.update({'key': {'new': 'new'}})
-        self.assertEqual(rel.send, {'key': '{"new": "new"}'})
+        rel.to_publish.update({'key': {'new': 'new'}})
+        self.assertEqual(rel.to_publish_raw, {'key': '{"new": "new"}'})
 
     def test_handlers(self):
         Handler._HANDLERS = {k: h for k, h in Handler._HANDLERS.items()

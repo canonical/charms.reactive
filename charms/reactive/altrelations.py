@@ -302,7 +302,7 @@ class Relation:
         return self._units
 
     @property
-    def send_json(self):
+    def to_publish(self):
         """
         This is the relation data that the local unit publishes so it is
         visible to all related units. Use this to communicate with related
@@ -326,27 +326,27 @@ class Relation:
         return self._data
 
     @property
-    def send(self):
+    def to_publish_raw(self):
         """
         This is the raw relation data that the local unit publishes so it is
         visible to all related units. It is a writeable
         :class:`~charms.reactive.altrelations.UnitDataView`. **Only use this
         for backwards compatibility with interfaces that do not use JSON
         encoding.** Use
-        :func:`~charms.reactive.altrelations.Relation.send_json` instead.
+        :func:`~charms.reactive.altrelations.Relation.to_publish` instead.
 
         Changes to this data are published at the end of a succesfull hook. The
         data is reset when a hook fails.
         """
-        return self.send_json.data
+        return self.to_publish.data
 
     def _flush_data(self):
         """
-        If this relation's local unit data has been modified, send it out
-        over the relation. This should be automatically called.
+        If this relation's local unit data has been modified, publish it on the
+        relation. This should be automatically called.
         """
         if self._data and self._data.modified:
-            hookenv.relation_set(self.relation_id, dict(self.send_json.data))
+            hookenv.relation_set(self.relation_id, dict(self.to_publish.data))
 
 
 class RelatedUnit:
