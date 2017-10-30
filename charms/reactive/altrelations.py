@@ -64,10 +64,10 @@ class Endpoint(RelationFactory):
     Four flags are automatically managed for each endpoint. Endpoint handlers
     can react to these flags using the :class:`~charms.reactive.decorators`.
 
-      * ``endpoint.{relation_name}.joined`` When the endpoint is :meth:`joined`.
-      * ``endpoint.{relation_name}.changed`` When any relation data has changed.
-      * ``endpoint.{relation_name}.changed.{field}`` When a specific field has changed.
-      * ``endpoint.{relation_name}.departed`` When a remote unit is leaving.
+      * ``endpoint.{endpoint_name}.joined`` When the endpoint is :meth:`joined`.
+      * ``endpoint.{endpoint_name}.changed`` When any relation data has changed.
+      * ``endpoint.{endpoint_name}.changed.{field}`` When a specific field has changed.
+      * ``endpoint.{endpoint_name}.departed`` When a remote unit is leaving.
 
     The ``joined`` flag will be automatically removed if all remote units leave
     all relations, but the others must be manually removed by the interface
@@ -93,8 +93,8 @@ class Endpoint(RelationFactory):
     """
 
     @classmethod
-    def from_name(cls, relation_name):
-        return getattr(context.endpoints, relation_name, None)
+    def from_name(cls, endpoint_name):
+        return getattr(context.endpoints, endpoint_name, None)
 
     @classmethod
     def from_flag(cls, flag):
@@ -112,31 +112,31 @@ class Endpoint(RelationFactory):
         """
         Populate context and manage automatic relation flags.
         """
-        for relation_name in sorted(hookenv.relation_types()):
+        for endpoint_name in sorted(hookenv.relation_types()):
             # populate context based on attached relations
-            relf = relation_factory(relation_name)
+            relf = relation_factory(endpoint_name)
             if not issubclass(relf, cls):
                 continue
 
-            rids = sorted(hookenv.relation_ids(relation_name))
-            endpoint = relf(relation_name, rids)
-            setattr(context.endpoints, relation_name, endpoint)
+            rids = sorted(hookenv.relation_ids(endpoint_name))
+            endpoint = relf(endpoint_name, rids)
+            setattr(context.endpoints, endpoint_name, endpoint)
             endpoint._manage_flags()
             for relation in endpoint.relations:
                 hookenv.atexit(relation._flush_data)
 
-    def __init__(self, relation_name, relation_ids=None):
-        self._relation_name = relation_name
+    def __init__(self, endpoint_name, relation_ids=None):
+        self._endpoint_name = endpoint_name
         self._relations = KeyList(map(Relation, relation_ids or []),
                                   key='relation_id')
         self._all_units = None
 
     @property
-    def relation_name(self):
+    def endpoint_name(self):
         """
         Relation name of this endpoint.
         """
-        return self._relation_name
+        return self._endpoint_name
 
     @property
     def relations(self):
@@ -165,13 +165,13 @@ class Endpoint(RelationFactory):
         """
         Complete a flag name for this endpoint.
 
-        If the flag does not already contain ``{relation_name}``, it will be
-        prefixed with ``endpoint.{relation_name}.``. Then, ``str.format`` will
-        be used to fill in ``{relation_name}`` with ``self.relation_name``.
+        If the flag does not already contain ``{endpoint_name}``, it will be
+        prefixed with ``endpoint.{endpoint_name}.``. Then, ``str.format`` will
+        be used to fill in ``{endpoint_name}`` with ``self.endpoint_name``.
         """
-        if '{relation_name}' not in flag:
-            flag = 'endpoint.{relation_name}.' + flag
-        return flag.format(relation_name=self.relation_name)
+        if '{endpoint_name}' not in flag:
+            flag = 'endpoint.{endpoint_name}.' + flag
+        return flag.format(endpoint_name=self.endpoint_name)
 
     def _manage_flags(self):
         """
@@ -179,7 +179,7 @@ class Endpoint(RelationFactory):
         """
         already_joined = is_flag_set(self.flag('joined'))
         hook_name = hookenv.hook_name()
-        rel_hook = hook_name.startswith(self.relation_name + '-relation-')
+        rel_hook = hook_name.startswith(self.endpoint_name + '-relation-')
         departed_hook = rel_hook and hook_name.endswith('-departed')
 
         toggle_flag(self.flag('joined'), self.joined)
@@ -195,8 +195,8 @@ class Endpoint(RelationFactory):
 
         for unit in self.all_units:
             for key, value in unit.received.items():
-                data_key = 'endpoint.{}.{}.{}.{}'.format(self.relation_name,
-                                                         unit.relation.relation_name,
+                data_key = 'endpoint.{}.{}.{}.{}'.format(self.endpoint_name,
+                                                         unit.relation.endpoint_name,
                                                          unit.unit_name,
                                                          key)
                 if data_changed(data_key, value):
@@ -233,7 +233,7 @@ class Endpoint(RelationFactory):
 class Relation:
     def __init__(self, relation_id):
         self._relation_id = relation_id
-        self._relation_name = relation_id.split(':')[0]
+        self._endpoint_name = relation_id.split(':')[0]
         self._application_name = None
         self._units = None
         self._data = None
@@ -246,14 +246,14 @@ class Relation:
         return self._relation_id
 
     @property
-    def relation_name(self):
+    def endpoint_name(self):
         """
-        This relation's relation name.
+        This relation's endpoint name.
 
         This will be the same as the
-        :class:`~charms.reactive.altrelations.Endpoint`'s relation name.
+        :class:`~charms.reactive.altrelations.Endpoint`'s endpoint name.
         """
-        return self._relation_name
+        return self._endpoint_name
 
     @property
     def application_name(self):

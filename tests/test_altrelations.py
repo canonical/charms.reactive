@@ -142,13 +142,13 @@ class TestEndpoint(unittest.TestCase):
         self.data_changed.return_value = True
         Endpoint._startup()
         assert context.endpoints.test_endpoint is not None
-        assert context.endpoints.test_endpoint.relation_name == 'test-endpoint'
+        assert context.endpoints.test_endpoint.endpoint_name == 'test-endpoint'
         assert context.endpoints.test_endpoint.joined
         assert is_flag_set('endpoint.test-endpoint.joined')
         assert is_flag_set('endpoint.test-endpoint.changed')
         assert is_flag_set('endpoint.test-endpoint.changed.foo')
         assert context.endpoints.test_endpoint2 is not None
-        assert context.endpoints.test_endpoint2.relation_name == 'test-endpoint2'
+        assert context.endpoints.test_endpoint2.endpoint_name == 'test-endpoint2'
         assert not context.endpoints.test_endpoint2.joined
         assert not is_flag_set('endpoint.test-endpoint2.joined')
         assert not is_flag_set('endpoint.test-endpoint2.changed')
@@ -206,7 +206,7 @@ class TestEndpoint(unittest.TestCase):
                          ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
         self.assertEqual(tep.relations[0].units['unit/1'].unit_name, 'unit/1')
         self.assertEqual(tep.relations[0].relation_id, 'test-endpoint:0')
-        self.assertEqual(tep.relations[0].relation_name, 'test-endpoint')
+        self.assertEqual(tep.relations[0].endpoint_name, 'test-endpoint')
         self.assertEqual(tep.relations[0].application_name, 'unit')
         self.assertEqual(tep.relations[0].units[0].unit_name, 'unit/0')
         self.assertEqual(tep.all_units.keys(), ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
