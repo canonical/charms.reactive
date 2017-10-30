@@ -88,7 +88,7 @@ class Endpoint(RelationFactory):
     file.**
 
     Endpoint handlers can iterate over the list of joined relations for an
-    endpoint via the :meth:`~charms.reactive.altrelations.Endpoint.relations`
+    endpoint via the :attr:`~charms.reactive.altrelations.Endpoint.relations`
     collection.
     """
 
@@ -333,7 +333,7 @@ class Relation:
         :class:`~charms.reactive.altrelations.UnitDataView`. **Only use this
         for backwards compatibility with interfaces that do not use JSON
         encoding.** Use
-        :func:`~charms.reactive.altrelations.Relation.to_publish` instead.
+        :attr:`~charms.reactive.altrelations.Relation.to_publish` instead.
 
         Changes to this data are published at the end of a succesfull hook. The
         data is reset when a hook fails.
