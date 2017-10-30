@@ -27,13 +27,17 @@ If a handler needs to use an older interface using the legacy
 is used by an interface layer, you can also obtain an instance using
 :func:`~charms.reactive.relations.relation_from_flag`.
 
-For backwards compatibility, some decorators can pass instances of these
-legacy ``RelationBase`` classes as arguments but explicit instance access using
-the ``context`` or ``get_relation_from_flag`` is recommended because ensuring
-proper argument order can be confusing: they are passed in bottom-up,
-left-to-right, and no negative or ambiguous decorators, such as
+For backwards compatibility, some decorators will pass instances of these legacy
+``RelationBase`` classes *if the handler function specifies them as arguments*.
+However, explicit instance access using the ``context`` or
+``get_relation_from_flag`` is recommended because ensuring proper argument
+order can be confusing: they are passed in bottom-up, left-to-right, and no
+negative or ambiguous decorators, such as
 :func:`~charms.reactive.decorators.when_not` or
-:func:`~charms.reactive.decorators.when_any` will ever pass arguments.
+:func:`~charms.reactive.decorators.when_any` will ever pass arguments. *Note
+that a handler function that doesn't take arguments will never receive these
+instances, even when using flags from legacy interface layers.*
+
 
 .. automembersummary::
     :nosignatures:
