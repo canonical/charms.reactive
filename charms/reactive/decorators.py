@@ -1,12 +1,12 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
-# charm-helpers is distributed in the hope that it will be useful,
+# charms.reactive is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -18,11 +18,12 @@ from functools import wraps, partial
 
 from charmhelpers.core import hookenv
 from charms.reactive.bus import Handler
-from charms.reactive.bus import get_states
 from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
-from charms.reactive.relations import RelationBase
+from charms.reactive.flags import get_flags
+from charms.reactive.relations import relation_from_name, relation_from_state
 from charms.reactive.helpers import _hook
+from charms.reactive.helpers import _restricted_hook
 from charms.reactive.helpers import _when_all
 from charms.reactive.helpers import _when_any
 from charms.reactive.helpers import _when_none
@@ -57,7 +58,7 @@ def hook(*hook_patterns):
     def _register(action):
         def arg_gen():
             # use a generator to defer calling of hookenv.relation_type, for tests
-            rel = RelationBase.from_name(hookenv.relation_type())
+            rel = relation_from_name(hookenv.relation_type())
             if rel:
                 yield rel
 
@@ -68,65 +69,65 @@ def hook(*hook_patterns):
     return _register
 
 
-def when(*desired_states):
+def when(*desired_flags):
     """
     Alias for `when_all`.
     """
-    return when_all(*desired_states)
+    return when_all(*desired_flags)
 
 
-def when_all(*desired_states):
+def when_all(*desired_flags):
     """
-    Register the decorated function to run when all of ``desired_states`` are active.
+    Register the decorated function to run when all of ``desired_flags`` are active.
 
     This decorator will pass zero or more relation instances to the handler, if
-    any of the states are associated with relations.  If so, they will be passed
-    in in the same order that the states are given to the decorator.
+    any of the flags are associated with relations.  If so, they will be passed
+    in in the same order that the flags are given to the decorator.
 
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
     """
     def _register(action):
         handler = Handler.get(action)
-        handler.add_predicate(partial(_when_all, desired_states))
-        handler.add_args(filter(None, map(RelationBase.from_state, desired_states)))
-        handler.register_states(desired_states)
+        handler.add_predicate(partial(_when_all, desired_flags))
+        handler.add_args(filter(None, map(relation_from_state, desired_flags)))
+        handler.register_flags(desired_flags)
         return action
     return _register
 
 
-def when_any(*desired_states):
+def when_any(*desired_flags):
     """
-    Register the decorated function to run when any of ``desired_states`` are active.
+    Register the decorated function to run when any of ``desired_flags`` are active.
 
     This decorator will never cause arguments to be passed into to the handler,
-    even for states which are set by relations, since that would make the
+    even for flags which are set by relations, since that would make the
     parameter bindings ambiguous.  Therefore, it is not generally recommended
-    to use this with relation states; however, if you do need to, you can get
-    the relation instance associated with a state using
-    :func:`~charms.reactive.relations.RelationBase.from_state`.
+    to use this with relation flags; however, if you do need to, you can get
+    the relation instance associated with a flag using
+    :func:`~charms.reactive.relations.relation_from_flag`.
 
     Note that handlers whose conditions match are triggered at least once per
     hook invocation.
     """
     def _register(action):
         handler = Handler.get(action)
-        handler.add_predicate(partial(_when_any, desired_states))
-        handler.register_states(desired_states)
+        handler.add_predicate(partial(_when_any, desired_flags))
+        handler.register_flags(desired_flags)
         return action
     return _register
 
 
-def when_not(*desired_states):
+def when_not(*desired_flags):
     """
     Alias for `when_none`.
     """
-    return when_none(*desired_states)
+    return when_none(*desired_flags)
 
 
-def when_none(*desired_states):
+def when_none(*desired_flags):
     """
-    Register the decorated function to run when none of ``desired_states`` are
+    Register the decorated function to run when none of ``desired_flags`` are
     active.
 
     This decorator will never cause arguments to be passed to the handler.
@@ -136,16 +137,16 @@ def when_none(*desired_states):
     """
     def _register(action):
         handler = Handler.get(action)
-        handler.add_predicate(partial(_when_none, desired_states))
-        handler.register_states(desired_states)
+        handler.add_predicate(partial(_when_none, desired_flags))
+        handler.register_flags(desired_flags)
         return action
     return _register
 
 
-def when_not_all(*desired_states):
+def when_not_all(*desired_flags):
     """
     Register the decorated function to run when one or more of the
-    ``desired_states`` are not active.
+    ``desired_flags`` are not active.
 
     This decorator will never cause arguments to be passed to the handler.
 
@@ -154,8 +155,8 @@ def when_not_all(*desired_states):
     """
     def _register(action):
         handler = Handler.get(action)
-        handler.add_predicate(partial(_when_not_all, desired_states))
-        handler.register_states(desired_states)
+        handler.add_predicate(partial(_when_not_all, desired_flags))
+        handler.register_flags(desired_flags)
         return action
     return _register
 
@@ -176,14 +177,14 @@ def when_file_changed(*filenames, **kwargs):
     return _register
 
 
-def not_unless(*desired_states):
+def not_unless(*desired_flags):
     """
-    Assert that the decorated function can only be called if the desired_states
+    Assert that the decorated function can only be called if the desired_flags
     are active.
 
     Note that, unlike :func:`when`, this does **not** trigger the decorated
-    function if the states match.  It **only** raises an exception if the
-    function is called when the states do not match.
+    function if the flags match.  It **only** raises an exception if the
+    function is called when the flags do not match.
 
     This is primarily for informational purposes and as a guard clause.
     """
@@ -193,13 +194,13 @@ def not_unless(*desired_states):
 
         @wraps(func)
         def _wrapped(*args, **kwargs):
-            active_states = get_states()
-            missing_states = [state for state in desired_states if state not in active_states]
-            if missing_states:
-                hookenv.log('%s called before state%s: %s' % (
+            active_flags = get_flags()
+            missing_flags = [flag for flag in desired_flags if flag not in active_flags]
+            if missing_flags:
+                hookenv.log('%s called before flag%s: %s' % (
                     short_action_id,
-                    's' if len(missing_states) > 1 else '',
-                    ', '.join(missing_states)), hookenv.WARNING)
+                    's' if len(missing_flags) > 1 else '',
+                    ', '.join(missing_flags)), hookenv.WARNING)
             return func(*args, **kwargs)
         _wrapped._action_id = action_id
         _wrapped._short_action_id = short_action_id
@@ -222,3 +223,25 @@ def only_once(action=None):
     handler.add_predicate(lambda: not was_invoked(action_id))
     handler.add_post_callback(partial(mark_invoked, action_id))
     return action
+
+
+def collect_metrics():
+    """
+    Register the decorated function to run for the collect_metrics hook.
+    """
+    def _register(action):
+        handler = Handler.get(action)
+        handler.add_predicate(partial(_restricted_hook, 'collect-metrics'))
+        return action
+    return _register
+
+
+def meter_status_changed():
+    """
+    Register the decorated function to run when a meter status change has been detected.
+    """
+    def _register(action):
+        handler = Handler.get(action)
+        handler.add_predicate(partial(_restricted_hook, 'meter-status-changed'))
+        return action
+    return _register

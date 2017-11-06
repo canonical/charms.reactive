@@ -42,8 +42,8 @@ if [[ "$0" == "$BASH_SOURCE" ]]; then
     echo
     echo '    @when db.ready cache.ready'
     echo '    function write_configuration() {'
-    echo '        db_dsn=$(state_relation_call db.ready uri)'
-    echo '        cache_uri=$(state_relation_call cache.ready uri)'
+    echo '        db_dsn=$(relation_call --flag db.ready uri)'
+    echo '        cache_uri=$(relation_call --flag cache.ready uri)'
     echo '        chlp render_template db_dsn=$db_dsn cache_uri=$cache_uri'
     echo '    }'
     echo
@@ -61,12 +61,11 @@ if [[ "$0" == "$BASH_SOURCE" ]]; then
     echo '  @when_not STATES             Run decorated function if states not active'
     echo '  @when_file_changed FILENAME  Run decorated function if file(s) changed'
     echo '  @only_once                   Run decorated function only once'
-    echo '  set_state                    Set / activate a state'
-    echo '  remove_state                 Remove a state'
-    echo '  relation_call                Call a method on a relation by relation name'
-    echo '  state_relation_call          Call a method on a relation by active state'
-    echo '  all_states                   Check all states are active'
-    echo '  any_states                   Check any states are active'
+    echo '  set_flag                     Set / activate a flag'
+    echo '  clear_flag                   Remove a flag'
+    echo '  relation_call                Call a method on a relation by flag or relation name'
+    echo '  all_flags_set                Check all flags are active'
+    echo '  any_flags_set                Check any flags are active'
     echo '  name_relation_get            Get a relation value by relation name (vs ID)'
     exit 0
 fi
@@ -158,20 +157,27 @@ alias @when_none='@decorator when_none'
 alias @when_not_all='@decorator when_not_all'
 alias @when_file_changed='@decorator when_file_changed'
 alias @only_once='@decorator only_once'
-alias set_state='charms.reactive set_state'
-alias remove_state='charms.reactive remove_state'
+alias set_flag='charms.reactive set_flag'
+alias clear_flag='charms.reactive clear_flag'
 alias relation_call='charms.reactive relation_call'  # Call a method on a named relation
-alias all_states='charms.reactive all_states'
-alias any_states='charms.reactive any_states'
+alias all_flags_set='charms.reactive all_flags_set'
+alias any_flags_set='charms.reactive any_flags_set'
 
+# DEPRECATED
+alias set_state='charms.reactive set_flag'
+alias remove_state='charms.reactive clear_flag'
+alias all_states='charms.reactive all_flags_set'
+alias any_states='charms.reactive any_flags_set'
+
+# DEPRECATED: Use `relation_call --flag <flag> <method>` instead
 function state_relation_call() {
     _suppress_xtrace
     # Call a method on the relation implementation associated with the
     # given active state.
-    state=$1
+    flag=$1
     method=$2
     shift; shift
-    charms.reactive relation_call $(charms.reactive relation_from_state $state) $method "$@"
+    charms.reactive relation_call --flag $flag $method "$@"
     _restore_xtrace
 }
 

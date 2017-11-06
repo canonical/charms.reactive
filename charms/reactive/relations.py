@@ -1,12 +1,12 @@
-# Copyright 2014-2016 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
-# charm-helpers is distributed in the hope that it will be useful,
+# charms.reactive is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU Lesser General Public License for more details.
@@ -14,22 +14,141 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
+import importlib
 from inspect import isclass
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-from charms.reactive.bus import get_states
-from charms.reactive.bus import get_state
-from charms.reactive.bus import set_state
-from charms.reactive.bus import remove_state
-from charms.reactive.bus import StateList
+from charms.reactive.flags import get_flags
+from charms.reactive.flags import _get_flag_value
+from charms.reactive.flags import set_flag
+from charms.reactive.flags import clear_flag
+from charms.reactive.flags import StateList
+from charms.reactive.bus import _append_path
 
 
 # arbitrary obj instances to use as defaults instead of None
 ALL = object()
 TOGGLE = object()
+
+
+def relation_from_name(relation_name):
+    """The object used for interacting with the named relations, or None.
+
+    This will be a RelationBase instance, unless the interface is using
+    a custom implementation.
+    """
+    if relation_name is None:
+        return None
+    factory = relation_factory(relation_name)
+    if factory:
+        return factory.from_name(relation_name)
+
+
+def relation_from_flag(flag):
+    """The object used for interacting with relations tied to a flag, or None.
+
+    This will be a RelationBase instance, unless the interface is using
+    a custom implementation.
+    """
+    value = _get_flag_value(flag)
+    if value is None:
+        return None
+    relation_name = value['relation']
+    factory = relation_factory(relation_name)
+    if factory:
+        return factory.from_state(flag)
+
+
+def relation_from_state(state):
+    """DEPRECATED Alias of relation_from_flag.
+    """
+    return relation_from_flag(state)
+
+
+class RelationFactory(object):
+    """Produce objects for interacting with a relation.
+
+    Interfaces choose which RelationFactory is used for their relations
+    by adding a RelationFactory subclass to
+    ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``.
+    This is normally a RelationBase subclass.
+    """
+    @classmethod
+    def from_name(cls, relation_name):
+        raise NotImplementedError()
+
+    @classmethod
+    def from_state(cls, state):
+        raise NotImplementedError()
+
+
+def relation_factory(relation_name):
+    """Get the RelationFactory for the given relation name.
+
+    Looks for a RelationFactory in the first file matching:
+    ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``
+    """
+    role, interface = hookenv.relation_to_role_and_interface(relation_name)
+    return _find_relation_factory(_relation_module(role, interface))
+
+
+def _relation_module(role, interface):
+    """
+    Return module for relation based on its role and interface, or None.
+    """
+    # The module has already been discovered and imported.
+    module = 'relations.{}.{}'.format(interface, role)
+    if module not in sys.modules:
+        try:
+            _append_path(hookenv.charm_dir())
+            _append_path(os.path.join(hookenv.charm_dir(), 'hooks'))
+            _append_path(os.path.join(hookenv.charm_dir(), 'reactive'))
+            importlib.import_module(module)
+        except ImportError:
+            hookenv.log('Unable to find implementation for relation: '
+                        '{}'.format(module), hookenv.ERROR)
+            return None
+    return sys.modules[module]
+
+
+def _find_relation_factory(module):
+    """
+    Attempt to find a RelationFactory subclass in the module.
+
+    Note: RelationFactory and RelationBase are ignored so they may
+    be imported to be used as base classes without fear.
+    """
+    if not module:
+        return None
+
+    # All the RelationFactory subclasses
+    candidates = [o for o in (getattr(module, attr) for attr in dir(module))
+                  if (o is not RelationFactory and
+                      o is not RelationBase and
+                      isclass(o) and
+                      issubclass(o, RelationFactory))]
+
+    # Filter out any factories that are superclasses of another factory
+    # (none of the other factories subclass it). This usually makes
+    # the explict check for RelationBase and RelationFactory unnecessary.
+    candidates = [c1 for c1 in candidates
+                  if not any(issubclass(c2, c1) for c2 in candidates
+                             if c1 is not c2)]
+
+    if not candidates:
+        hookenv.log('No RelationFactory found in {}'.format(module.__name__),
+                    hookenv.WARNING)
+        return None
+
+    if len(candidates) > 1:
+        raise RuntimeError('Too many RelationFactory found in {}'
+                           ''.format(module.__name__))
+
+    return candidates[0]
 
 
 class scopes(object):
@@ -89,9 +208,9 @@ class AutoAccessors(type):
         return __accessor
 
 
-class RelationBase(object, metaclass=AutoAccessors):
+class RelationBase(RelationFactory, metaclass=AutoAccessors):
     """
-    The base class for all relation implementations.
+    A base class for relation implementations.
     """
     _cache = {}
 
@@ -165,7 +284,7 @@ class RelationBase(object, metaclass=AutoAccessors):
         Find relation implementation in the current charm, based on the
         name of an active state.
         """
-        value = get_state(state)
+        value = _get_flag_value(state)
         if value is None:
             return None
         relation_name = value['relation']
@@ -198,12 +317,10 @@ class RelationBase(object, metaclass=AutoAccessors):
         """
         Find relation implementation based on its role and interface.
         """
-        # The module has already been discovered and imported.
-        module = 'relations.{}.{}'.format(interface, role)
-        if module in sys.modules:
-            return cls._find_subclass(sys.modules[module])
-        else:
+        module = _relation_module(role, interface)
+        if not module:
             return None
+        return cls._find_subclass(module)
 
     @classmethod
     def _find_subclass(cls, module):
@@ -216,7 +333,8 @@ class RelationBase(object, metaclass=AutoAccessors):
         """
         for attr in dir(module):
             candidate = getattr(module, attr)
-            if isclass(candidate) and issubclass(candidate, cls) and candidate is not cls:
+            if (isclass(candidate) and issubclass(candidate, cls) and
+                    candidate is not RelationBase):
                 return candidate
         return None
 
@@ -497,13 +615,13 @@ class Conversation(object):
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_state(state, {
+        value = _get_flag_value(state, {
             'relation': self.relation_name,
             'conversations': [],
         })
         if self.key not in value['conversations']:
             value['conversations'].append(self.key)
-        set_state(state, value)
+        set_flag(state, value)
 
     def remove_state(self, state):
         """
@@ -521,22 +639,22 @@ class Conversation(object):
         conversations are in this the state, will deactivate it.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_state(state)
+        value = _get_flag_value(state)
         if not value:
             return
         if self.key in value['conversations']:
             value['conversations'].remove(self.key)
         if value['conversations']:
-            set_state(state, value)
+            set_flag(state, value)
         else:
-            remove_state(state)
+            clear_flag(state)
 
     def is_state(self, state):
         """
         Test if this conversation is in the given state.
         """
         state = state.format(relation_name=self.relation_name)
-        value = get_state(state)
+        value = _get_flag_value(state)
         if not value:
             return False
         return self.key in value['conversations']
@@ -578,7 +696,7 @@ class Conversation(object):
         the data will be set for all of those services.
 
         :param str key: The name of a field to set.
-        :param value: A value to set.
+        :param value: A value to set. This value must be json serializable.
         :param dict data: A mapping of keys to values.
         :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
         """
@@ -638,7 +756,7 @@ class Conversation(object):
         :meth:`~charmhelpers.core.unitdata.Storage.flush` be called.
 
         :param str key: The name of a field to set.
-        :param value: A value to set.
+        :param value: A value to set. This value must be json serializable.
         :param dict data: A mapping of keys to values.
         :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
         """
@@ -659,7 +777,7 @@ class Conversation(object):
         return unitdata.kv().get(key, default)
 
 
-def _migrate_conversations():
+def _migrate_conversations():  # noqa
     """
     Due to issue #28 (https://github.com/juju-solutions/charms.reactive/issues/28),
     conversations needed to be updated to be namespaced per relation ID for SERVICE
@@ -693,31 +811,32 @@ def _migrate_conversations():
             unitdata.kv().unset(key)
             # update the states pointing to the old conv key to point to the
             # (potentially multiple) new key(s)
-            for state, value in get_states().items():
+            for flag in get_flags():
+                value = _get_flag_value(flag)
                 if not value:
                     continue
                 if key not in value['conversations']:
                     continue
                 value['conversations'].remove(key)
                 value['conversations'].extend(new_keys)
-                set_state(state, value)
+                set_flag(flag, value)
 
 
 @cmdline.subcommand()
-def relation_call(method, relation_name=None, state=None, *args):
+def relation_call(method, relation_name=None, flag=None, state=None, *args):
     """Invoke a method on the class implementing a relation via the CLI"""
     if relation_name:
-        relation = RelationBase.from_name(relation_name)
+        relation = relation_from_name(relation_name)
         if relation is None:
             raise ValueError('Relation not found: %s' % relation_name)
-    elif state:
-        relation = RelationBase.from_state(state)
+    elif flag or state:
+        relation = relation_from_flag(flag or state)
         if relation is None:
-            raise ValueError('Relation not found: %s' % state)
+            raise ValueError('Relation not found: %s' % (flag or state))
     else:
-        raise ValueError('Must specify either relation_name or state')
+        raise ValueError('Must specify either relation_name or flag')
     result = getattr(relation, method)(*args)
-    if method == 'conversations':
+    if isinstance(relation, RelationBase) and method == 'conversations':
         # special case for conversations to make them work from CLI
         result = [c.scope for c in result]
     return result

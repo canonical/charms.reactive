@@ -1,12 +1,27 @@
-sudo: false
 dist: trusty
+sudo: required
 language: python
 python:
-  - "3.4"  # Targetting Trusty (Ubuntu 14.04)
-  - "3.5"  # Targetting Xenial (Ubuntu 16.04)
-  - "3.6"  # Targetting the future
-  - "nightly"
+  - "3.5"
+env:
+  - SNAP_CMD="sudo snap install juju --classic --stable"
+  - SNAP_CMD="sudo snap install juju --classic --edge"
+before_install:
+  - sudo add-apt-repository ppa:ubuntu-lxc/lxd-stable -y
+  - sudo apt-get update -q
+  - sudo apt-get install snapd -y
+  - sudo apt-get install lxd snapd pwgen -y
+  - sudo usermod -a -G lxd $USER
+  - sudo service lxd start || true
+  - sudo lxd init --auto
 install:
-  - "python3 -c 'import platform;print(platform.linux_distribution())'"
   - pip install tox-travis
-script: tox
+  - sudo snap install --beta core
+  - (eval "$SNAP_CMD")
+  - sudo snap install charm --edge
+  - sudo snap install --classic juju-wait
+before_script:
+  - sudo -E sudo -u $USER -E bash -c "/snap/bin/juju bootstrap localhost test"
+script:
+  - tox -e lint,py35
+  - tests/integration.sh

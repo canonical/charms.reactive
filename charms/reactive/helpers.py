@@ -22,51 +22,9 @@ from charmhelpers.core import host
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 from charmhelpers.cli import cmdline
-from charms.reactive.bus import set_state, remove_state, get_states
-
-
-def toggle_state(state, should_set):
-    """
-    Helper that calls either :func:`set_state` or :func:`remove_state`,
-    depending on the value of `should_set`.
-
-    Equivalent to::
-
-        if should_set:
-            set_state(state)
-        else:
-            remove_state(state)
-
-    :param str state: Name of state to toggle.
-    :param bool should_set: Whether to set the state, or remove it.
-    """
-    if should_set:
-        set_state(state)
-    else:
-        remove_state(state)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def is_state(desired_state):
-    """Assert that a desired_state is active"""
-    return any_states(desired_state)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def all_states(*desired_states):
-    """Assert that all desired_states are active"""
-    active_states = get_states()
-    return all(state in active_states for state in desired_states)
-
-
-@cmdline.subcommand()
-@cmdline.test_command
-def any_states(*desired_states):
-    """Assert that any of the desired_states are active"""
-    active_states = get_states()
-    return any(state in active_states for state in desired_states)
+from charms.reactive.flags import any_flags_set, all_flags_set
+# import deprecated functions for backwards compatibility
+from charms.reactive.flags import is_state, all_states, any_states  # noqa
 
 
 def _expand_replacements(pat, subf, values):
@@ -191,21 +149,27 @@ def _hook(hook_patterns):
     return dispatch_phase == 'hooks' and any_hook(*hook_patterns)
 
 
-def _when_all(states):
+def _restricted_hook(hook_name):
+    current_hook = hookenv.hook_name()
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'other' and all_states(*states)
+    return dispatch_phase == 'restricted' and current_hook == hook_name
 
 
-def _when_any(states):
+def _when_all(flags):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'other' and any_states(*states)
+    return dispatch_phase == 'other' and all_flags_set(*flags)
 
 
-def _when_none(states):
+def _when_any(flags):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'other' and not any_states(*states)
+    return dispatch_phase == 'other' and any_flags_set(*flags)
 
 
-def _when_not_all(states):
+def _when_none(flags):
     dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
-    return dispatch_phase == 'other' and not all_states(*states)
+    return dispatch_phase == 'other' and not any_flags_set(*flags)
+
+
+def _when_not_all(flags):
+    dispatch_phase = unitdata.kv().get('reactive.dispatch.phase')
+    return dispatch_phase == 'other' and not all_flags_set(*flags)

@@ -1,8 +1,8 @@
-# Copyright 2014-2015 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive.
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
@@ -51,11 +51,11 @@ class TestReactiveDecorators(unittest.TestCase):
         self.kv.cursor.execute('delete from kv')
 
     @mock.patch.object(hookenv, 'relation_type')
-    @mock.patch.object(reactive.decorators, 'RelationBase')
+    @mock.patch.object(reactive.decorators, 'relation_from_name')
     @mock.patch.object(reactive.decorators, '_hook')
-    def test_hook(self, _hook, RelationBase, relation_type):
+    def test_hook(self, _hook, from_name, relation_type):
         _hook.return_value = True
-        RelationBase.from_name.return_value = 'RB.from_name'
+        from_name.return_value = 'RB.from_name'
         relation_type.return_value = 'rel_type'
         action = mock.Mock(name='action')
 
@@ -68,23 +68,23 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _hook.assert_called_once_with(('{requires:mysql}-relation-{joined,changed}',))
-        RelationBase.from_name.assert_called_once_with('rel_type')
+        from_name.assert_called_once_with('rel_type')
         action.assert_called_once_with('RB.from_name')
 
         delattr(handler, '_args_evaled')
         action.reset_mock()
-        RelationBase.from_name.return_value = None
+        from_name.return_value = None
         handler.invoke()
         action.assert_called_once_with()
 
-    @mock.patch.object(reactive.decorators, 'RelationBase')
+    @mock.patch.object(reactive.decorators, 'relation_from_state')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_all')
-    def test_when_all(self, _when_all, _action_id, RelationBase):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+    def test_when_all(self, _when_all, _action_id, from_state):
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        RelationBase.from_state.side_effect = [None, 'rel', None]
+        from_state.side_effect = [None, 'rel', None]
         action = mock.Mock(name='action')
 
         @reactive.when_all('foo', 'bar', 'qux')
@@ -96,13 +96,13 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_all.assert_called_once_with(('foo', 'bar', 'qux'))
-        self.assertEqual(RelationBase.from_state.call_args_list, [
+        self.assertEqual(from_state.call_args_list, [
             mock.call('foo'),
             mock.call('bar'),
             mock.call('qux'),
         ])
         action.assert_called_once_with('rel')
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
         action.reset_mock()
         assert handler.test()
@@ -116,14 +116,14 @@ class TestReactiveDecorators(unittest.TestCase):
             pass
         when_all.assert_called_once_with('foo', 'bar', 'qux')
 
-    @mock.patch.object(reactive.decorators, 'RelationBase')
+    @mock.patch.object(reactive.decorators, 'relation_from_state')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_any')
-    def test_when_any(self, _when_any, _action_id, RelationBase):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+    def test_when_any(self, _when_any, _action_id, from_state):
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_any.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        RelationBase.from_state.side_effect = [None, 'rel', None]
+        from_state.side_effect = [None, 'rel', None]
         action = mock.Mock(name='action')
 
         @reactive.when_any('foo', 'bar', 'qux')
@@ -135,18 +135,18 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_any.assert_called_once_with(('foo', 'bar', 'qux'))
-        assert not RelationBase.from_state.called
+        assert not from_state.called
         action.assert_called_once_with()
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
-    @mock.patch.object(reactive.decorators, 'RelationBase')
+    @mock.patch.object(reactive.decorators, 'relation_from_state')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_none')
-    def test_when_none(self, _when_none, _action_id, RelationBase):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+    def test_when_none(self, _when_none, _action_id, from_state):
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_none.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        RelationBase.from_state.return_value = 'rel'
+        from_state.return_value = 'rel'
         action = mock.Mock(name='action')
 
         @reactive.when_none('foo', 'bar', 'qux')
@@ -158,9 +158,9 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_none.assert_called_once_with(('foo', 'bar', 'qux'))
-        assert not RelationBase.from_state.called
+        assert not from_state.called
         action.assert_called_once_with()
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'when_none')
     def test_when_not(self, when_none):
@@ -169,14 +169,14 @@ class TestReactiveDecorators(unittest.TestCase):
             pass
         when_none.assert_called_once_with('foo', 'bar', 'qux')
 
-    @mock.patch.object(reactive.decorators, 'RelationBase')
+    @mock.patch.object(reactive.decorators, 'relation_from_state')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_not_all')
-    def test_when_not_all(self, _when_not_all, _action_id, RelationBase):
-        reactive.bus.Handler._CONSUMED_STATES.clear()
+    def test_when_not_all(self, _when_not_all, _action_id, from_state):
+        reactive.bus.Handler._CONSUMED_FLAGS.clear()
         _when_not_all.return_value = True
         _action_id.return_value = 'f:l:test_action'
-        RelationBase.from_state.return_value = 'rel'
+        from_state.return_value = 'rel'
         action = mock.Mock(name='action')
 
         @reactive.when_not_all('foo', 'bar', 'qux')
@@ -188,9 +188,9 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
 
         _when_not_all.assert_called_once_with(('foo', 'bar', 'qux'))
-        assert not RelationBase.from_state.called
+        assert not from_state.called
         action.assert_called_once_with()
-        self.assertEqual(reactive.bus.Handler._CONSUMED_STATES, set(['foo', 'bar', 'qux']))
+        self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
     @mock.patch.object(reactive.decorators, 'any_file_changed')
     def test_when_file_changed(self, any_file_changed):
@@ -228,14 +228,14 @@ class TestReactiveDecorators(unittest.TestCase):
         self.assertEqual(test.__doc__, 'Doc string.')
 
         test()
-        reactive.bus.set_state('foo')
+        reactive.set_flag('foo')
         test()
-        reactive.bus.set_state('bar')
+        reactive.set_flag('bar')
         test()
 
         self.assertEqual(action.call_count, 3)
-        assert log_msg(0).endswith('test called before states: foo, bar'), log_msg(0)
-        assert log_msg(1).endswith('test called before state: bar'), log_msg(1)
+        assert log_msg(0).endswith('test called before flags: foo, bar'), log_msg(0)
+        assert log_msg(1).endswith('test called before flag: bar'), log_msg(1)
         self.assertIn('tests/test_decorators.py:', reactive.bus._action_id(test))
         self.assertIn(':test', reactive.bus._action_id(test))
         self.assertIn('tests/test_decorators.py:', reactive.bus._short_action_id(test))
@@ -284,8 +284,8 @@ class TestReactiveDecorators(unittest.TestCase):
         def test2():
             action2()
 
-        reactive.set_state('foo')
-        reactive.set_state('bar')
+        reactive.set_flag('foo')
+        reactive.set_flag('bar')
         reactive.bus.dispatch()
         assert action1.called
         assert not action2.called
@@ -301,8 +301,40 @@ class TestReactiveDecorators(unittest.TestCase):
             action3()
             reactive.remove_state('bar')
 
-        reactive.set_state('bar')
+        reactive.set_flag('bar')
         action2.reset_mock()
         reactive.bus.dispatch()
         assert action3.called
         assert action2.called  # should be called on second iteration
+
+    @mock.patch.object(reactive.decorators, '_restricted_hook')
+    def test_collect_metrics(self, _restricted_hook):
+        _restricted_hook.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.collect_metrics()
+        def test_action(*args):
+            action(*args)
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        handler.invoke()
+
+        _restricted_hook.assert_called_once_with('collect-metrics')
+        action.assert_called_once()
+
+    @mock.patch.object(reactive.decorators, '_restricted_hook')
+    def test_meter_status_changed(self, _restricted_hook):
+        _restricted_hook.return_value = True
+        action = mock.Mock(name='action')
+
+        @reactive.meter_status_changed()
+        def test_action(*args):
+            action(*args)
+
+        handler = reactive.bus.Handler.get(test_action)
+        assert handler.test()
+        handler.invoke()
+
+        _restricted_hook.assert_called_once_with('meter-status-changed')
+        action.assert_called_once()

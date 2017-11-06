@@ -1,8 +1,8 @@
-# Copyright 2014-2016 Canonical Limited.
+# Copyright 2014-2017 Canonical Limited.
 #
-# This file is part of charm-helpers.
+# This file is part of charms.reactive.
 #
-# charm-helpers is free software: you can redistribute it and/or modify
+# charms.reactive is free software: you can redistribute it and/or modify
 # it under the terms of the GNU Lesser General Public License version 3 as
 # published by the Free Software Foundation.
 #
@@ -14,7 +14,9 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import sys
+import types
 import mock
 import unittest
 
@@ -24,6 +26,91 @@ from charms.reactive import relations
 
 class DummyRelationSubclass(relations.RelationBase):
     auto_accessors = ['field-one', 'field-two']
+
+
+class TestFactory(unittest.TestCase):
+    @mock.patch.object(relations.hookenv, 'log')
+    @mock.patch.object(relations, 'importlib')
+    @mock.patch.object(relations.hookenv, 'charm_dir')
+    @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
+    def test_relation_factory_import_fail(self, relation_to_role_and_interface,
+                                          charm_dir, importlib, log):
+        relation_to_role_and_interface.return_value = ('role', 'interface')
+        charm_dir.return_value = 'charm_dir'
+        importlib.import_module.side_effect = ImportError
+        self.assertIsNone(relations.relation_factory('relname'))
+        relation_to_role_and_interface.assert_called_once_with('relname')
+        importlib.import_module.assert_called_once_with('relations.interface.role')
+        log.assert_called_once_with(mock.ANY, relations.hookenv.ERROR)
+
+    @mock.patch.object(relations, '_find_relation_factory')
+    @mock.patch.object(relations.hookenv, 'log')
+    @mock.patch.object(relations, '_relation_module')
+    @mock.patch.object(relations.hookenv, 'charm_dir')
+    @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
+    def test_relation_factory(self, relation_to_role_and_interface,
+                              charm_dir, rel_mod, log, find_factory):
+        relation_to_role_and_interface.return_value = ('role', 'interface')
+        charm_dir.return_value = 'charm_dir'
+        rel_mod.return_value = 'module'
+        find_factory.return_value = 'fact'
+
+        self.assertEqual(relations.relation_factory('relname'), 'fact')
+        relation_to_role_and_interface.assert_called_once_with('relname')
+        rel_mod.assert_called_once_with('role', 'interface')
+        find_factory.assert_called_once_with('module')
+
+    def test_find_relation_factory(self):
+        mod = types.ModuleType('mod')
+        mod.__name__ = 'here'
+
+        # Noise to be ignored
+        mod.RelationFactory = relations.RelationFactory
+        mod.RelationBase = relations.RelationBase
+
+        # One subclass of RelationFactory
+        class Rel(relations.RelationFactory):
+            pass
+        mod.Rel = Rel
+        self.assertIs(relations._find_relation_factory(mod), Rel)
+
+        # One subclass of RelationBase
+        class Rel2(relations.RelationBase):
+            pass
+        del mod.Rel
+        mod.Rel2 = Rel2
+        self.assertIs(relations._find_relation_factory(mod), Rel2)
+
+        # Subclass, and a subclass of it.
+        class Rel3(Rel2):
+            pass
+        mod.Rel3 = Rel3
+        self.assertIs(relations._find_relation_factory(mod), Rel3)
+
+        # A 2nd valid choice
+        mod.Rel4 = Rel3
+        with self.assertRaises(RuntimeError):
+            relations._find_relation_factory(mod)
+
+    def test_relation_from_name_missing_name(self):
+        self.assertIsNone(relations.relation_from_name(None))
+
+    @mock.patch.object(relations, 'relation_factory')
+    def test_relation_from_name_missing_factory(self, relation_factory):
+        relation_factory.return_value = None
+        self.assertIsNone(relations.relation_from_name('relname'))
+        relation_factory.assert_called_once_with('relname')
+
+    @mock.patch.object(relations, 'relation_factory')
+    def test_relation_from_name(self, relation_factory):
+        relation_factory('relname').from_name.return_value = 'relinstance'
+        relation_factory.reset_mock()
+
+        self.assertEqual(relations.relation_from_name('relname'),
+                         'relinstance')
+
+        relation_factory.assert_called_once_with('relname')
+        relation_factory('relname').from_name.assert_called_once_with('relname')
 
 
 class TestAutoAccessors(unittest.TestCase):
@@ -62,10 +149,10 @@ class TestRelationBase(unittest.TestCase):
 
     @mock.patch.object(relations.RelationBase, 'from_name')
     @mock.patch.object(relations.Conversation, 'load')
-    @mock.patch.object(relations, 'get_state')
-    def test_from_state(self, get_state, load, from_name):
+    @mock.patch.object(relations, '_get_flag_value')
+    def test_from_state(self, get_flag_value, load, from_name):
         load.return_value = 'conv.load'
-        get_state.side_effect = [{'relation': 'relname', 'conversations': ['conv']}, None]
+        get_flag_value.side_effect = [{'relation': 'relname', 'conversations': ['conv']}, None]
         from_name.side_effect = lambda rn, c: 'from_name(%s, %s)' % (rn, c)
         self.assertEqual(relations.RelationBase.from_state('state'), 'from_name(relname, conv.load)')
         self.assertEqual(relations.RelationBase.from_state('no-state'), None)
@@ -98,8 +185,23 @@ class TestRelationBase(unittest.TestCase):
         self.assertEqual(res.conversations(), ['conv.join'])
 
     @mock.patch.dict('sys.modules')
+    @mock.patch.object(relations.Conversation, 'join')
+    @mock.patch.object(relations, 'hookenv')
+    def test_cold_import(self, hookenv, conv_join):
+        tests_dir = os.path.dirname(__file__)
+        hookenv.charm_dir.return_value = os.path.join(tests_dir, 'data')
+        sys.modules.pop('relations.hyphen-ated.peer', None)
+        hookenv.relation_to_role_and_interface.return_value = ('peer',
+                                                               'hyphen-ated')
+        relations.RelationBase._cache.clear()
+        assert relations.RelationBase.from_name('test') is not None
+
+    @mock.patch.dict('sys.modules')
+    @mock.patch.object(relations, 'hookenv')
     @mock.patch.object(relations.RelationBase, '_find_subclass')
-    def test_find_impl(self, find_subclass):
+    def test_find_impl(self, find_subclass, hookenv):
+        tests_dir = os.path.dirname(__file__)
+        hookenv.charm_dir.return_value = os.path.join(tests_dir, 'data')
         self.assertIsNone(relations.RelationBase._find_impl('role',
                                                             'interface'))
         assert not find_subclass.called
@@ -333,47 +435,47 @@ class TestConversation(unittest.TestCase):
             mock.call('key1'), mock.call('key2'), mock.call('key3'),
         ])
 
-    @mock.patch.object(relations, 'set_state')
-    @mock.patch.object(relations, 'get_state')
-    def test_set_state(self, get_state, set_state):
+    @mock.patch.object(relations, 'set_flag')
+    @mock.patch.object(relations, '_get_flag_value')
+    def test_set_state(self, get_flag_value, set_flag):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
-        get_state.return_value = {'conversations': ['foo']}
+        get_flag_value.return_value = {'conversations': ['foo']}
         conv.set_state('{relation_name}.bar')
-        set_state.assert_called_once_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
-        get_state.assert_called_once_with('rel.bar', {'relation': 'rel', 'conversations': []})
+        set_flag.assert_called_once_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
+        get_flag_value.assert_called_once_with('rel.bar', {'relation': 'rel', 'conversations': []})
         conv.set_state('{relation_name}.bar')
-        self.assertEqual(set_state.call_count, 2)
-        set_state.assert_called_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
+        self.assertEqual(set_flag.call_count, 2)
+        set_flag.assert_called_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
 
-    @mock.patch.object(relations, 'remove_state')
-    @mock.patch.object(relations, 'set_state')
-    @mock.patch.object(relations, 'get_state')
-    def test_remove_state(self, get_state, set_state, remove_state):
+    @mock.patch.object(relations, 'clear_flag')
+    @mock.patch.object(relations, 'set_flag')
+    @mock.patch.object(relations, '_get_flag_value')
+    def test_remove_state(self, get_flag_value, set_flag, clear_flag):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
-        get_state.side_effect = [
+        get_flag_value.side_effect = [
             None,
             {'conversations': ['foo', 'reactive.conversations.rel.scope']},
             {'conversations': ['reactive.conversations.rel.scope']},
         ]
 
         conv.remove_state('{relation_name}.bar')
-        get_state.assert_called_once_with('rel.bar')
-        assert not set_state.called
-        assert not remove_state.called
+        get_flag_value.assert_called_once_with('rel.bar')
+        assert not set_flag.called
+        assert not clear_flag.called
 
         conv.remove_state('{relation_name}.bar')
-        set_state.assert_called_once_with('rel.bar', {'conversations': ['foo']})
-        assert not remove_state.called
+        set_flag.assert_called_once_with('rel.bar', {'conversations': ['foo']})
+        assert not clear_flag.called
 
-        set_state.reset_mock()
+        set_flag.reset_mock()
         conv.remove_state('{relation_name}.bar')
-        assert not set_state.called
-        remove_state.assert_called_once_with('rel.bar')
+        assert not set_flag.called
+        clear_flag.assert_called_once_with('rel.bar')
 
-    @mock.patch.object(relations, 'get_state')
-    def test_is_state(self, get_state):
+    @mock.patch.object(relations, '_get_flag_value')
+    def test_is_state(self, get_flag_value):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
-        get_state.side_effect = [
+        get_flag_value.side_effect = [
             None,
             {'conversations': ['foo']},
             {'conversations': ['reactive.conversations.rel.scope']},
@@ -513,11 +615,12 @@ class TestConversation(unittest.TestCase):
 
 
 class TestMigrateConvs(unittest.TestCase):
-    @mock.patch.object(relations, 'set_state')
-    @mock.patch.object(relations, 'get_states')
+    @mock.patch.object(relations, '_get_flag_value')
+    @mock.patch.object(relations, 'set_flag')
+    @mock.patch.object(relations, 'get_flags')
     @mock.patch.object(relations, 'hookenv')
     @mock.patch.object(relations.unitdata, 'kv')
-    def test_migrate(self, kv, mhookenv, get_states, set_state):
+    def test_migrate(self, kv, mhookenv, get_flags, set_flag, _get_flag_value):
         kv().getrange.side_effect = [
             {'reactive.conversations.rel:0.service': {
                 'namespace': 'rel:0',
@@ -543,15 +646,12 @@ class TestMigrateConvs(unittest.TestCase):
             ['service/0', 'service/2'], ['service/3'],
             ['service/0', 'service/2'], ['service/3'],
         ]
-        get_states.side_effect = [
-            {
-                'rel.joined': {'conversations': ['reactive.conversations.rel.service']},
-                'foo': None,
-            },
-            {
-                'rel.joined': {'conversations': ['reactive.conversations.rel.service/3']},
-                'foo': {'conversations': []},
-            },
+        get_flags.side_effect = [['rel.joined', 'foo'], ['rel.joined', 'foo']]
+        _get_flag_value.side_effect = [
+            {'conversations': ['reactive.conversations.rel.service']},
+            None,
+            {'conversations': ['reactive.conversations.rel.service/3']},
+            {'conversations': []},
         ]
         relations._migrate_conversations()
         assert not kv().set.called
@@ -564,7 +664,7 @@ class TestMigrateConvs(unittest.TestCase):
             'units': ['service/0', 'service/1', 'service/3'],
         })
         assert not kv().unset.called
-        assert not set_state.called
+        assert not set_flag.called
 
         kv().set.reset_mock()
         relations._migrate_conversations()
@@ -579,7 +679,7 @@ class TestMigrateConvs(unittest.TestCase):
             'units': ['service/3'],
         })
         kv().unset.assert_called_with('reactive.conversations.rel.service')
-        set_state.assert_called_with('rel.joined', {'conversations': [
+        set_flag.assert_called_with('rel.joined', {'conversations': [
             'reactive.conversations.rel:1.service',
             'reactive.conversations.rel:2.service',
         ]})
@@ -592,7 +692,7 @@ class TestMigrateConvs(unittest.TestCase):
             'units': ['service/3'],
         })
         kv().unset.assert_called_with('reactive.conversations.rel.service/3')
-        set_state.assert_called_with('rel.joined', {'conversations': [
+        set_flag.assert_called_with('rel.joined', {'conversations': [
             'reactive.conversations.rel:2.service/3',
         ]})
 
@@ -600,14 +700,14 @@ class TestMigrateConvs(unittest.TestCase):
 class TestRelationCall(unittest.TestCase):
     def setUp(self):
         self.r1 = mock.Mock(name='r1')
-        from_name_p = mock.patch.object(relations.RelationBase, 'from_name')
+        from_name_p = mock.patch.object(relations, 'relation_from_name')
         self.from_name = from_name_p.start()
         self.addCleanup(from_name_p.stop)
         self.from_name.side_effect = lambda name: self.r1
-        from_state_p = mock.patch.object(relations.RelationBase, 'from_state')
-        self.from_state = from_state_p.start()
-        self.addCleanup(from_state_p.stop)
-        self.from_state.side_effect = lambda name: self.r1
+        from_flag_p = mock.patch.object(relations, 'relation_from_flag')
+        self.from_flag = from_flag_p.start()
+        self.addCleanup(from_flag_p.stop)
+        self.from_flag.side_effect = lambda name: self.r1
 
     def test_no_impl(self):
         self.r1 = None
@@ -617,19 +717,26 @@ class TestRelationCall(unittest.TestCase):
 
     def test_call_name(self):
         self.r1.method.return_value = 'result'
-        result = relations.relation_call('method', 'rel', None, 'arg1', 'arg2')
+        result = relations.relation_call('method',
+                                         'rel', None, None,
+                                         'arg1', 'arg2')
         self.assertEqual(result, 'result')
         self.r1.method.assert_called_once_with('arg1', 'arg2')
         self.from_name.assert_called_once_with('rel')
 
-    def test_call_state(self):
+    def test_call_flag(self):
         self.r1.method.return_value = 'result'
-        result = relations.relation_call('method', None, 'state', 'arg1', 'arg2')
+        result = relations.relation_call('method',
+                                         None, 'flag', None,
+                                         'arg1', 'arg2')
         self.assertEqual(result, 'result')
         self.r1.method.assert_called_once_with('arg1', 'arg2')
-        self.from_state.assert_called_once_with('state')
+        self.from_flag.assert_called_once_with('flag')
 
-    def test_call_conversations(self):
+    @mock.patch.object(relations, 'isinstance')
+    def test_call_conversations(self, isinst):
+        isinst.return_value = True
         self.r1.conversations.return_value = list(mock.Mock(scope=scope) for scope in ['s1', 's2'])
         result = relations.relation_call('conversations', 'rel')
         self.assertEqual(result, ['s1', 's2'])
+        isinst.assert_called_once_with(self.r1, relations.RelationBase)

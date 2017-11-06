@@ -42,14 +42,15 @@ ftest: lint
 	.tox/py3/bin/nosetests --attr '!slow' --nologcapture tests/
 
 docs: lint
-	.tox/py3/bin/pip install sphinx
+	.tox/py3/bin/pip install sphinx sphinx_rtd_theme
 	(cd docs; make html SPHINXBUILD=../.tox/py3/bin/sphinx-build)
+	cd docs/_build/html && zip -r ../docs.zip *
 .PHONY: docs
 
-release: test docs
+release: test
 	git remote | xargs -L1 git fetch --tags
-	$(PYTHON) setup.py sdist register upload upload_sphinx
-	git tag release-${VERSION}
+	$(PYTHON) setup.py sdist upload
+	git tag ${VERSION}
 	git remote | xargs -L1 git push --tags
 
 docrelease: ftest docs
