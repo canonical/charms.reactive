@@ -5,9 +5,14 @@ Charms.Reactive |badge|
     :target: https://travis-ci.org/juju-solutions/charms.reactive
 
 This module serves as the basis for creating charms and relation
-implementations using the reactive pattern.
+implementations using the reactive pattern. You can see its goal and vision in
+`the vision document`_
+
+
 
 The full documentation is available online at: https://charmsreactive.readthedocs.io/
+
+.. _the vision document: https://github.com/juju-solutions/charms.reactive/blob/master/VISION.md
 
 
 Usage
