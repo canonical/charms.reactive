@@ -24,4 +24,4 @@ juju deploy "$BUILD_PATH/ghost" --series=xenial
 juju deploy cs:haproxy
 juju attach ghost ghost-stable=./ghost.zip
 juju add-relation ghost haproxy
-juju wait -vw
+juju-wait -vw

@@ -9,14 +9,12 @@ env:
 before_install:
   - sudo add-apt-repository ppa:ubuntu-lxc/lxd-stable -y
   - sudo apt-get update -q
-  - sudo apt-get install snapd -y
   - sudo apt-get install lxd snapd pwgen -y
   - sudo usermod -a -G lxd $USER
   - sudo service lxd start || true
   - sudo lxd init --auto
 install:
   - pip install tox-travis
-  - sudo snap install --beta core
   - (eval "$SNAP_CMD")
   - sudo snap install charm --edge
   - sudo snap install --classic juju-wait
