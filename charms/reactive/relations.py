@@ -64,7 +64,9 @@ def relation_from_flag(flag):
 
 
 def relation_from_state(state):
-    """DEPRECATED Alias of relation_from_flag.
+    """
+    .. deprecated:: 0.5.0
+       Alias for :func:`relation_from_flag`
     """
     return relation_from_flag(state)
 

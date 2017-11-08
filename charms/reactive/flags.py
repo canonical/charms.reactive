@@ -6,7 +6,8 @@ from charms.reactive.bus import FlagWatch
 
 class State(str):
     """
-    DEPRECATED
+    .. deprecated:: 0.5.0
+       Use flag instead
 
     A reactive state that can be set.
 
@@ -20,7 +21,8 @@ class State(str):
 
 class StateList(object):
     """
-    DEPRECATED
+    .. deprecated:: 0.5.0
+       use flag instead
 
     Base class for a set of states that can be set by a relation or layer.
 
@@ -40,11 +42,15 @@ class StateList(object):
 @cmdline.subcommand()
 @cmdline.no_output
 def set_flag(flag, value=None):
-    """
+    """set_flag(flag)
     Set the given flag as active.
 
     :param str flag: Name of flag to set.
-    :param value: For internal use only.
+
+    .. note:: **Changes to flags are reset when a handler crashes.** Changes to
+       flags happen immediately, but they are only persisted at the end of a
+       complete and successful run of the reactive framework. All unpersisted
+       changes are discarded when a hook crashes.
     """
     old_flags = get_flags()
     unitdata.kv().update({flag: value}, prefix='reactive.states.')
@@ -62,6 +68,13 @@ def set_flag(flag, value=None):
 def clear_flag(flag):
     """
     Clear / deactivate a flag.
+
+    :param str flag: Name of flag to set.
+
+    .. note:: **Changes to flags are reset when a handler crashes.** Changes to
+       flags happen immediately, but they are only persisted at the end of a
+       complete and successful run of the reactive framework. All unpersisted
+       changes are discarded when a hook crashes.
     """
     old_flags = get_flags()
     unitdata.kv().unset('reactive.states.%s' % flag)
@@ -86,6 +99,11 @@ def toggle_flag(flag, should_set):
 
     :param str flag: Name of flag to toggle.
     :param bool should_set: Whether to set the flag, or clear it.
+
+    .. note:: **Changes to flags are reset when a handler crashes.** Changes to
+       flags happen immediately, but they are only persisted at the end of a
+       complete and successful run of the reactive framework. All unpersisted
+       changes are discarded when a hook crashes.
     """
     if should_set:
         set_flag(flag)
@@ -167,47 +185,61 @@ def _get_flag_value(flag, default=None):
 @cmdline.subcommand()
 @cmdline.no_output
 def set_state(state, value=None):
-    """DEPRECATED Alias of set_flag"""
+    """
+    .. deprecated:: 0.5.0
+       Alias of :func:`set_flag`.
+    """
     set_flag(state, value)
 
 
 @cmdline.subcommand()
 @cmdline.no_output
 def remove_state(state):
-    """DEPRECATED Alias of clear_flag"""
+    """
+    .. deprecated:: 0.5.0
+       Alias of :func:`clear_flag`"""
     clear_flag(state)
 
 
 def toggle_state(state, should_set):
-    """DEPRECATED Alias of toggle_flag"""
+    """
+    .. deprecated:: 0.5.0
+       Alias of :func:`toggle_flag`"""
     toggle_flag(state, should_set)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
 def is_state(state):
-    """DEPRECATED Alias for is_flag_set"""
+    """
+    .. deprecated:: 0.5.0
+       Alias for :func:`is_flag_set`"""
     return is_flag_set(state)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
 def all_states(*desired_states):
-    """DEPRECATED Alias for all_flags_set"""
+    """
+    .. deprecated:: 0.5.0
+       Alias for :func:`all_flags_set`"""
     return all_flags_set(*desired_states)
 
 
 @cmdline.subcommand()
 @cmdline.test_command
 def any_states(*desired_states):
-    """DEPRECATED Alias for any_flags_set"""
+    """
+    .. deprecated:: 0.5.0
+       Alias for :func:`any_flags_set`"""
     return any_flags_set(*desired_states)
 
 
 @cmdline.subcommand()
 def get_states():
     """
-    DEPRECATED Use `get_flags` instead.
+    .. deprecated:: 0.5.0
+       Use :func:`get_flags` instead.
 
     Return a mapping of all active states to their values.
     """
@@ -216,6 +248,7 @@ def get_states():
 
 def get_state(flag, default=None):
     """
-    DEPRECATED For internal use only.
+    .. deprecated:: 0.5.0
+       For internal use only.
     """
     return _get_flag_value(flag, default)

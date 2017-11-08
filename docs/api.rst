@@ -8,6 +8,7 @@ Reactive API Documentation
     charms.reactive.decorators
     charms.reactive.helpers
     charms.reactive.relations
+    charms.reactive.cli
 
 
 charms.reactive.main
@@ -17,4 +18,3 @@ charms.reactive.main
     :members:
     :undoc-members:
     :show-inheritance:
-

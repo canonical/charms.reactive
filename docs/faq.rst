@@ -14,6 +14,11 @@ the hook files aren't present in the `hooks/` directory.
 You can find more information about debugging reactive charms in
 `the Juju docs <https://jujucharms.com/docs/2.2/developer-debugging>`_.
 
+.. note:: **Changes to flags are reset when a handler crashes.** Changes to
+   flags happen immediately, but they are only persisted at the end of a
+   complete and successful run of the reactive framework. All unpersisted
+   changes are discarded when a hook crashes.
+
 
 Why doesn't my Charm do anything? Why are there no hooks in the ``hooks`` directory?
 ------------------------------------------------------------------------------------

@@ -210,6 +210,11 @@ def not_unless(*desired_flags):
 
 def only_once(action=None):
     """
+    .. deprecated:: 0.5.0
+       Use :func:`when_not` in combination with :func:`set_state` instead. This
+       handler is deprecated because it might actually be
+       `called multiple times <https://github.com/juju-solutions/charms.reactive/issues/22>`_.
+
     Register the decorated function to be run once, and only once.
 
     This decorator will never cause arguments to be passed to the handler.
