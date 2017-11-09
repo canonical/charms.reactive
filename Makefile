@@ -42,7 +42,7 @@ ftest: lint
 	.tox/py3/bin/nosetests --attr '!slow' --nologcapture tests/
 
 docs: lint
-	.tox/py3/bin/pip install sphinx sphinx_rtd_theme
+	.tox/py3/bin/pip install sphinx sphinx_rtd_theme recommonmark
 	(cd docs; make html SPHINXBUILD=../.tox/py3/bin/sphinx-build)
 	cd docs/_build/html && zip -r ../docs.zip *
 .PHONY: docs

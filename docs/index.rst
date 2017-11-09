@@ -69,6 +69,7 @@ Table of Contents
    :maxdepth: 3
 
    structure
+   layer-basic
    bash-reactive
    faq
    api
