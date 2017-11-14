@@ -23,8 +23,7 @@ You can find more information about debugging reactive charms in
 Why doesn't my Charm do anything? Why are there no hooks in the ``hooks`` directory?
 ------------------------------------------------------------------------------------
 
-You probably forgot to include
-`layer:basic <https://github.com/juju-solutions/layer-basic>`_ in your
+You probably forgot to include :doc:`layer-basic <layer-basic>` in your
 ``layer.yaml`` file. This layer creates the hook files so that the reactive
 framework starts when a hook runs.
 
@@ -32,28 +31,9 @@ framework starts when a hook runs.
 How can I react to configuration changes?
 -----------------------------------------
 
-`layer:basic <https://github.com/juju-solutions/layer-basic>`_ provides a set
-of easy flags to react to configuration changes. The following flags will be
-automatically managed when you include ``layer:basic`` in your ``layer.yaml`` file.
-
-``layer:basic`` will manage the following flags:
-
-  * ``config.changed``  Any config option has changed from its previous value.
-    This flag is cleared automatically at the end of each hook invocation.
-
-  * ``config.changed.<option>`` A specific config option has changed.
-    ``<option>`` will be replaced by the config option name from ``config.yaml``.
-    This flag is cleared automatically at the end of each hook invocation.
-
-  * ``config.set.<option>`` A specific config option has a True or non-empty
-    value set.  ``<option>`` will be replaced by the config option name from
-    ``config.yaml``. This flag is cleared automatically at the end of each hook
-    invocation.
-
-  * ``config.default.<option>`` A specific config option is set to its
-    default value.  ``option>`` will be replaced by the config option name
-    from ``config.yaml``.  This flag is cleared automatically at the end of
-    each hook invocation.
+The base layer provides :ref:`a set of easy flags <layer-basic/config-flags>`
+to react to configuration changes. These flags will be automatically
+managed when you include ``layer:basic`` in your ``layer.yaml`` file.
 
 How to remove a flag immediately when a config changes?
 ----------------------------------------------------------

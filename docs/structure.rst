@@ -117,14 +117,13 @@ will then be merged onto the one provided by the base layer, and both sets of
 actions will be available.
 
 
-`layer:basic`_ is a useful base layer:
+:doc:`layer:basic <layer-basic>` is a useful base layer:
 
  - It provides hooks for other layers to react to such as ``install``,
    ``config-changed``, ``upgrade-charm``, and ``update-status``.
- - It provides a `set of useful flags to react to changing config <https://github.com/juju-solutions/layer-basic#reactive-states>`_.
- - You can tell it to `install dependencies of your handlers <https://github.com/juju-solutions/layer-basic#layer-configuration>`_.
+ - It provides a :ref:`set of useful flags to react to changing config <layer-basic/config-flags>`.
+ - You can tell it to install :ref:`python <layer-basic/wheelhouse.txt>` and :ref:`apt <layer-basic/layer-config>` dependencies of your handlers.
 
-.. _`layer:basic`: https://github.com/juju-solutions/layer-basic/blob/master/README.md
 
 Interface Layers
 ----------------

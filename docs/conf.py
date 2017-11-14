@@ -15,6 +15,10 @@
 import sys
 import os
 
+import recommonmark
+from recommonmark.transform import AutoStructify
+
+
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
@@ -42,7 +46,12 @@ extensions = [
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ['.rst', '.md']
+
+# Add parser for markdon
+source_parsers = {
+   '.md': 'recommonmark.parser.CommonMarkParser',
+}
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -273,3 +282,8 @@ intersphinx_mapping = {'http://docs.python.org/': None}
 
 def setup(app):
     app.add_stylesheet('custom.css')
+    app.add_config_value('recommonmark_config', {
+        'url_resolver': lambda url: github_doc_root + url,
+        'auto_toc_tree_section': 'Contents',
+        }, True)
+    app.add_transform(AutoStructify)
