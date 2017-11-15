@@ -115,7 +115,7 @@ class Endpoint(RelationFactory):
         for endpoint_name in sorted(hookenv.relation_types()):
             # populate context based on attached relations
             relf = relation_factory(endpoint_name)
-            if not issubclass(relf, cls):
+            if not relf or not issubclass(relf, cls):
                 continue
 
             rids = sorted(hookenv.relation_ids(endpoint_name))
