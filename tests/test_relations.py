@@ -95,21 +95,21 @@ class TestFactory(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             relations._find_relation_factory(mod)
 
-    def test_relation_from_name_missing_name(self):
-        self.assertIsNone(relations.relation_from_name(None))
+    def test_endpoint_from_name_missing_name(self):
+        self.assertIsNone(relations.endpoint_from_name(None))
 
     @mock.patch.object(relations, 'relation_factory')
-    def test_relation_from_name_missing_factory(self, relation_factory):
+    def test_endpoint_from_name_missing_factory(self, relation_factory):
         relation_factory.return_value = None
-        self.assertIsNone(relations.relation_from_name('relname'))
+        self.assertIsNone(relations.endpoint_from_name('relname'))
         relation_factory.assert_called_once_with('relname')
 
     @mock.patch.object(relations, 'relation_factory')
-    def test_relation_from_name(self, relation_factory):
+    def test_endpoint_from_name(self, relation_factory):
         relation_factory('relname').from_name.return_value = 'relinstance'
         relation_factory.reset_mock()
 
-        self.assertEqual(relations.relation_from_name('relname'),
+        self.assertEqual(relations.endpoint_from_name('relname'),
                          'relinstance')
 
         relation_factory.assert_called_once_with('relname')
@@ -703,11 +703,11 @@ class TestMigrateConvs(unittest.TestCase):
 class TestRelationCall(unittest.TestCase):
     def setUp(self):
         self.r1 = mock.Mock(name='r1')
-        from_name_p = mock.patch.object(relations, 'relation_from_name')
+        from_name_p = mock.patch.object(relations, 'endpoint_from_name')
         self.from_name = from_name_p.start()
         self.addCleanup(from_name_p.stop)
         self.from_name.side_effect = lambda name: self.r1
-        from_flag_p = mock.patch.object(relations, 'relation_from_flag')
+        from_flag_p = mock.patch.object(relations, 'endpoint_from_flag')
         self.from_flag = from_flag_p.start()
         self.addCleanup(from_flag_p.stop)
         self.from_flag.side_effect = lambda name: self.r1

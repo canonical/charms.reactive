@@ -23,8 +23,8 @@ from charms.reactive.bus import Handler
 from charms.reactive.bus import _action_id
 from charms.reactive.bus import _short_action_id
 from charms.reactive.flags import get_flags
-from charms.reactive.relations import relation_from_name
-from charms.reactive.relations import relation_from_flag
+from charms.reactive.relations import endpoint_from_name
+from charms.reactive.relations import endpoint_from_flag
 from charms.reactive.endpoints import Endpoint
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _restricted_hook
@@ -70,7 +70,7 @@ def hook(*hook_patterns):
     def _register(action):
         def arg_gen():
             # use a generator to defer calling of hookenv.relation_type, for tests
-            rel = relation_from_name(hookenv.relation_type())
+            rel = endpoint_from_name(hookenv.relation_type())
             if rel:
                 yield rel
 
@@ -96,15 +96,14 @@ def _when_decorator(predicate, desired_flags, action, legacy_args=False):
         flags = _expand_endpoint_name(endpoint_name, desired_flags)
         handler.add_predicate(partial(predicate, flags))
         if _is_endpoint_method(action):
-            # Endpoint handler methods need self to be passed in because
-            # they can't know the endpoint name to get the correct instance
-            # from the context.
-            handler.add_args(map(relation_from_name, [endpoint_name]))
+            # Endpoint handler methods expect self to be passed in to conform
+            # to instance method convention.
+            handler.add_args(map(endpoint_from_name, [endpoint_name]))
         elif has_params and legacy_args:
             # Handlers should all move to not taking any params and getting
             # the Endpoint instances from the context, but during the
             # transition, we need to provide for handlers expecting args.
-            handler.add_args(filter(None, map(relation_from_flag, flags)))
+            handler.add_args(filter(None, map(endpoint_from_flag, flags)))
         handler.register_flags(flags)
     return action
 

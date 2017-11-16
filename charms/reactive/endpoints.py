@@ -21,7 +21,7 @@ from itertools import chain
 
 from charmhelpers.core import hookenv
 from charms.reactive.flags import set_flag, toggle_flag, is_flag_set
-from charms.reactive.helpers import data_changed, context
+from charms.reactive.helpers import data_changed
 from charms.reactive.relations import RelationFactory, relation_factory
 
 
@@ -52,22 +52,16 @@ class Endpoint(RelationFactory):
     the interface layers responsibility to manage and document the public flags
     that make up part of its API.
 
-    The reactive framework automatically creates endpoint objects in the
-    :data:`~charms.reactive.helpers.context` namespace. Handlers can access the
-    endpoint objects from there, even if that endpoint doesn't have a joined
-    relation. The name of the endpoint object is based on the endpoints
-    configured in `metadata.yaml`. Note that endpoints will only be created
-    **if the interface layer of that endpoint is included in the `layer.yaml`
-    file.**
-
     Endpoint handlers can iterate over the list of joined relations for an
     endpoint via the :attr:`~charms.reactive.endpoints.Endpoint.relations`
     collection.
     """
 
+    _endpoints = {}
+
     @classmethod
     def from_name(cls, endpoint_name):
-        return getattr(context.endpoints, endpoint_name, None)
+        return cls._endpoints.get(endpoint_name)
 
     @classmethod
     def from_flag(cls, flag):
@@ -83,7 +77,7 @@ class Endpoint(RelationFactory):
     @classmethod
     def _startup(cls):
         """
-        Populate context and manage automatic relation flags.
+        Create Endpoint instances and manage automatic flags.
         """
         for endpoint_name in sorted(hookenv.relation_types()):
             # populate context based on attached relations
@@ -93,7 +87,7 @@ class Endpoint(RelationFactory):
 
             rids = sorted(hookenv.relation_ids(endpoint_name))
             endpoint = relf(endpoint_name, rids)
-            setattr(context.endpoints, endpoint_name, endpoint)
+            cls._endpoints[endpoint_name] = endpoint
             endpoint._manage_flags()
             for relation in endpoint.relations:
                 hookenv.atexit(relation._flush_data)

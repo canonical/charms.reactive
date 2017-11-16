@@ -30,7 +30,8 @@ from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
 __all__ = [
-    'relation_from_flag',
+    'endpoint_from_flag',
+    'relation_from_flag',  # DEPRECATED
     'scopes',  # DEPRECATED
     'RelationBase',  # DEPRECATED
     'relation_from_state',  # DEPRECATED
@@ -42,24 +43,26 @@ ALL = object()
 TOGGLE = object()
 
 
-def relation_from_name(relation_name):
+def endpoint_from_name(endpoint_name):
     """The object used for interacting with the named relations, or None.
-
-    This will be a RelationBase instance, unless the interface is using
-    a custom implementation.
     """
-    if relation_name is None:
+    if endpoint_name is None:
         return None
-    factory = relation_factory(relation_name)
+    factory = relation_factory(endpoint_name)
     if factory:
-        return factory.from_name(relation_name)
+        return factory.from_name(endpoint_name)
 
 
-def relation_from_flag(flag):
+def relation_from_name(relation_name):
+    """
+    .. deprecated:: 0.5.0
+       Alias for :func:`endpoint_from_name`
+    """
+    return endpoint_from_name(relation_name)
+
+
+def endpoint_from_flag(flag):
     """The object used for interacting with relations tied to a flag, or None.
-
-    This will be a RelationBase instance, unless the interface is using
-    a custom implementation.
     """
     relation_name = None
     value = _get_flag_value(flag)
@@ -81,12 +84,20 @@ def relation_from_flag(flag):
     return None
 
 
+def relation_from_flag(flag):
+    """
+    .. deprecated:: 0.5.0
+       Alias for :func:`endpoint_from_flag`
+    """
+    return endpoint_from_flag(flag)
+
+
 def relation_from_state(state):
     """
     .. deprecated:: 0.5.0
-       Alias for :func:`relation_from_flag`
+       Alias for :func:`endpoint_from_flag`
     """
-    return relation_from_flag(state)
+    return endpoint_from_flag(state)
 
 
 class RelationFactory(object):

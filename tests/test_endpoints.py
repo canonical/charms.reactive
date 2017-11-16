@@ -21,9 +21,8 @@ import unittest
 from pathlib import Path
 
 from charmhelpers.core import unitdata
-from charms.reactive import context, Endpoint, is_flag_set, clear_flag
+from charms.reactive import Endpoint, is_flag_set, clear_flag
 from charms.reactive.bus import discover, dispatch, Handler
-from charms.reactive.helpers import NormalizingNamespace
 
 
 class TestEndpoint(unittest.TestCase):
@@ -34,8 +33,6 @@ class TestEndpoint(unittest.TestCase):
         tf.close()
         self.test_db = Path(tf.name)
         unitdata._KV = self.kv = unitdata.Storage(str(self.test_db))
-
-        context.endpoints = NormalizingNamespace()
 
         self.log_p = mock.patch('charmhelpers.core.hookenv.log')
         self.log_p.start()
@@ -113,26 +110,24 @@ class TestEndpoint(unittest.TestCase):
         self.atexit_p.stop()
         self.test_db.unlink()
         self.sysm_p.stop()
-        context.endpoints = NormalizingNamespace()
+        Endpoint._endpoints.clear()
         Handler._HANDLERS.clear()
 
     def test_from_name(self):
-        context.endpoints.foo = Endpoint('foo')
+        Endpoint._endpoints['foo'] = endpoint = Endpoint('foo')
 
-        self.assertIs(Endpoint.from_name('foo'), context.endpoints.foo)
+        self.assertIs(Endpoint.from_name('foo'), endpoint)
         self.assertIsNone(Endpoint.from_name('bar'))
 
     def test_from_flag(self):
-        context.endpoints.foo = Endpoint('foo')
+        Endpoint._endpoints['foo'] = endpoint = Endpoint('foo')
 
         self.assertIsNone(Endpoint.from_flag('foo'))
         self.assertIsNone(Endpoint.from_flag('bar.qux.zod'))
 
-        self.assertIs(Endpoint.from_flag('endpoint.foo.qux'),
-                      context.endpoints.foo)
+        self.assertIs(Endpoint.from_flag('endpoint.foo.qux'), endpoint)
 
-        self.assertIs(Endpoint.from_flag('foo.qux'),
-                      context.endpoints.foo)
+        self.assertIs(Endpoint.from_flag('foo.qux'), endpoint)
 
     def test_startup(self):
         assert not is_flag_set('endpoint.test-endpoint.joined')
@@ -141,21 +136,21 @@ class TestEndpoint(unittest.TestCase):
 
         self.data_changed.return_value = True
         Endpoint._startup()
-        assert context.endpoints.test_endpoint is not None
-        assert context.endpoints.test_endpoint.endpoint_name == 'test-endpoint'
-        assert context.endpoints.test_endpoint.joined
+        assert Endpoint.from_name('test-endpoint') is not None
+        assert Endpoint.from_name('test-endpoint').endpoint_name == 'test-endpoint'
+        assert Endpoint.from_name('test-endpoint').joined
         assert is_flag_set('endpoint.test-endpoint.joined')
         assert is_flag_set('endpoint.test-endpoint.changed')
         assert is_flag_set('endpoint.test-endpoint.changed.foo')
-        assert context.endpoints.test_endpoint2 is not None
-        assert context.endpoints.test_endpoint2.endpoint_name == 'test-endpoint2'
-        assert not context.endpoints.test_endpoint2.joined
+        assert Endpoint.from_name('test-endpoint2') is not None
+        assert Endpoint.from_name('test-endpoint2').endpoint_name == 'test-endpoint2'
+        assert not Endpoint.from_name('test-endpoint2').joined
         assert not is_flag_set('endpoint.test-endpoint2.joined')
         assert not is_flag_set('endpoint.test-endpoint2.changed')
         assert not is_flag_set('endpoint.test-endpoint2.changed.foo')
         self.assertEqual(self.atexit.call_args_list, [
-            mock.call(context.endpoints.test_endpoint.relations[0]._flush_data),
-            mock.call(context.endpoints.test_endpoint.relations[1]._flush_data),
+            mock.call(Endpoint.from_name('test-endpoint').relations[0]._flush_data),
+            mock.call(Endpoint.from_name('test-endpoint').relations[1]._flush_data),
         ])
 
         # already joined, not relation hook
@@ -193,7 +188,7 @@ class TestEndpoint(unittest.TestCase):
 
     def test_collections(self):
         Endpoint._startup()
-        tep = context.endpoints.test_endpoint
+        tep = Endpoint.from_name('test-endpoint')
 
         self.assertEqual(len(tep.relations), 2)
         self.assertEqual(len(tep.relations[0].units), 2)
@@ -215,7 +210,7 @@ class TestEndpoint(unittest.TestCase):
 
     def test_receive(self):
         Endpoint._startup()
-        tep = context.endpoints.test_endpoint
+        tep = Endpoint.from_name('test-endpoint')
 
         self.assertEqual(tep.all_units.received, {'foo': 'yes',
                                                   'bar': '[1, 2]'})
@@ -268,7 +263,7 @@ class TestEndpoint(unittest.TestCase):
 
     def test_to_publish(self):
         Endpoint._startup()
-        tep = context.endpoints.test_endpoint
+        tep = Endpoint.from_name('test-endpoint')
         rel = tep.relations[0]
 
         self.assertEqual(rel.to_publish_raw, {'key': 'value'})
@@ -301,7 +296,7 @@ class TestEndpoint(unittest.TestCase):
 
         self.data_changed.return_value = False
         Endpoint._startup()
-        tep = context.endpoints.test_endpoint
+        tep = Endpoint.from_name('test-endpoint')
 
         self.assertCountEqual(tep.invocations, [])
         dispatch()

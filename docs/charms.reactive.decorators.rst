@@ -17,26 +17,20 @@ predicate flags.
 
 Regular handlers should not accept any arguments. When a handler needs to use a
 (relationship) :class:`~charms.reactive.endpoints.Endpoint`, it can access
-the endpoint object via the :data:`~charms.reactive.helpers.context` namespace.
-The only exceptions to this are enpoint handlers, handlers that are instance
+the endpoint object via :func:`~charms.reactive.relations.endpoint_from_flag`.
+The only exceptions to this are endpoint handlers, handlers that are instance
 methods of :class:`~charms.reactive.endpoints.Endpoint`: they get the
 endpoint object as the `self` argment.
 
-If a handler needs to use an older interface using the legacy
-:class:`~charms.reactive.relations.RelationBase`, or if you're uncertain which
-is used by an interface layer, you can also obtain an instance using
-:func:`~charms.reactive.relations.relation_from_flag`.
-
-For backwards compatibility, some decorators will pass instances of these legacy
-``RelationBase`` classes *if the handler function specifies them as arguments*.
-However, explicit instance access using the ``context`` or
-``get_relation_from_flag`` is recommended because ensuring proper argument
-order can be confusing: they are passed in bottom-up, left-to-right, and no
-negative or ambiguous decorators, such as
+For backwards compatibility, some decorators will pass endpoint instances if
+the handler function specifies them as arguments.  However, explicit instance
+access using ``endpoint_from_flag`` is recommended, because ensuring proper
+argument order can be confusing: they are passed in bottom-up, left-to-right,
+and no negative or ambiguous decorators, such as
 :func:`~charms.reactive.decorators.when_not` or
 :func:`~charms.reactive.decorators.when_any` will ever pass arguments. *Note
 that a handler function that doesn't take arguments will never receive these
-instances, even when using flags from legacy interface layers.*
+instances.*
 
 
 .. automembersummary::

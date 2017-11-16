@@ -51,7 +51,7 @@ class TestReactiveDecorators(unittest.TestCase):
         self.kv.cursor.execute('delete from kv')
 
     @mock.patch.object(hookenv, 'relation_type')
-    @mock.patch.object(reactive.decorators, 'relation_from_name')
+    @mock.patch.object(reactive.decorators, 'endpoint_from_name')
     @mock.patch.object(reactive.decorators, '_hook')
     def test_hook(self, _hook, from_name, relation_type):
         _hook.return_value = True
@@ -77,7 +77,7 @@ class TestReactiveDecorators(unittest.TestCase):
         handler.invoke()
         action.assert_called_once_with()
 
-    @mock.patch.object(reactive.decorators, 'relation_from_flag')
+    @mock.patch.object(reactive.decorators, 'endpoint_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_all')
     def test_when_all(self, _when_all, _action_id, from_flag):
@@ -116,7 +116,7 @@ class TestReactiveDecorators(unittest.TestCase):
             pass
         when_all.assert_called_once_with('foo', 'bar', 'qux')
 
-    @mock.patch.object(reactive.decorators, 'relation_from_flag')
+    @mock.patch.object(reactive.decorators, 'endpoint_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_any')
     def test_when_any(self, _when_any, _action_id, from_flag):
@@ -139,7 +139,7 @@ class TestReactiveDecorators(unittest.TestCase):
         action.assert_called_once_with()
         self.assertEqual(reactive.bus.Handler._CONSUMED_FLAGS, set(['foo', 'bar', 'qux']))
 
-    @mock.patch.object(reactive.decorators, 'relation_from_flag')
+    @mock.patch.object(reactive.decorators, 'endpoint_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_none')
     def test_when_none(self, _when_none, _action_id, from_flag):
@@ -169,7 +169,7 @@ class TestReactiveDecorators(unittest.TestCase):
             pass
         when_none.assert_called_once_with('foo', 'bar', 'qux')
 
-    @mock.patch.object(reactive.decorators, 'relation_from_flag')
+    @mock.patch.object(reactive.decorators, 'endpoint_from_flag')
     @mock.patch.object(reactive.decorators, '_action_id')
     @mock.patch.object(reactive.decorators, '_when_not_all')
     def test_when_not_all(self, _when_not_all, _action_id, from_flag):
