@@ -29,6 +29,13 @@ from charms.reactive.flags import clear_flag
 from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
+__all__ = [
+    'relation_from_flag',
+    'scopes',  # DEPRECATED
+    'RelationBase',  # DEPRECATED
+    'relation_from_state',  # DEPRECATED
+]
+
 
 # arbitrary obj instances to use as defaults instead of None
 ALL = object()

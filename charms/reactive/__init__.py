@@ -18,36 +18,11 @@ import os
 import sys
 import traceback
 
-from .flags import set_flag  # noqa
-from .flags import clear_flag  # noqa
-from .flags import toggle_flag  # noqa
-from .flags import register_trigger  # noqa
-from .flags import is_flag_set  # noqa
-from .flags import all_flags_set  # noqa
-from .flags import any_flags_set  # noqa
-from .flags import set_state  # noqa  DEPRECATED
-from .flags import remove_state  # noqa  DEPRECATED
-from .flags import toggle_state  # noqa  DEPRECATED
-from .flags import is_state  # noqa  DEPRECATED
-from .flags import all_states  # noqa  DEPRECATED
-from .flags import get_states  # noqa  DEPRECATED
-from .flags import any_states  # noqa  DEPRECATED
-from .relations import scopes  # noqa
-from .relations import RelationBase  # noqa
-from .altrelations import Endpoint  # noqa
-from .decorators import hook  # noqa
-from .decorators import when  # noqa
-from .decorators import when_all  # noqa
-from .decorators import when_any  # noqa
-from .decorators import when_not  # noqa
-from .decorators import when_none  # noqa
-from .decorators import when_not_all  # noqa
-from .decorators import not_unless  # noqa
-from .decorators import only_once  # noqa
-from .decorators import when_file_changed  # noqa
-from .decorators import collect_metrics  # noqa
-from .decorators import meter_status_changed  # noqa
-from .helpers import context  # noqa
+from .flags import *  # noqa
+from .relations import *  # noqa
+from .altrelations import *  # noqa
+from .decorators import *  # noqa
+from .helpers import *  # noqa
 
 from . import bus
 from . import flags

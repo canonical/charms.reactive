@@ -28,6 +28,13 @@ from charms.reactive.flags import any_flags_set, all_flags_set
 from charms.reactive.flags import is_state, all_states, any_states  # noqa
 
 
+__all__ = [
+    'data_changed',
+    'any_file_changed',
+    'context',
+]
+
+
 class NormalizingNamespace(SimpleNamespace):
     """
     A namespace collection that automatically translates attribute names that

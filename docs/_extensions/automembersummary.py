@@ -76,11 +76,10 @@ class AutoMemberSummary(Autosummary):
                     if not mobj.__module__.startswith(real_name):
                         continue  # skip imported classes & functions
                 elif hasattr(mobj, '__name__'):
-                    if not mobj.__name__.startswith(real_name):
-                        continue  # skip imported modules
+                    continue  # skip imported modules
                 else:
                     continue  # skip instances
-                _get_items('%s.%s' % (name, member))
+                _get_items('%s.%s' % (mobj.__module__, member))
 
         return items
 

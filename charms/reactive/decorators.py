@@ -37,6 +37,22 @@ from charms.reactive.helpers import was_invoked
 from charms.reactive.helpers import mark_invoked
 
 
+__all__ = [
+    'when',
+    'when_all',
+    'when_any',
+    'when_not',
+    'when_none',
+    'when_not_all',
+    'not_unless',
+    'when_file_changed',
+    'collect_metrics',
+    'meter_status_changed',
+    'only_once',  # DEPRECATED
+    'hook',  # DEPRECATED
+]
+
+
 def hook(*hook_patterns):
     """
     Register the decorated function to run when the current hook matches any of

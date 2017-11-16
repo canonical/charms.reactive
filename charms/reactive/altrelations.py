@@ -26,6 +26,11 @@ from charms.reactive.helpers import data_changed, context
 from charms.reactive.relations import RelationFactory, relation_factory
 
 
+__all__ = [
+    'Endpoint',
+]
+
+
 class MinimalRelationBase(RelationFactory):
     def __init__(self, relation_name):
         self.relation_name = relation_name

@@ -3,6 +3,23 @@ from charmhelpers.core import unitdata
 
 from charms.reactive.bus import FlagWatch
 
+__all__ = [
+    'set_flag',
+    'clear_flag',
+    'toggle_flag',
+    'register_trigger',
+    'is_flag_set',
+    'all_flags_set',
+    'any_flags_set',
+    'set_state',  # DEPRECATED
+    'remove_state',  # DEPRECATED
+    'toggle_state',  # DEPRECATED
+    'is_state',  # DEPRECATED
+    'all_states',  # DEPRECATED
+    'get_states',  # DEPRECATED
+    'any_states',  # DEPRECATED
+]
+
 
 class State(str):
     """
