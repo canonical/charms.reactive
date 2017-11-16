@@ -20,7 +20,6 @@ from collections import UserDict
 from itertools import chain
 
 from charmhelpers.core import hookenv
-from charms.reactive.flags import _get_flag_value
 from charms.reactive.flags import set_flag, toggle_flag, is_flag_set
 from charms.reactive.helpers import data_changed, context
 from charms.reactive.relations import RelationFactory, relation_factory
@@ -29,37 +28,6 @@ from charms.reactive.relations import RelationFactory, relation_factory
 __all__ = [
     'Endpoint',
 ]
-
-
-class MinimalRelationBase(RelationFactory):
-    def __init__(self, relation_name):
-        self.relation_name = relation_name
-
-    def set_state(self, state):
-        """
-        Set state, tied to this relation.
-
-        Usage:
-
-            @hook('{requires:my-interface}-relation-{joined,changed}')
-            def changed(self):
-                self.set_state('{relation_name}.available')
-        """
-        set_flag(
-            state.format(relation_name=self.relation_name),
-            {'relation': self.relation_name})
-
-    @classmethod
-    def from_name(cls, relation_name):
-        return cls(relation_name)
-
-    @classmethod
-    def from_flag(cls, flag):
-        value = _get_flag_value(flag)
-        if value is None:
-            return None
-        relation_name = value['relation']
-        return cls.from_name(relation_name)
 
 
 class Endpoint(RelationFactory):
@@ -93,7 +61,7 @@ class Endpoint(RelationFactory):
     file.**
 
     Endpoint handlers can iterate over the list of joined relations for an
-    endpoint via the :attr:`~charms.reactive.altrelations.Endpoint.relations`
+    endpoint via the :attr:`~charms.reactive.endpoints.Endpoint.relations`
     collection.
     """
 
@@ -212,17 +180,17 @@ class Endpoint(RelationFactory):
     def all_units(self):
         """
         A list view of all the units of all relations attached to this
-        :class:`~charms.reactive.altrelations.Endpoint`.
+        :class:`~charms.reactive.endpoints.Endpoint`.
 
         This is actually a
-        :class:`~charms.reactive.altrelations.CombinedUnitsView`, so the units
+        :class:`~charms.reactive.endpoints.CombinedUnitsView`, so the units
         will be in order by relation ID and then unit name, and you can access a
         merged view of all the units' data as a single mapping.  You should be
         very careful when using the merged data collections, however, and
         consider carefully what will happen when the endpoint has multiple
         relations and multiple remote units on each.  It is probably better to
         iterate over each unit and handle its data individually.  See
-        :class:`~charms.reactive.altrelations.CombinedUnitsView` for an
+        :class:`~charms.reactive.endpoints.CombinedUnitsView` for an
         explanation of how the merged data collections work.
 
         Note that, because a given application might be related multiple times
@@ -256,7 +224,7 @@ class Relation:
         This relation's endpoint name.
 
         This will be the same as the
-        :class:`~charms.reactive.altrelations.Endpoint`'s endpoint name.
+        :class:`~charms.reactive.endpoints.Endpoint`'s endpoint name.
         """
         return self._endpoint_name
 
@@ -279,14 +247,14 @@ class Relation:
         A list view of all the units on this relation.
 
         This is actually a
-        :class:`~charms.reactive.altrelations.CombinedUnitsView`, so the units
+        :class:`~charms.reactive.endpoints.CombinedUnitsView`, so the units
         will be in order by unit name, and you can access a merged view of all
         of the units' data with ``self.units.received`` and
         ``self.units.received_json``.  You should be very careful when using the
         merged data collections, however, and consider carefully what will
         happen when there are multiple remote units.  It is probabaly better to
         iterate over each unit and handle its data individually.  See
-        :class:`~charms.reactive.altrelations.CombinedUnitsView` for an
+        :class:`~charms.reactive.endpoints.CombinedUnitsView` for an
         explanation of how the merged data collections work.
 
         The view can be iterated and indexed as a list, or you can look up units
@@ -312,7 +280,7 @@ class Relation:
         This is the relation data that the local unit publishes so it is
         visible to all related units. Use this to communicate with related
         units. It is a writeable
-        :class:`~charms.reactive.altrelations.JSONUnitDataView`.
+        :class:`~charms.reactive.endpoints.JSONUnitDataView`.
 
         All values stored in this collection will be automatically JSON
         encoded when they are published. This means that they need to be JSON
@@ -335,10 +303,10 @@ class Relation:
         """
         This is the raw relation data that the local unit publishes so it is
         visible to all related units. It is a writeable
-        :class:`~charms.reactive.altrelations.UnitDataView`. **Only use this
+        :class:`~charms.reactive.endpoints.UnitDataView`. **Only use this
         for backwards compatibility with interfaces that do not use JSON
         encoding.** Use
-        :attr:`~charms.reactive.altrelations.Relation.to_publish` instead.
+        :attr:`~charms.reactive.endpoints.Relation.to_publish` instead.
 
         Changes to this data are published at the end of a succesfull hook. The
         data is reset when a hook fails.
@@ -377,7 +345,7 @@ class RelatedUnit:
     @property
     def received_json(self):
         """
-        A :class:`~charms.reactive.altrelations.JSONUnitDataView` of the data
+        A :class:`~charms.reactive.endpoints.JSONUnitDataView` of the data
         received from this remote unit over the relation, with values being
         automatically decoded as JSON.
         """
@@ -390,7 +358,7 @@ class RelatedUnit:
     @property
     def received(self):
         """
-        A :class:`~charms.reactive.altrelations.UnitDataView` of the data
+        A :class:`~charms.reactive.endpoints.UnitDataView` of the data
         received from this remote unit over the relation.
         """
         return self.received_json.data
@@ -408,7 +376,7 @@ class KeyList(list):
 
     def __getitem__(self, key):
         """
-        Access an item in this :class:`~charms.reactive.altrelations.KeyList` by
+        Access an item in this :class:`~charms.reactive.endpoints.KeyList` by
         either an integer index or a str key.
 
         If an integer key is given, it will be used as a list index.
@@ -426,7 +394,7 @@ class KeyList(list):
     def keys(self):
         """
         Return the keys for all items in this
-        :class:`~charms.reactive.altrelations.KeyList`.
+        :class:`~charms.reactive.endpoints.KeyList`.
 
         Unlike a dict, the keys are not necessarily unique, so this list may
         contain duplicate values.  The keys will be returned in the order of the
@@ -445,8 +413,8 @@ class KeyList(list):
 
 class CombinedUnitsView(KeyList):
     """
-    A :class:`~charms.reactive.altrelations.KeyList` view of
-    :class:`~charms.reactive.altrelations.RelatedUnit` items, with properties to
+    A :class:`~charms.reactive.endpoints.KeyList` view of
+    :class:`~charms.reactive.endpoints.RelatedUnit` items, with properties to
     access a merged view of all of the units' data.
 
     You can iterate over this view like any other list, or you can look up units
@@ -481,8 +449,8 @@ class CombinedUnitsView(KeyList):
         assert by_rel is by_index
 
     You can also use the
-    :attr:`~charms.reactive.altrelations.CombinedUnitsView.received` or
-    :attr:`~charms.reactive.altrelations.CombinedUnitsView.received_json`
+    :attr:`~charms.reactive.endpoints.CombinedUnitsView.received` or
+    :attr:`~charms.reactive.endpoints.CombinedUnitsView.received_json`
     properties just like you would on a single unit.  The data in these
     collections will have all of the data from every unit, with units with the
     lowest relation ID and unit name taking precedence if multiple units have
@@ -516,7 +484,7 @@ class CombinedUnitsView(KeyList):
     @property
     def received(self):
         """
-        Combined :class:`~charms.reactive.altrelations.UnitDataView` of the data
+        Combined :class:`~charms.reactive.endpoints.UnitDataView` of the data
         of all units in this list, as raw strings.
         """
         return self.received_json.data
@@ -524,7 +492,7 @@ class CombinedUnitsView(KeyList):
     @property
     def received_json(self):
         """
-        Combined :class:`~charms.reactive.altrelations.JSONUnitDataView` of the
+        Combined :class:`~charms.reactive.endpoints.JSONUnitDataView` of the
         data of all units in this list, with automatic JSON decoding.
         """
         if not hasattr(self, '_data'):
@@ -579,7 +547,7 @@ class JSONUnitDataView(UserDict):
     """
     View of a dict that performs automatic JSON en/decoding of items.
 
-    Like :class:`~charms.reactive.altrelations.UnitDataView`, this is like a
+    Like :class:`~charms.reactive.endpoints.UnitDataView`, this is like a
     ``defaultdict(lambda: None)`` which cannot be modified by default.
 
     When decoding, if a value fails to decode, it will just return the raw value
@@ -588,7 +556,7 @@ class JSONUnitDataView(UserDict):
     When encoding, it ensures that keys are sorted to maintain stable and
     consistent encoded representations.
 
-    A :class:`~charms.reactive.altrelations.UnitDataView` of the original dict,
+    A :class:`~charms.reactive.endpoints.UnitDataView` of the original dict,
     without automatic en/decoding, can be accessed as ``self.data``.
     """
     def __init__(self, data, writeable=False):

@@ -20,7 +20,7 @@ import traceback
 
 from .flags import *  # noqa
 from .relations import *  # noqa
-from .altrelations import *  # noqa
+from .endpoints import *  # noqa
 from .decorators import *  # noqa
 from .helpers import *  # noqa
 

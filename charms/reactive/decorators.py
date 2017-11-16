@@ -25,7 +25,7 @@ from charms.reactive.bus import _short_action_id
 from charms.reactive.flags import get_flags
 from charms.reactive.relations import relation_from_name
 from charms.reactive.relations import relation_from_flag
-from charms.reactive.altrelations import Endpoint
+from charms.reactive.endpoints import Endpoint
 from charms.reactive.helpers import _hook
 from charms.reactive.helpers import _restricted_hook
 from charms.reactive.helpers import _when_all

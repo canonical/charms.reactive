@@ -16,10 +16,10 @@ ensure that a particular handler runs again, you should set or remove one of its
 predicate flags.
 
 Regular handlers should not accept any arguments. When a handler needs to use a
-(relationship) :class:`~charms.reactive.altrelations.Endpoint`, it can access
+(relationship) :class:`~charms.reactive.endpoints.Endpoint`, it can access
 the endpoint object via the :data:`~charms.reactive.helpers.context` namespace.
 The only exceptions to this are enpoint handlers, handlers that are instance
-methods of :class:`~charms.reactive.altrelations.Endpoint`: they get the
+methods of :class:`~charms.reactive.endpoints.Endpoint`: they get the
 endpoint object as the `self` argment.
 
 If a handler needs to use an older interface using the legacy

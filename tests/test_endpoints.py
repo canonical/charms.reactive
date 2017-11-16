@@ -89,7 +89,7 @@ class TestEndpoint(unittest.TestCase):
         self.rel_set_p = mock.patch('charmhelpers.core.hookenv.relation_set')
         self.relation_set = self.rel_set_p.start()
 
-        self.data_changed_p = mock.patch('charms.reactive.altrelations.data_changed')
+        self.data_changed_p = mock.patch('charms.reactive.endpoints.data_changed')
         self.data_changed = self.data_changed_p.start()
 
         self.atexit_p = mock.patch('charmhelpers.core.hookenv.atexit')

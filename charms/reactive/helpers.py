@@ -57,7 +57,7 @@ context = SimpleNamespace(
 A global, non-persistent context namespace object.
 
 Currently, this only contains ``endpoints``, a namespace populated by
-instances :class:`~charms.reactive.altrelations.Endpoint` for each relation
+instances :class:`~charms.reactive.endpoints.Endpoint` for each relation
 endpoint, with any hyphens in the endpoint name being changed to underscores.
 
 For example, if a charm defines an ``requires`` endpoint named ``kube-api``
