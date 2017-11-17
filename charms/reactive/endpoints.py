@@ -15,7 +15,6 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-import weakref
 from collections import UserDict
 from itertools import chain
 
@@ -61,10 +60,25 @@ class Endpoint(RelationFactory):
 
     @classmethod
     def from_name(cls, endpoint_name):
+        """
+        Return an Endpoint subclass instance based on the name of the endpoint.
+        """
         return cls._endpoints.get(endpoint_name)
 
     @classmethod
     def from_flag(cls, flag):
+        """
+        Return an Endpoint subclass instance based on the given flag.
+
+        The instance that is returned depends on the endpoint name embedded
+        in the flag.  Flags should be of the form ``endpoint.{name}.extra...``,
+        though for legacy purposes, the ``endpoint.`` prefix can be omitted.
+        The ``{name}}`` portion will be passed to
+        :meth:`~charms.reactive.endpoints.Endpoint.from_name`.
+
+        If an appropriate Endpoint sublcass cannot be found, or the flag name
+        can't be parsed, ``None`` will be returned.
+        """
         if '.' not in flag:
             return None
         parts = flag.split('.')
@@ -86,6 +100,10 @@ class Endpoint(RelationFactory):
                 continue
 
             rids = sorted(hookenv.relation_ids(endpoint_name))
+            # ensure that relation IDs have the endpoint name prefix, in case
+            # juju decides to drop it at some point
+            rids = ['{}:{}'.format(endpoint_name, rid) if ':' not in rid
+                    else rid for rid in rids]
             endpoint = relf(endpoint_name, rids)
             cls._endpoints[endpoint_name] = endpoint
             endpoint._manage_flags()
@@ -163,7 +181,7 @@ class Endpoint(RelationFactory):
         for unit in self.all_units:
             for key, value in unit.received.items():
                 data_key = 'endpoint.{}.{}.{}.{}'.format(self.endpoint_name,
-                                                         unit.relation.endpoint_name,
+                                                         unit.relation.relation_id,
                                                          unit.unit_name,
                                                          key)
                 if data_changed(data_key, value):
@@ -321,7 +339,7 @@ class RelatedUnit:
     Class representing a remote unit on a relation.
     """
     def __init__(self, relation, unit_name):
-        self._relation = weakref.ref(relation)
+        self._relation = relation
         self.unit_name = unit_name
         self.application_name = unit_name.split('/')[0]
         self._data = None
@@ -331,10 +349,7 @@ class RelatedUnit:
         """
         The relation to which this unit belongs.
         """
-        # To prevent circular references, the relation is kept as a weakref. If
-        # the relation is garbage-collected before this property is accessed,
-        # it will be ``None``.
-        return self._relation()
+        return self._relation
 
     @property
     def received_json(self):
