@@ -262,7 +262,7 @@ class Relation:
         :class:`~charms.reactive.endpoints.CombinedUnitsView`, so the units
         will be in order by unit name, and you can access a merged view of all
         of the units' data with ``self.units.received`` and
-        ``self.units.received_json``.  You should be very careful when using the
+        ``self.units.received``.  You should be very careful when using the
         merged data collections, however, and consider carefully what will
         happen when there are multiple remote units.  It is probabaly better to
         iterate over each unit and handle its data individually.  See
@@ -352,7 +352,7 @@ class RelatedUnit:
         return self._relation
 
     @property
-    def received_json(self):
+    def received(self):
         """
         A :class:`~charms.reactive.endpoints.JSONUnitDataView` of the data
         received from this remote unit over the relation, with values being
@@ -365,12 +365,12 @@ class RelatedUnit:
         return self._data
 
     @property
-    def received(self):
+    def received_raw(self):
         """
-        A :class:`~charms.reactive.endpoints.UnitDataView` of the data
+        A :class:`~charms.reactive.endpoints.UnitDataView` of the raw data
         received from this remote unit over the relation.
         """
-        return self.received_json.data
+        return self.received.raw_data
 
 
 class KeyList(list):
@@ -459,7 +459,7 @@ class CombinedUnitsView(KeyList):
 
     You can also use the
     :attr:`~charms.reactive.endpoints.CombinedUnitsView.received` or
-    :attr:`~charms.reactive.endpoints.CombinedUnitsView.received_json`
+    :attr:`~charms.reactive.endpoints.CombinedUnitsView.received_raw`
     properties just like you would on a single unit.  The data in these
     collections will have all of the data from every unit, with units with the
     lowest relation ID and unit name taking precedence if multiple units have
@@ -493,14 +493,6 @@ class CombinedUnitsView(KeyList):
     @property
     def received(self):
         """
-        Combined :class:`~charms.reactive.endpoints.UnitDataView` of the data
-        of all units in this list, as raw strings.
-        """
-        return self.received_json.data
-
-    @property
-    def received_json(self):
-        """
         Combined :class:`~charms.reactive.endpoints.JSONUnitDataView` of the
         data of all units in this list, with automatic JSON decoding.
         """
@@ -511,6 +503,14 @@ class CombinedUnitsView(KeyList):
                                            for key, value in unit.received.items()})
 
         return self._data
+
+    @property
+    def received_raw(self):
+        """
+        Combined :class:`~charms.reactive.endpoints.UnitDataView` of the raw data
+        of all units in this list, as raw strings.
+        """
+        return self.received.raw_data
 
 
 class UnitDataView(UserDict):
@@ -566,32 +566,32 @@ class JSONUnitDataView(UserDict):
     consistent encoded representations.
 
     A :class:`~charms.reactive.endpoints.UnitDataView` of the original dict,
-    without automatic en/decoding, can be accessed as ``self.data``.
+    without automatic en/decoding, can be accessed as ``self.raw_data``.
     """
     def __init__(self, data, writeable=False):
-        self.data = UnitDataView(data, writeable)
+        self.raw_data = UnitDataView(data, writeable)
 
     @property
     def modified(self):
         """
         Whether this collection has been modified.
         """
-        return self.data.modified
+        return self.raw_data.modified
 
     @property
     def writeable(self):
         """
         Whether this collection can be modified.
         """
-        return self.data.writeable
+        return self.raw_data.writeable
 
     def get(self, key, default=None):
-        if key not in self.data:
+        if key not in self.raw_data:
             return default
         return self[key]
 
     def __getitem__(self, key):
-        value = self.data[key]
+        value = self.raw_data[key]
         if not value:
             return value
         try:
@@ -600,7 +600,7 @@ class JSONUnitDataView(UserDict):
             return value
 
     def __setitem__(self, key, value):
-        self.data[key] = json.dumps(value, sort_keys=True)
+        self.raw_data[key] = json.dumps(value, sort_keys=True)
 
 
 hookenv.atstart(Endpoint._startup)
