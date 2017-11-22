@@ -212,33 +212,33 @@ class TestEndpoint(unittest.TestCase):
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
 
-        self.assertEqual(tep.all_units.received, {'foo': 'yes',
+        self.assertEqual(tep.all_units.received_raw, {'foo': 'yes',
                                                   'bar': '[1, 2]'})
-        self.assertEqual(tep.all_units.received_json, {'foo': 'yes',
+        self.assertEqual(tep.all_units.received, {'foo': 'yes',
                                                        'bar': [1, 2]})
+        self.assertEqual(tep.relations[0].units.received_raw, {'foo': 'yes'})
+        self.assertEqual(tep.relations[1].units.received_raw, {'foo': 'no',
+                                                           'bar': '[1, 2]'})
         self.assertEqual(tep.relations[0].units.received, {'foo': 'yes'})
         self.assertEqual(tep.relations[1].units.received, {'foo': 'no',
-                                                           'bar': '[1, 2]'})
-        self.assertEqual(tep.relations[0].units.received_json, {'foo': 'yes'})
-        self.assertEqual(tep.relations[1].units.received_json, {'foo': 'no',
                                                                 'bar': [1, 2]})
+        self.assertEqual(tep.relations[0].units[0].received_raw, {'foo': 'yes'})
+        self.assertEqual(tep.relations[0].units[1].received_raw, {})
+        self.assertEqual(tep.relations[1].units[0].received_raw, {'bar': '[1, 2]'})
+        self.assertEqual(tep.relations[1].units[1].received_raw, {'foo': 'no'})
         self.assertEqual(tep.relations[0].units[0].received, {'foo': 'yes'})
         self.assertEqual(tep.relations[0].units[1].received, {})
-        self.assertEqual(tep.relations[1].units[0].received, {'bar': '[1, 2]'})
+        self.assertEqual(tep.relations[1].units[0].received, {'bar': [1, 2]})
         self.assertEqual(tep.relations[1].units[1].received, {'foo': 'no'})
-        self.assertEqual(tep.relations[0].units[0].received_json, {'foo': 'yes'})
-        self.assertEqual(tep.relations[0].units[1].received_json, {})
-        self.assertEqual(tep.relations[1].units[0].received_json, {'bar': [1, 2]})
-        self.assertEqual(tep.relations[1].units[1].received_json, {'foo': 'no'})
 
-        self.assertEqual(tep.all_units.received['bar'], '[1, 2]')
-        self.assertEqual(tep.all_units.received.get('bar'), '[1, 2]')
-        self.assertEqual(tep.all_units.received_json['bar'], [1, 2])
-        self.assertEqual(tep.all_units.received_json.get('bar'), [1, 2])
+        self.assertEqual(tep.all_units.received_raw['bar'], '[1, 2]')
+        self.assertEqual(tep.all_units.received_raw.get('bar'), '[1, 2]')
+        self.assertEqual(tep.all_units.received['bar'], [1, 2])
+        self.assertEqual(tep.all_units.received.get('bar'), [1, 2])
+        self.assertIsNone(tep.all_units.received_raw['none'])
+        self.assertEqual(tep.all_units.received_raw.get('none', 'default'), 'default')
         self.assertIsNone(tep.all_units.received['none'])
         self.assertEqual(tep.all_units.received.get('none', 'default'), 'default')
-        self.assertIsNone(tep.all_units.received_json['none'])
-        self.assertEqual(tep.all_units.received_json.get('none', 'default'), 'default')
 
         assert not tep.all_units.received.writeable
         assert not tep.all_units.received_json.writeable
