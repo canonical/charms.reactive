@@ -565,11 +565,20 @@ class JSONUnitDataView(UserDict):
     When encoding, it ensures that keys are sorted to maintain stable and
     consistent encoded representations.
 
-    A :class:`~charms.reactive.endpoints.UnitDataView` of the original dict,
-    without automatic en/decoding, can be accessed as ``self.raw_data``.
+    The original data, without automatic encoding / decoding, can be accessed as
+    :attr:`raw_data`.
     """
     def __init__(self, data, writeable=False):
-        self.raw_data = UnitDataView(data, writeable)
+        self.data = UnitDataView(data, writeable)
+
+    @property
+    def raw_data(self):
+        """
+        The data for this collection without automatic encoding / decoding.
+
+        This is an :class:`~charms.reactive.endpoints.UnitDataView` instance.
+        """
+        return self.data
 
     @property
     def modified(self):
