@@ -213,15 +213,15 @@ class TestEndpoint(unittest.TestCase):
         tep = Endpoint.from_name('test-endpoint')
 
         self.assertEqual(tep.all_units.received_raw, {'foo': 'yes',
-                                                  'bar': '[1, 2]'})
+                                                      'bar': '[1, 2]'})
         self.assertEqual(tep.all_units.received, {'foo': 'yes',
-                                                       'bar': [1, 2]})
+                                                  'bar': [1, 2]})
         self.assertEqual(tep.relations[0].units.received_raw, {'foo': 'yes'})
         self.assertEqual(tep.relations[1].units.received_raw, {'foo': 'no',
-                                                           'bar': '[1, 2]'})
+                                                               'bar': '[1, 2]'})
         self.assertEqual(tep.relations[0].units.received, {'foo': 'yes'})
         self.assertEqual(tep.relations[1].units.received, {'foo': 'no',
-                                                                'bar': [1, 2]})
+                                                           'bar': [1, 2]})
         self.assertEqual(tep.relations[0].units[0].received_raw, {'foo': 'yes'})
         self.assertEqual(tep.relations[0].units[1].received_raw, {})
         self.assertEqual(tep.relations[1].units[0].received_raw, {'bar': '[1, 2]'})
