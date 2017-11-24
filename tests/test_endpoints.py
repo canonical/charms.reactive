@@ -240,8 +240,17 @@ class TestEndpoint(unittest.TestCase):
         self.assertIsNone(tep.all_units.received['none'])
         self.assertEqual(tep.all_units.received.get('none', 'default'), 'default')
 
+        assert not tep.all_units.received_raw.writeable
         assert not tep.all_units.received.writeable
-        assert not tep.all_units.received_json.writeable
+
+        with self.assertRaises(ValueError):
+            tep.all_units.received_raw['foo'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[0].units.received_raw['foo'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[0].units[0].received_raw['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
             tep.all_units.received['foo'] = 'nope'
@@ -251,15 +260,6 @@ class TestEndpoint(unittest.TestCase):
 
         with self.assertRaises(ValueError):
             tep.relations[0].units[0].received['foo'] = 'nope'
-
-        with self.assertRaises(ValueError):
-            tep.all_units.received_json['foo'] = 'nope'
-
-        with self.assertRaises(ValueError):
-            tep.relations[0].units.received_json['foo'] = 'nope'
-
-        with self.assertRaises(ValueError):
-            tep.relations[0].units[0].received_json['foo'] = 'nope'
 
     def test_to_publish(self):
         Endpoint._startup()

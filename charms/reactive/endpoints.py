@@ -500,7 +500,7 @@ class CombinedUnitsView(KeyList):
             # NB: units are reversed so that lowest numbered unit takes precedence
             self._data = JSONUnitDataView({key: value
                                            for unit in reversed(self)
-                                           for key, value in unit.received.items()})
+                                           for key, value in unit.received_raw.items()})
 
         return self._data
 
