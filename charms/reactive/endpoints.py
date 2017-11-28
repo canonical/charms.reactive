@@ -146,9 +146,9 @@ class Endpoint(RelationFactory):
         """
         return len(self.relations) > 0
 
-    def flag(self, flag):
+    def expand_name(self, flag):
         """
-        Complete a flag name for this endpoint.
+        Complete a flag for this endpoint by expanding the endpoint name.
 
         If the flag does not already contain ``{endpoint_name}``, it will be
         prefixed with ``endpoint.{endpoint_name}.``. Then, ``str.format`` will
@@ -162,15 +162,15 @@ class Endpoint(RelationFactory):
         """
         Manage automatic relation flags.
         """
-        already_joined = is_flag_set(self.flag('joined'))
+        already_joined = is_flag_set(self.expand_name('joined'))
         hook_name = hookenv.hook_name()
         rel_hook = hook_name.startswith(self.endpoint_name + '-relation-')
         departed_hook = rel_hook and hook_name.endswith('-departed')
 
-        toggle_flag(self.flag('joined'), self.joined)
+        toggle_flag(self.expand_name('joined'), self.joined)
 
         if departed_hook:
-            set_flag(self.flag('departed'))
+            set_flag(self.expand_name('departed'))
 
         if already_joined and not rel_hook:
             # skip checking relation data outside hooks for this relation
@@ -185,8 +185,8 @@ class Endpoint(RelationFactory):
                                                          unit.unit_name,
                                                          key)
                 if data_changed(data_key, value):
-                    set_flag(self.flag('changed'))
-                    set_flag(self.flag('changed.{}'.format(key)))
+                    set_flag(self.expand_name('changed'))
+                    set_flag(self.expand_name('changed.{}'.format(key)))
 
     @property
     def all_units(self):
