@@ -27,6 +27,12 @@ from charms.reactive.flags import any_flags_set, all_flags_set
 from charms.reactive.flags import is_state, all_states, any_states  # noqa
 
 
+__all__ = [
+    'data_changed',
+    'any_file_changed',
+]
+
+
 def _expand_replacements(pat, subf, values):
     while any(pat.search(r) for r in values):
         new_values = []

@@ -1,3 +1,7 @@
 requires:
-    test-rel:
-        interface: 'test'
+  test-rel:
+    interface: 'test'
+  test-endpoint:
+    interface: 'test-alt'
+  test-endpoint2:
+    interface: 'test-alt'

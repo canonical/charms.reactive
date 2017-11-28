@@ -2,19 +2,7 @@ Reactive API Documentation
 ==========================
 
 
-.. toctree::
+.. automembersummary::
+    :nosignatures:
 
-    charms.reactive.flags
-    charms.reactive.decorators
-    charms.reactive.helpers
-    charms.reactive.relations
-    charms.reactive.cli
-
-
-charms.reactive.main
---------------------
-
-.. automodule:: charms.reactive
-    :members:
-    :undoc-members:
-    :show-inheritance:
+    ~charms.reactive
