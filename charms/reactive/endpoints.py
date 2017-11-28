@@ -33,6 +33,16 @@ class Endpoint(RelationFactory):
     """
     New base class for creating interface layers.
 
+    This class is intended to create drop-in, backwards-compatible replacements
+    for interface layers previously written using the old
+    :class:`~charms.reactive.relations.RelationBase` base class.  With the
+    advantages of: having commonly used internal flags managed automatically,
+    providing a cleaner, more easily understood pattern for interacting with
+    relation data, and being able to use ``@when`` rather than ``@hook`` so
+    that interface layers are more similar to charm layers and to remove one
+    of the biggest barriers to upgrading from a non-reactive version of a
+    charm to a reactive version.
+
     Four flags are automatically managed for each endpoint. Endpoint handlers
     can react to these flags using the :class:`~charms.reactive.decorators`.
 
