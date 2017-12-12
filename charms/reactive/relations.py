@@ -55,7 +55,7 @@ def endpoint_from_name(endpoint_name):
 
 def relation_from_name(relation_name):
     """
-    .. deprecated:: 0.5.0
+    .. deprecated:: 0.6.0
        Alias for :func:`endpoint_from_name`
     """
     return endpoint_from_name(relation_name)
@@ -86,7 +86,7 @@ def endpoint_from_flag(flag):
 
 def relation_from_flag(flag):
     """
-    .. deprecated:: 0.5.0
+    .. deprecated:: 0.6.0
        Alias for :func:`endpoint_from_flag`
     """
     return endpoint_from_flag(flag)
@@ -329,10 +329,21 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         return self._relation_name
 
     @classmethod
+    def from_state(cls, state):
+        """
+        .. deprecated:: 0.6.0
+           use :func:`endpoint_from_flag` instead
+        """
+        return cls.from_flag(state)
+
+    @classmethod
     def from_flag(cls, flag):
         """
         Find relation implementation in the current charm, based on the
-        name of an active state.
+        name of an active flag.
+
+        You should not use this method directly.
+        Use :func:`endpoint_from_flag` instead.
         """
         value = _get_flag_value(flag)
         if value is None:
