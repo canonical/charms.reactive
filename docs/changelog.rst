@@ -6,18 +6,17 @@
 * Endpoint base for easier interface layers (#123)
 * Public API is now only documented via the top level charms.reactive namespace.
   The internal organization of the library is not part of the public API.
-* added layer-basic docs (#144)
+* Added layer-basic docs (#144)
 * Fix test error from juju-wait snap (#143)
-* PR for design discussions of charms.reactive 2.0 (#130)
 * More doc fixes (#140)
 * Update help output in charms.reactive.sh (#136)
 * Multiple docs fixes (#134)
-* fix import in triggers.rst (#133)
-* Update readme (#132)
-* fixed test, order doesn't matter (#131)
+* Fix import in triggers.rst (#133)
+* Update README (#132)
+* Fixed test, order doesn't matter (#131)
 * Added FAQ section to docs (#129)
-* point travis badge to master branch, removed links to old repos. (#127)
 * Deprecations:
+
   * relation_from_name (renamed to endpoint_from_name)
   * relation_from_flag (renamed to endpoint_from_flag)
   * RelationBase.from_state (use endpoint_from_flag instead)
@@ -31,6 +30,7 @@
 * Rename "state" to "flag" and deprecate "state" name (#112)
 * Allow pluggable alternatives to RelationBase (#111)
 * Deprecations:
+
   * State
   * StateList
   * set_state (renamed to set_flag)
