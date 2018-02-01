@@ -51,6 +51,16 @@ class TestEndpoint(unittest.TestCase):
                                        mock.MagicMock(return_value='local/0'))
         self.local_unit_p.start()
 
+        self.remote_unit = None
+        self.remote_unit_p = mock.patch('charmhelpers.core.hookenv.remote_unit')
+        mremote_unit = self.remote_unit_p.start()
+        mremote_unit.side_effect = lambda: self.remote_unit
+
+        self.relation_id = None
+        self.relation_id_p = mock.patch('charmhelpers.core.hookenv.relation_id')
+        mrelation_id = self.relation_id_p.start()
+        mrelation_id.side_effect = lambda: self.relation_id
+
         self.relations = {
             'test-endpoint': [
                 {
@@ -95,6 +105,14 @@ class TestEndpoint(unittest.TestCase):
         self.sysm_p = mock.patch.dict(sys.modules)
         self.sysm_p.start()
 
+        self.kv.set('reactive.endpoints.departed.test-endpoint:0', [
+            {
+                'relation': 'test-endpoint:0',
+                'unit_name': 'unit/3',
+                'data': {'departed': 'true'},
+            },
+        ])
+
         discover()
 
     def tearDown(self):
@@ -102,6 +120,7 @@ class TestEndpoint(unittest.TestCase):
         self.charm_dir_p.stop()
         self.hook_name_p.stop()
         self.local_unit_p.stop()
+        self.remote_unit_p.stop()
         self.rel_ids_p.stop()
         self.rel_units_p.stop()
         self.rel_get_p.stop()
@@ -207,6 +226,32 @@ class TestEndpoint(unittest.TestCase):
         self.assertEqual(tep.all_units.keys(), ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
         self.assertEqual(tep.relations[0].units.keys(), ['unit/0', 'unit/1'])
         self.assertEqual(tep.relations.keys(), ['test-endpoint:0', 'test-endpoint:1'])
+
+    def test_departed(self):
+        self.hook_name = 'test-endpoint-relation-departed'
+        self.relation_id = 'test-endpoint:0'
+        self.remote_unit = 'unit/2'
+        self.relations['test-endpoint'][0]['unit/2'] = {'departed': 'yes'}
+        Endpoint._startup()
+        tep = Endpoint.from_name('test-endpoint')
+
+        self.assertEqual(len(tep.relations[0].units), 2)
+        self.assertEqual(len(tep.relations[1].units), 2)
+        self.assertEqual(len(tep.relations[0].departed_units), 2)
+        self.assertEqual(len(tep.relations[1].departed_units), 0)
+        self.assertIs(tep.relations[0].departed_units[0].received['departed'], True)
+        self.assertEqual(tep.relations[0].departed_units[1].received_raw['departed'], 'yes')
+
+        del tep.relations[0].departed_units['unit/3']
+        self.assertEqual(self.kv.get('reactive.endpoints.departed.test-endpoint:0'), [
+            {
+                'relation': 'test-endpoint:0',
+                'unit_name': 'unit/2',
+                'data': {
+                    'departed': 'yes',
+                },
+            },
+        ])
 
     def test_receive(self):
         Endpoint._startup()

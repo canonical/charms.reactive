@@ -18,7 +18,7 @@ import json
 from collections import UserDict
 from itertools import chain
 
-from charmhelpers.core import hookenv
+from charmhelpers.core import hookenv, unitdata
 from charms.reactive.flags import set_flag, toggle_flag, is_flag_set
 from charms.reactive.helpers import data_changed
 from charms.reactive.relations import RelationFactory, relation_factory
@@ -116,6 +116,7 @@ class Endpoint(RelationFactory):
                     else rid for rid in rids]
             endpoint = relf(endpoint_name, rids)
             cls._endpoints[endpoint_name] = endpoint
+            endpoint._manage_departed()
             endpoint._manage_flags()
             for relation in endpoint.relations:
                 hookenv.atexit(relation._flush_data)
@@ -123,7 +124,7 @@ class Endpoint(RelationFactory):
     def __init__(self, endpoint_name, relation_ids=None):
         self._endpoint_name = endpoint_name
         self._relations = KeyList(map(Relation, relation_ids or []),
-                                  key='relation_id')
+                                  key_attr='relation_id')
         self._all_units = None
 
     @property
@@ -154,7 +155,7 @@ class Endpoint(RelationFactory):
         """
         Whether this endpoint has remote applications attached to it.
         """
-        return len(self.relations) > 0
+        return len(self.all_units) > 0
 
     def expand_name(self, flag):
         """
@@ -167,6 +168,15 @@ class Endpoint(RelationFactory):
         if '{endpoint_name}' not in flag:
             flag = 'endpoint.{endpoint_name}.' + flag
         return flag.format(endpoint_name=self.endpoint_name)
+
+    def _manage_departed(self):
+        hook_name = hookenv.hook_name()
+        rel_hook = hook_name.startswith(self.endpoint_name + '-relation-')
+        departed_hook = rel_hook and hook_name.endswith('-departed')
+        if not departed_hook:
+            return
+        rel = self.relations[hookenv.relation_id()]
+        rel.departed_units.append(RelatedUnit(rel, hookenv.remote_unit()))
 
     def _manage_flags(self):
         """
@@ -231,6 +241,7 @@ class Relation:
         self._endpoint_name = relation_id.split(':')[0]
         self._application_name = None
         self._units = None
+        self._departed_units = None
         self._data = None
 
     @property
@@ -290,9 +301,11 @@ class Relation:
             print(', '.join(relation.units.keys()))
         """
         if self._units is None:
+            departed = [d.unit_name for d in self.departed_units]
             self._units = CombinedUnitsView([
                 RelatedUnit(self, unit_name) for unit_name in
                 sorted(hookenv.related_units(self.relation_id))
+                if unit_name not in departed
             ])
         return self._units
 
@@ -335,6 +348,29 @@ class Relation:
         """
         return self.to_publish.data
 
+    @property
+    def _cache_key(self):
+        return 'reactive.endpoints.departed.{}'.format(self.relation_id)
+
+    @property
+    def departed_units(self):
+        """
+        Collection of units which have departed this relation.
+
+        This collection is persistent and mutable.  The departed units will
+        be kept until they are explicitly removed, to allow for reasonable
+        cleanup of units that have left.
+
+        Once a unit is departed, it will no longer show up in :prop:`.units`.
+        Note that units are considered departed as soon as the departed hook
+        is entered, which differs slightly from how the Juju primitives behave
+        (departing units are still returned from ``related-units`` until after
+        the departed hook is complete).
+        """
+        if self._departed_units is None:
+            self._departed_units = UnitCache._load(self._cache_key)
+        return self._departed_units
+
     def _flush_data(self):
         """
         If this relation's local unit data has been modified, publish it on the
@@ -343,16 +379,23 @@ class Relation:
         if self._data and self._data.modified:
             hookenv.relation_set(self.relation_id, dict(self.to_publish.data))
 
+    def _serialize(self):
+        return self.relation_id
+
+    @classmethod
+    def _deserialize(cls, relation_id):
+        return cls(relation_id)
+
 
 class RelatedUnit:
     """
     Class representing a remote unit on a relation.
     """
-    def __init__(self, relation, unit_name):
+    def __init__(self, relation, unit_name, data=None):
         self._relation = relation
         self.unit_name = unit_name
         self.application_name = unit_name.split('/')[0]
-        self._data = None
+        self._data = data
 
     @property
     def relation(self):
@@ -382,6 +425,19 @@ class RelatedUnit:
         """
         return self.received.raw_data
 
+    def _serialize(self):
+        return {
+            'relation': self.relation._serialize(),
+            'unit_name': self.unit_name,
+            'data': dict(self.received_raw),
+        }
+
+    @classmethod
+    def _deserialize(cls, data):
+        return cls(Relation._deserialize(data['relation']),
+                   data['unit_name'],
+                   JSONUnitDataView(data['data']))
+
 
 class KeyList(list):
     """
@@ -389,9 +445,21 @@ class KeyList(list):
 
     Unlike dicts, the keys don't need to be unique.
     """
-    def __init__(self, items, key):
+    def __init__(self, items, key_attr):
+        """
+        :param list items: List of items
+        :param str key_attr: Attribute to use as the key for mapping access.
+        """
         super().__init__(items)
-        self._key = key
+        self._key_attr = key_attr
+
+    def _translate_key(self, key):
+        if isinstance(key, int):
+            return key
+        for i, item in enumerate(self):
+            if getattr(item, self._key_attr) == key:
+                return i
+        raise KeyError(key)
 
     def __getitem__(self, key):
         """
@@ -403,12 +471,7 @@ class KeyList(list):
         If a str is given, it will be used as a mapping key.  Since keys may not
         be unique, only the first item matching the given key will be returned.
         """
-        if isinstance(key, int):
-            return super().__getitem__(key)
-        for item in self:
-            if getattr(item, self._key) == key:
-                return item
-        raise KeyError(key)
+        return super().__getitem__(self._translate_key(key))
 
     def keys(self):
         """
@@ -419,7 +482,7 @@ class KeyList(list):
         contain duplicate values.  The keys will be returned in the order of the
         items in the list.
         """
-        return [getattr(item, self._key) for item in self]
+        return [getattr(item, self._key_attr) for item in self]
 
     def values(self):
         """
@@ -428,6 +491,42 @@ class KeyList(list):
         This is equivalent to ``list(keylist)``.
         """
         return list(self)
+
+
+class UnitCache(KeyList):
+    """
+    Persistent cache of a set of units, with their data.
+
+    Modifications to this list are persisted.
+    """
+    def __init__(self, cache_key, items):
+        self._cache_key = cache_key
+        super().__init__(items, 'unit_name')
+
+    @classmethod
+    def _load(cls, cache_key):
+        units = unitdata.kv().get(cache_key) or []
+        return cls(cache_key,
+                   [RelatedUnit._deserialize(u) for u in units])
+
+    def _save(self):
+        unitdata.kv().set(self._cache_key, [u._serialize() for u in self])
+
+    def __setitem__(self, key, value):
+        super().__setitem__(self._translate_key(key), value)
+        self._save()
+
+    def __delitem__(self, key):
+        super().__delitem__(self._translate_key(key))
+        self._save()
+
+    def append(self, value):
+        super().append(value)
+        self._save()
+
+    def extend(self, values):
+        super().extend(values)
+        self._save()
 
 
 class CombinedUnitsView(KeyList):
@@ -498,7 +597,7 @@ class CombinedUnitsView(KeyList):
     def __init__(self, items):
         super().__init__(sorted(items, key=lambda i: (i.relation.relation_id,
                                                       i.unit_name)),
-                         key='unit_name')
+                         key_attr='unit_name')
 
     @property
     def received(self):
