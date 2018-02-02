@@ -23,7 +23,7 @@ charms.reactive branch. *The format of this file is the same as pip's
 file.*
 
     # Override charms.reactive by the version found in folder
-    -e /path/to/charms.reactive
+    -e git+file:///path/to/charms.reactive#egg=charms.reactive
     # Or point it to a github repo with
     -e git+https://github.com/<myuser>/charms.reactive#egg=charms.reactive
 
