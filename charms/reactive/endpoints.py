@@ -46,14 +46,19 @@ class Endpoint(RelationFactory):
     Four flags are automatically managed for each endpoint. Endpoint handlers
     can react to these flags using the :class:`~charms.reactive.decorators`.
 
-      * ``endpoint.{endpoint_name}.joined`` When the endpoint is :meth:`joined`.
-      * ``endpoint.{endpoint_name}.changed`` When any relation data has changed.
-      * ``endpoint.{endpoint_name}.changed.{field}`` When a specific field has changed.
-      * ``endpoint.{endpoint_name}.departed`` When a remote unit is leaving.
+      * ``endpoint.{endpoint_name}.joined`` is set when the endpoint is
+        :meth:`joined`: when the first remote unit from any relationship
+        connected to this endpoint joins. It is cleared when the last unit
+        from all relationships connected to this endpoint departs.
+      * ``endpoint.{endpoint_name}.changed`` when any relation data has
+        changed. It isn't automatically cleared.
+      * ``endpoint.{endpoint_name}.changed.{field}`` when a specific field
+        has changed. It isn't automatically cleared.
+      * ``endpoint.{endpoint_name}.departed`` when a remote unit is leaving.
+         It isn't automatically cleared.
 
-    The ``joined`` flag will be automatically removed if all remote units leave
-    all relations, but the others must be manually removed by the interface
-    layer.
+    For the flags that are not automatically cleared, it is up to the interface
+    author to clear the flag when it is "handled".
 
     These flags should only be used by the decorators of the endpoint handlers.
     While it is possible to use them with any decorators in any layer, these
