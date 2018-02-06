@@ -164,7 +164,7 @@ class Endpoint(RelationFactory):
         Collection of :class:`Relation` instances that were previously
         established for this :class:`Endpoint` but which are no longer.
 
-        Like :prop:`.relations`, this is a :class:`KeyList`.  However, it is
+        Like :attr:`relations`, this is a :class:`KeyList`.  However, it is
         also both persistent and mutable.  Once a broken relation has been
         handled, however is appropriate for the charm, it can be deleted from
         this collection.  A broken relation will eventually be cleaned up
@@ -279,7 +279,7 @@ class Endpoint(RelationFactory):
         be kept until they are explicitly removed, to allow for reasonable
         cleanup of units that have left.
 
-        Once a unit is departed, it will no longer show up in :prop:`.all_units`.
+        Once a unit is departed, it will no longer show up in :attr:`all_units`.
         Note that units are considered departed as soon as the departed hook
         is entered, which differs slightly from how the Juju primitives behave
         (departing units are still returned from ``related-units`` until after
@@ -376,7 +376,7 @@ class Relation:
         be kept until they are explicitly removed to allow for reasonable
         cleanup of units that have left.
 
-        Once a unit is departed, it will no longer show up in :prop:`.units`.
+        Once a unit is departed, it will no longer show up in :attr:`units`.
         Note that units are considered departed as soon as the departed hook
         is entered, which differs slightly from how the Juju primitives behave
         (departing units are still returned from ``related-units`` until after
