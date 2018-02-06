@@ -105,10 +105,21 @@ class TestEndpoint(unittest.TestCase):
         self.sysm_p = mock.patch.dict(sys.modules)
         self.sysm_p.start()
 
+        self.kv.set('reactive.endpoints.broken.test-endpoint', [
+            'test-endpoint:2',
+            'test-endpoint:3',
+        ])
+
         self.kv.set('reactive.endpoints.departed.test-endpoint:0', [
             {
-                'relation': 'test-endpoint:0',
                 'unit_name': 'unit/3',
+                'data': {'departed': 'true'},
+            },
+        ])
+
+        self.kv.set('reactive.endpoints.departed.test-endpoint:2', [
+            {
+                'unit_name': 'unit/4',
                 'data': {'departed': 'true'},
             },
         ])
@@ -230,28 +241,57 @@ class TestEndpoint(unittest.TestCase):
     def test_departed(self):
         self.hook_name = 'test-endpoint-relation-departed'
         self.relation_id = 'test-endpoint:0'
-        self.remote_unit = 'unit/2'
-        self.relations['test-endpoint'][0]['unit/2'] = {'departed': 'yes'}
+        self.remote_unit = 'unit/1'
+        del self.relations['test-endpoint'][1]['unit/0']
+        self.relations['test-endpoint'][0]['unit/1'] = {'departed': 'yes'}
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
 
-        self.assertEqual(len(tep.relations[0].units), 2)
-        self.assertEqual(len(tep.relations[1].units), 2)
-        self.assertEqual(len(tep.relations[0].departed_units), 2)
-        self.assertEqual(len(tep.relations[1].departed_units), 0)
+        self.assertCountEqual(tep.relations.keys(), ['test-endpoint:0', 'test-endpoint:1'])
+        self.assertCountEqual(tep.broken_relations.keys(), ['test-endpoint:2'])
+        self.assertCountEqual(tep.all_departed_units.keys(), ['unit/1', 'unit/3', 'unit/4'])
+        self.assertCountEqual(tep.relations['test-endpoint:0'].units.keys(), ['unit/0'])
+        self.assertCountEqual(tep.relations['test-endpoint:1'].units.keys(), ['unit/1'])
+        self.assertCountEqual(tep.relations['test-endpoint:0'].departed_units.keys(), ['unit/1', 'unit/3'])
+        self.assertCountEqual(tep.relations['test-endpoint:1'].departed_units.keys(), [])
+        self.assertCountEqual(tep.broken_relations['test-endpoint:2'].departed_units.keys(), ['unit/4'])
         self.assertIs(tep.relations[0].departed_units[0].received['departed'], True)
         self.assertEqual(tep.relations[0].departed_units[1].received_raw['departed'], 'yes')
 
+        self.assertCountEqual(self.kv.get('reactive.endpoints.departed.test-endpoint:0'), [
+            {
+                'unit_name': 'unit/1',
+                'data': {
+                    'departed': 'yes',
+                },
+            },
+            {
+                'unit_name': 'unit/3',
+                'data': {
+                    'departed': 'true',
+                },
+            },
+        ])
         del tep.relations[0].departed_units['unit/3']
         self.assertEqual(self.kv.get('reactive.endpoints.departed.test-endpoint:0'), [
             {
-                'relation': 'test-endpoint:0',
-                'unit_name': 'unit/2',
+                'unit_name': 'unit/1',
                 'data': {
                     'departed': 'yes',
                 },
             },
         ])
+        del tep.all_departed_units['unit/4']
+        self.assertIsNone(self.kv.get('reactive.endpoints.departed.test-endpoint:2'))
+        self.assertCountEqual(tep.all_departed_units.keys(), ['unit/1'])
+
+        # test relation moves to broken during last departed hook
+        self.relation_id = 'test-endpoint:1'
+        self.remote_unit = 'unit/1'
+        Endpoint._startup()
+        tep = Endpoint.from_name('test-endpoint')
+        self.assertEqual(tep.relations.keys(), ['test-endpoint:0'])
+        self.assertEqual(tep.broken_relations.keys(), ['test-endpoint:1'])
 
     def test_receive(self):
         Endpoint._startup()
