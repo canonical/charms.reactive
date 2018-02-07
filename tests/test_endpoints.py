@@ -105,20 +105,14 @@ class TestEndpoint(unittest.TestCase):
         self.sysm_p = mock.patch.dict(sys.modules)
         self.sysm_p.start()
 
-        self.kv.set('reactive.endpoints.broken.test-endpoint', [
-            'test-endpoint:2',
-            'test-endpoint:3',
-        ])
-
-        self.kv.set('reactive.endpoints.departed.test-endpoint:0', [
+        self.kv.set('reactive.endpoints.departed.test-endpoint', [
             {
+                'relation': 'test-endpoint:1',
                 'unit_name': 'unit/3',
                 'data': {'departed': 'true'},
             },
-        ])
-
-        self.kv.set('reactive.endpoints.departed.test-endpoint:2', [
             {
+                'relation': 'test-endpoint:2',
                 'unit_name': 'unit/4',
                 'data': {'departed': 'true'},
             },
@@ -221,69 +215,87 @@ class TestEndpoint(unittest.TestCase):
         tep = Endpoint.from_name('test-endpoint')
 
         self.assertEqual(len(tep.relations), 2)
-        self.assertEqual(len(tep.relations[0].units), 2)
-        self.assertEqual(len(tep.relations[1].units), 2)
+        self.assertEqual(len(tep.relations[0].joined_units), 2)
+        self.assertEqual(len(tep.relations[1].joined_units), 2)
         self.assertEqual(tep.relations['test-endpoint:0'].relation_id, 'test-endpoint:0')
-        self.assertEqual(len(tep.all_units), 4)
-        self.assertEqual([u.unit_name for r in tep.relations for u in r.units],
+        self.assertEqual(len(tep.all_joined_units), 4)
+        self.assertEqual([u.unit_name for r in tep.relations for u in r.joined_units],
                          ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
-        self.assertEqual([u.unit_name for u in tep.all_units],
+        self.assertEqual([u.unit_name for u in tep.all_joined_units],
                          ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
-        self.assertEqual(tep.relations[0].units['unit/1'].unit_name, 'unit/1')
+        self.assertEqual(tep.relations[0].joined_units['unit/1'].unit_name, 'unit/1')
         self.assertEqual(tep.relations[0].relation_id, 'test-endpoint:0')
         self.assertEqual(tep.relations[0].endpoint_name, 'test-endpoint')
         self.assertEqual(tep.relations[0].application_name, 'unit')
-        self.assertEqual(tep.relations[0].units[0].unit_name, 'unit/0')
-        self.assertEqual(tep.all_units.keys(), ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
-        self.assertEqual(tep.relations[0].units.keys(), ['unit/0', 'unit/1'])
+        self.assertEqual(tep.relations[0].joined_units[0].unit_name, 'unit/0')
+        self.assertEqual(tep.all_joined_units.keys(), ['unit/0', 'unit/1', 'unit/0', 'unit/1'])
+        self.assertEqual(tep.relations[0].joined_units.keys(), ['unit/0', 'unit/1'])
         self.assertEqual(tep.relations.keys(), ['test-endpoint:0', 'test-endpoint:1'])
+        self.assertIs(tep.all_units, tep.all_joined_units)  # deprecated
+        self.assertIs(tep.relations[0].units, tep.relations[0].joined_units)  # deprecated
 
     def test_departed(self):
+        # clean up some units for this test
+        del self.relations['test-endpoint'][0]['unit/1']
+        del self.relations['test-endpoint'][1]['unit/0']
+        # add unit/2 as joined
+        self.relations['test-endpoint'][0]['unit/2'] = {'departed': 'yes'}
+        # but set current hook as unit/2 departing
         self.hook_name = 'test-endpoint-relation-departed'
         self.relation_id = 'test-endpoint:0'
-        self.remote_unit = 'unit/1'
-        del self.relations['test-endpoint'][1]['unit/0']
-        self.relations['test-endpoint'][0]['unit/1'] = {'departed': 'yes'}
+        self.remote_unit = 'unit/2'
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
 
         self.assertCountEqual(tep.relations.keys(), ['test-endpoint:0', 'test-endpoint:1'])
-        self.assertCountEqual(tep.broken_relations.keys(), ['test-endpoint:2'])
-        self.assertCountEqual(tep.all_departed_units.keys(), ['unit/1', 'unit/3', 'unit/4'])
-        self.assertCountEqual(tep.relations['test-endpoint:0'].units.keys(), ['unit/0'])
-        self.assertCountEqual(tep.relations['test-endpoint:1'].units.keys(), ['unit/1'])
-        self.assertCountEqual(tep.relations['test-endpoint:0'].departed_units.keys(), ['unit/1', 'unit/3'])
-        self.assertCountEqual(tep.relations['test-endpoint:1'].departed_units.keys(), [])
-        self.assertCountEqual(tep.broken_relations['test-endpoint:2'].departed_units.keys(), ['unit/4'])
-        self.assertIs(tep.relations[0].departed_units[0].received['departed'], True)
-        self.assertEqual(tep.relations[0].departed_units[1].received_raw['departed'], 'yes')
+        self.assertCountEqual(tep.all_joined_units.keys(), ['unit/0', 'unit/1'])
+        self.assertCountEqual(tep.all_departed_units.keys(), ['unit/2', 'unit/3', 'unit/4'])
+        self.assertEqual(tep.all_departed_units['unit/2'].received_raw['departed'], 'yes')
+        self.assertIs(tep.all_departed_units['unit/3'].received['departed'], True)
 
-        self.assertCountEqual(self.kv.get('reactive.endpoints.departed.test-endpoint:0'), [
+        self.assertCountEqual(self.kv.get('reactive.endpoints.departed.test-endpoint'), [
             {
-                'unit_name': 'unit/1',
+                'relation': 'test-endpoint:0',
+                'unit_name': 'unit/2',
                 'data': {
                     'departed': 'yes',
                 },
             },
             {
+                'relation': 'test-endpoint:1',
                 'unit_name': 'unit/3',
                 'data': {
                     'departed': 'true',
                 },
             },
-        ])
-        del tep.relations[0].departed_units['unit/3']
-        self.assertEqual(self.kv.get('reactive.endpoints.departed.test-endpoint:0'), [
             {
-                'unit_name': 'unit/1',
+                'relation': 'test-endpoint:2',
+                'unit_name': 'unit/4',
+                'data': {
+                    'departed': 'true',
+                },
+            },
+        ])
+        del tep.all_departed_units['unit/3']
+        self.assertCountEqual(self.kv.get('reactive.endpoints.departed.test-endpoint'), [
+            {
+                'relation': 'test-endpoint:0',
+                'unit_name': 'unit/2',
                 'data': {
                     'departed': 'yes',
                 },
             },
+            {
+                'relation': 'test-endpoint:2',
+                'unit_name': 'unit/4',
+                'data': {
+                    'departed': 'true',
+                },
+            },
         ])
+        del tep.all_departed_units['unit/2']
         del tep.all_departed_units['unit/4']
-        self.assertIsNone(self.kv.get('reactive.endpoints.departed.test-endpoint:2'))
-        self.assertCountEqual(tep.all_departed_units.keys(), ['unit/1'])
+        self.assertIsNone(self.kv.get('reactive.endpoints.departed.test-endpoint'))
 
         # test relation moves to broken during last departed hook
         self.relation_id = 'test-endpoint:1'
@@ -291,60 +303,59 @@ class TestEndpoint(unittest.TestCase):
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
         self.assertEqual(tep.relations.keys(), ['test-endpoint:0'])
-        self.assertEqual(tep.broken_relations.keys(), ['test-endpoint:1'])
 
     def test_receive(self):
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
 
-        self.assertEqual(tep.all_units.received_raw, {'foo': 'yes',
-                                                      'bar': '[1, 2]'})
-        self.assertEqual(tep.all_units.received, {'foo': 'yes',
-                                                  'bar': [1, 2]})
-        self.assertEqual(tep.relations[0].units.received_raw, {'foo': 'yes'})
-        self.assertEqual(tep.relations[1].units.received_raw, {'foo': 'no',
-                                                               'bar': '[1, 2]'})
-        self.assertEqual(tep.relations[0].units.received, {'foo': 'yes'})
-        self.assertEqual(tep.relations[1].units.received, {'foo': 'no',
-                                                           'bar': [1, 2]})
-        self.assertEqual(tep.relations[0].units[0].received_raw, {'foo': 'yes'})
-        self.assertEqual(tep.relations[0].units[1].received_raw, {})
-        self.assertEqual(tep.relations[1].units[0].received_raw, {'bar': '[1, 2]'})
-        self.assertEqual(tep.relations[1].units[1].received_raw, {'foo': 'no'})
-        self.assertEqual(tep.relations[0].units[0].received, {'foo': 'yes'})
-        self.assertEqual(tep.relations[0].units[1].received, {})
-        self.assertEqual(tep.relations[1].units[0].received, {'bar': [1, 2]})
-        self.assertEqual(tep.relations[1].units[1].received, {'foo': 'no'})
+        self.assertEqual(tep.all_joined_units.received_raw, {'foo': 'yes',
+                                                             'bar': '[1, 2]'})
+        self.assertEqual(tep.all_joined_units.received, {'foo': 'yes',
+                                                         'bar': [1, 2]})
+        self.assertEqual(tep.relations[0].joined_units.received_raw, {'foo': 'yes'})
+        self.assertEqual(tep.relations[1].joined_units.received_raw, {'foo': 'no',
+                                                                      'bar': '[1, 2]'})
+        self.assertEqual(tep.relations[0].joined_units.received, {'foo': 'yes'})
+        self.assertEqual(tep.relations[1].joined_units.received, {'foo': 'no',
+                                                                  'bar': [1, 2]})
+        self.assertEqual(tep.relations[0].joined_units[0].received_raw, {'foo': 'yes'})
+        self.assertEqual(tep.relations[0].joined_units[1].received_raw, {})
+        self.assertEqual(tep.relations[1].joined_units[0].received_raw, {'bar': '[1, 2]'})
+        self.assertEqual(tep.relations[1].joined_units[1].received_raw, {'foo': 'no'})
+        self.assertEqual(tep.relations[0].joined_units[0].received, {'foo': 'yes'})
+        self.assertEqual(tep.relations[0].joined_units[1].received, {})
+        self.assertEqual(tep.relations[1].joined_units[0].received, {'bar': [1, 2]})
+        self.assertEqual(tep.relations[1].joined_units[1].received, {'foo': 'no'})
 
-        self.assertEqual(tep.all_units.received_raw['bar'], '[1, 2]')
-        self.assertEqual(tep.all_units.received_raw.get('bar'), '[1, 2]')
-        self.assertEqual(tep.all_units.received['bar'], [1, 2])
-        self.assertEqual(tep.all_units.received.get('bar'), [1, 2])
-        self.assertIsNone(tep.all_units.received_raw['none'])
-        self.assertEqual(tep.all_units.received_raw.get('none', 'default'), 'default')
-        self.assertIsNone(tep.all_units.received['none'])
-        self.assertEqual(tep.all_units.received.get('none', 'default'), 'default')
+        self.assertEqual(tep.all_joined_units.received_raw['bar'], '[1, 2]')
+        self.assertEqual(tep.all_joined_units.received_raw.get('bar'), '[1, 2]')
+        self.assertEqual(tep.all_joined_units.received['bar'], [1, 2])
+        self.assertEqual(tep.all_joined_units.received.get('bar'), [1, 2])
+        self.assertIsNone(tep.all_joined_units.received_raw['none'])
+        self.assertEqual(tep.all_joined_units.received_raw.get('none', 'default'), 'default')
+        self.assertIsNone(tep.all_joined_units.received['none'])
+        self.assertEqual(tep.all_joined_units.received.get('none', 'default'), 'default')
 
-        assert not tep.all_units.received_raw.writeable
-        assert not tep.all_units.received.writeable
-
-        with self.assertRaises(ValueError):
-            tep.all_units.received_raw['foo'] = 'nope'
+        assert not tep.all_joined_units.received_raw.writeable
+        assert not tep.all_joined_units.received.writeable
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units.received_raw['foo'] = 'nope'
+            tep.all_joined_units.received_raw['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units[0].received_raw['foo'] = 'nope'
+            tep.relations[0].joined_units.received_raw['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.all_units.received['foo'] = 'nope'
+            tep.relations[0].joined_units[0].received_raw['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units.received['foo'] = 'nope'
+            tep.all_joined_units.received['foo'] = 'nope'
 
         with self.assertRaises(ValueError):
-            tep.relations[0].units[0].received['foo'] = 'nope'
+            tep.relations[0].joined_units.received['foo'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[0].joined_units[0].received['foo'] = 'nope'
 
     def test_to_publish(self):
         Endpoint._startup()
