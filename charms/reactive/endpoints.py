@@ -18,7 +18,7 @@ import json
 from collections import UserDict
 from itertools import chain
 
-from charmhelpers.core import hookenv
+from charmhelpers.core import hookenv, unitdata
 from charms.reactive.flags import set_flag, toggle_flag, is_flag_set
 from charms.reactive.helpers import data_changed
 from charms.reactive.relations import RelationFactory, relation_factory
@@ -46,14 +46,19 @@ class Endpoint(RelationFactory):
     Four flags are automatically managed for each endpoint. Endpoint handlers
     can react to these flags using the :class:`~charms.reactive.decorators`.
 
-      * ``endpoint.{endpoint_name}.joined`` When the endpoint is :meth:`joined`.
-      * ``endpoint.{endpoint_name}.changed`` When any relation data has changed.
-      * ``endpoint.{endpoint_name}.changed.{field}`` When a specific field has changed.
-      * ``endpoint.{endpoint_name}.departed`` When a remote unit is leaving.
+      * ``endpoint.{endpoint_name}.joined`` is set when the endpoint is
+        :meth:`joined`: when the first remote unit from any relationship
+        connected to this endpoint joins. It is cleared when the last unit
+        from all relationships connected to this endpoint departs.
+      * ``endpoint.{endpoint_name}.changed`` when any relation data has
+        changed. It isn't automatically cleared.
+      * ``endpoint.{endpoint_name}.changed.{field}`` when a specific field
+        has changed. It isn't automatically cleared.
+      * ``endpoint.{endpoint_name}.departed`` when a remote unit is leaving.
+         It isn't automatically cleared.
 
-    The ``joined`` flag will be automatically removed if all remote units leave
-    all relations, but the others must be manually removed by the interface
-    layer.
+    For the flags that are not automatically cleared, it is up to the interface
+    author to clear the flag when it is "handled".
 
     These flags should only be used by the decorators of the endpoint handlers.
     While it is possible to use them with any decorators in any layer, these
@@ -116,6 +121,7 @@ class Endpoint(RelationFactory):
                     else rid for rid in rids]
             endpoint = relf(endpoint_name, rids)
             cls._endpoints[endpoint_name] = endpoint
+            endpoint._manage_departed()
             endpoint._manage_flags()
             for relation in endpoint.relations:
                 hookenv.atexit(relation._flush_data)
@@ -123,8 +129,9 @@ class Endpoint(RelationFactory):
     def __init__(self, endpoint_name, relation_ids=None):
         self._endpoint_name = endpoint_name
         self._relations = KeyList(map(Relation, relation_ids or []),
-                                  key='relation_id')
-        self._all_units = None
+                                  key_attr='relation_id')
+        self._all_joined_units = None
+        self._all_departed_units = None
 
     @property
     def endpoint_name(self):
@@ -136,9 +143,10 @@ class Endpoint(RelationFactory):
     @property
     def relations(self):
         """
-        Collection of `Relation`s that are established for this `Endpoint`.
+        Collection of :class:`Relation` instances that are established for
+        this :class:`Endpoint`.
 
-        This is a `KeyList`, so it can be iterated and indexed as a list,
+        This is a :class:`KeyList`, so it can be iterated and indexed as a list,
         or you can look up relations by their ID.  For example::
 
             rel0 = endpoint.relations[0]
@@ -154,7 +162,7 @@ class Endpoint(RelationFactory):
         """
         Whether this endpoint has remote applications attached to it.
         """
-        return len(self.relations) > 0
+        return len(self.all_units) > 0
 
     def expand_name(self, flag):
         """
@@ -167,6 +175,18 @@ class Endpoint(RelationFactory):
         if '{endpoint_name}' not in flag:
             flag = 'endpoint.{endpoint_name}.' + flag
         return flag.format(endpoint_name=self.endpoint_name)
+
+    def _manage_departed(self):
+        hook_name = hookenv.hook_name()
+        rel_hook = hook_name.startswith(self.endpoint_name + '-relation-')
+        departed_hook = rel_hook and hook_name.endswith('-departed')
+        if not departed_hook:
+            return
+        relation = self.relations[hookenv.relation_id()]
+        unit = relation.joined_units.pop(hookenv.remote_unit())
+        self.all_departed_units.append(unit)
+        if not relation.joined_units:
+            del self.relations[relation.relation_id]
 
     def _manage_flags(self):
         """
@@ -201,6 +221,14 @@ class Endpoint(RelationFactory):
     @property
     def all_units(self):
         """
+        .. deprecated:: 0.6.1
+           Use :attr:`all_joined_units` instead
+        """
+        return self.all_joined_units
+
+    @property
+    def all_joined_units(self):
+        """
         A list view of all the units of all relations attached to this
         :class:`~charms.reactive.endpoints.Endpoint`.
 
@@ -219,10 +247,36 @@ class Endpoint(RelationFactory):
         on a given endpoint, units may show up in this collection more than
         once.
         """
-        if self._all_units is None:
+        if self._all_joined_units is None:
             units = chain.from_iterable(rel.units for rel in self.relations)
-            self._all_units = CombinedUnitsView(units)
-        return self._all_units
+            self._all_joined_units = CombinedUnitsView(units)
+        return self._all_joined_units
+
+    @property
+    def all_departed_units(self):
+        """
+        Collection of all units that were previously part of any relation on
+        this endpoint but which have since departed.
+
+        This collection is persistent and mutable.  The departed units will
+        be kept until they are explicitly removed, to allow for reasonable
+        cleanup of units that have left.
+
+        Once a unit is departed, it will no longer show up in
+        :attr:`all_joined_units`.  Note that units are considered departed as
+        soon as the departed hook is entered, which differs slightly from how
+        the Juju primitives behave (departing units are still returned from
+        ``related-units`` until after the departed hook is complete).
+
+        This collection is a :class:`KeyList`, so can be used as a mapping to
+        look up units by their unit name, or iterated or accessed by index.
+        """
+        if self._all_departed_units is None:
+            self._all_departed_units = CachedKeyList.load(
+                'reactive.endpoints.departed.{}'.format(self.endpoint_name),
+                RelatedUnit._deserialize,
+                'unit_name')
+        return self._all_departed_units
 
 
 class Relation:
@@ -231,6 +285,7 @@ class Relation:
         self._endpoint_name = relation_id.split(':')[0]
         self._application_name = None
         self._units = None
+        self._departed_units = None
         self._data = None
 
     @property
@@ -251,6 +306,13 @@ class Relation:
         return self._endpoint_name
 
     @property
+    def endpoint(self):
+        """
+        This relation's :class:`Endpoint` instance.
+        """
+        return Endpoint.from_name(self.endpoint_name)
+
+    @property
     def application_name(self):
         """
         The name of the remote application for this relation, or ``None``.
@@ -266,7 +328,15 @@ class Relation:
     @property
     def units(self):
         """
-        A list view of all the units on this relation.
+        .. deprecated:: 0.6.1
+           Use :attr:`joined_units` instead
+        """
+        return self.joined_units
+
+    @property
+    def joined_units(self):
+        """
+        A list view of all the units joined on this relation.
 
         This is actually a
         :class:`~charms.reactive.endpoints.CombinedUnitsView`, so the units
@@ -343,16 +413,29 @@ class Relation:
         if self._data and self._data.modified:
             hookenv.relation_set(self.relation_id, dict(self.to_publish.data))
 
+    def _serialize(self):
+        return self.relation_id
+
+    @classmethod
+    def _deserialize(cls, relation_id):
+        endpoint = Endpoint.from_name(relation_id.split(':')[0])
+        if relation_id in endpoint.relations:
+            # prefer joined relations
+            return endpoint.relations[relation_id]
+        else:
+            # handle broken relations
+            return Relation(relation_id)
+
 
 class RelatedUnit:
     """
     Class representing a remote unit on a relation.
     """
-    def __init__(self, relation, unit_name):
+    def __init__(self, relation, unit_name, data=None):
         self._relation = relation
         self.unit_name = unit_name
         self.application_name = unit_name.split('/')[0]
-        self._data = None
+        self._data = data
 
     @property
     def relation(self):
@@ -382,6 +465,19 @@ class RelatedUnit:
         """
         return self.received.raw_data
 
+    def _serialize(self):
+        return {
+            'relation': self.relation._serialize(),
+            'unit_name': self.unit_name,
+            'data': dict(self.received_raw),
+        }
+
+    @classmethod
+    def _deserialize(cls, data):
+        return cls(Relation._deserialize(data['relation']),
+                   data['unit_name'],
+                   JSONUnitDataView(data['data']))
+
 
 class KeyList(list):
     """
@@ -389,9 +485,21 @@ class KeyList(list):
 
     Unlike dicts, the keys don't need to be unique.
     """
-    def __init__(self, items, key):
+    def __init__(self, items, key_attr):
+        """
+        :param list items: List of items
+        :param str key_attr: Attribute to use as the key for mapping access.
+        """
         super().__init__(items)
-        self._key = key
+        self._key_attr = key_attr
+
+    def _translate_key(self, key):
+        if isinstance(key, int):
+            return key
+        for i, item in enumerate(self):
+            if getattr(item, self._key_attr) == key:
+                return i
+        raise KeyError(key)
 
     def __getitem__(self, key):
         """
@@ -403,12 +511,13 @@ class KeyList(list):
         If a str is given, it will be used as a mapping key.  Since keys may not
         be unique, only the first item matching the given key will be returned.
         """
-        if isinstance(key, int):
-            return super().__getitem__(key)
-        for item in self:
-            if getattr(item, self._key) == key:
-                return item
-        raise KeyError(key)
+        return super().__getitem__(self._translate_key(key))
+
+    def __delitem__(self, key):
+        super().__delitem__(self._translate_key(key))
+
+    def pop(self, key):
+        return super().pop(self._translate_key(key))
 
     def keys(self):
         """
@@ -419,7 +528,7 @@ class KeyList(list):
         contain duplicate values.  The keys will be returned in the order of the
         items in the list.
         """
-        return [getattr(item, self._key) for item in self]
+        return [getattr(item, self._key_attr) for item in self]
 
     def values(self):
         """
@@ -428,6 +537,66 @@ class KeyList(list):
         This is equivalent to ``list(keylist)``.
         """
         return list(self)
+
+    def items(self):
+        return ((getattr(item, self._key_attr), item) for item in self)
+
+    def __contains__(self, key_or_value):
+        return key_or_value in self.keys() or key_or_value in self.values()
+
+
+class CachedKeyList(KeyList):
+    """
+    Variant of :class:`KeyList` where items are serialized and persisted
+    or removed from the persisted copy, whenever the list is modified.
+    """
+    def __init__(self, cache_key, items, key_attr):
+        self._cache_key = cache_key
+        super().__init__(items, key_attr)
+
+    @classmethod
+    def load(cls, cache_key, deserializer, key_attr):
+        """
+        Load the persisted cache and return a new instance of this class.
+        """
+        items = unitdata.kv().get(cache_key) or []
+        return cls(cache_key,
+                   [deserializer(item) for item in items],
+                   key_attr)
+
+    def _save(self):
+        if not self:
+            unitdata.kv().unset(self._cache_key)
+        else:
+            unitdata.kv().set(self._cache_key, [item._serialize() for item in self])
+
+    def __setitem__(self, key, value):
+        super().__setitem__(self._translate_key(key), value)
+        self._save()
+
+    def __delitem__(self, key):
+        super().__delitem__(self._translate_key(key))
+        self._save()
+
+    def pop(self, key):
+        super().pop(self._translate_key(key))
+        self._save()
+
+    def remove(self, value):
+        super().remove(value)
+        self._save()
+
+    def clear(self):
+        super().clear()
+        self._save()
+
+    def append(self, value):
+        super().append(value)
+        self._save()
+
+    def extend(self, values):
+        super().extend(values)
+        self._save()
 
 
 class CombinedUnitsView(KeyList):
@@ -498,7 +667,7 @@ class CombinedUnitsView(KeyList):
     def __init__(self, items):
         super().__init__(sorted(items, key=lambda i: (i.relation.relation_id,
                                                       i.unit_name)),
-                         key='unit_name')
+                         key_attr='unit_name')
 
     @property
     def received(self):

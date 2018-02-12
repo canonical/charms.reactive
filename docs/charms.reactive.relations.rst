@@ -15,6 +15,7 @@ base for writing interface layers.  Eventually, this should be moved in to `char
 
 .. automodule:: charms.reactive.endpoints
     :members:
+    :ignore-module-all:
     :undoc-members:
     :show-inheritance:
 
