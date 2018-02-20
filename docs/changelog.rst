@@ -1,5 +1,11 @@
 **Changelog**
 
+0.6.1
+^^^^^
+
+* Separate departed units from joined in Endpoint (#153)
+* Add deprecated placeholder for RelationBase.from_state (#148)
+
 0.6.0
 ^^^^^
 

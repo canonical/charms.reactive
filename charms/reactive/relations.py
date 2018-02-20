@@ -331,7 +331,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
     @classmethod
     def from_state(cls, state):
         """
-        .. deprecated:: 0.6.0
+        .. deprecated:: 0.6.1
            use :func:`endpoint_from_flag` instead
         """
         return cls.from_flag(state)
