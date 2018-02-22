@@ -58,7 +58,13 @@ class Endpoint(RelationFactory):
          It isn't automatically cleared.
 
     For the flags that are not automatically cleared, it is up to the interface
-    author to clear the flag when it is "handled".
+    author to clear the flag when it is "handled". The following diagram shows
+    how these flags relate. In summary, the ``joined`` flag represents the state
+    of the relationship and will be automatically cleared when all units are
+    gone. ``changed`` and ``departed`` represents relationship events and have to
+    be cleared manually by the handler.
+
+    .. image:: _static/endpoints-workflow.svg
 
     These flags should only be used by the decorators of the endpoint handlers.
     While it is possible to use them with any decorators in any layer, these
@@ -261,6 +267,18 @@ class Endpoint(RelationFactory):
         This collection is persistent and mutable.  The departed units will
         be kept until they are explicitly removed, to allow for reasonable
         cleanup of units that have left.
+
+        Example: You need to run a command each time a unit departs the relation.
+
+        .. code-block:: python
+
+            @when('endpoint.{endpoint_name}.departed')
+            def handle_departed_unit(self):
+                for name, unit in self.all_departed_units.items():
+                    # run the command to remove `unit` from the cluster
+                    #  ..
+                self.all_departed_units.clear()
+                clear_flag(self.expand_name('departed'))
 
         Once a unit is departed, it will no longer show up in
         :attr:`all_joined_units`.  Note that units are considered departed as
