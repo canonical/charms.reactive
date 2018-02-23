@@ -1,5 +1,13 @@
 **Changelog**
 
+0.6.2
+^^^^^
+Friday Feb 23 2018
+
+* Hotfix for issue #161 (#162)
+* Add diagram showing endpoint workflow and all_departed_units example to docs (#157)
+* Fix doc builds on RTD (#156)
+
 0.6.1
 ^^^^^
 
