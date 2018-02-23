@@ -87,9 +87,9 @@ class TestEndpoint(unittest.TestCase):
                 len(self.relations.get(endpoint, [])))]
         self.rel_units_p = mock.patch('charmhelpers.core.hookenv.related_units')
         rel_units_m = self.rel_units_p.start()
-        rel_units_m.side_effect = lambda rid: [key for key in _rel(rid).keys()
-                                               if (not key.startswith('local')
-                                                   and not _rel(rid)[key].get('departed'))]
+        rel_units_m.side_effect = lambda rid: [
+            key for key in _rel(rid).keys()
+            if (not key.startswith('local') and not _rel(rid)[key].get('departed'))]
         self.rel_get_p = mock.patch('charmhelpers.core.hookenv.relation_get')
         rel_get_m = self.rel_get_p.start()
         rel_get_m.side_effect = lambda unit, rid: _rel(rid)[unit]
