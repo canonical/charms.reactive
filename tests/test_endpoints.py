@@ -88,7 +88,8 @@ class TestEndpoint(unittest.TestCase):
         self.rel_units_p = mock.patch('charmhelpers.core.hookenv.related_units')
         rel_units_m = self.rel_units_p.start()
         rel_units_m.side_effect = lambda rid: [key for key in _rel(rid).keys()
-                                               if not key.startswith('local')]
+                                               if (not key.startswith('local')
+                                                   and not _rel(rid)[key].get('departed'))]
         self.rel_get_p = mock.patch('charmhelpers.core.hookenv.relation_get')
         rel_get_m = self.rel_get_p.start()
         rel_get_m.side_effect = lambda unit, rid: _rel(rid)[unit]
@@ -300,6 +301,7 @@ class TestEndpoint(unittest.TestCase):
         # test relation moves to broken during last departed hook
         self.relation_id = 'test-endpoint:1'
         self.remote_unit = 'unit/1'
+        self.relations['test-endpoint'][1]['unit/1'] = {'departed': 'yes'}
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
         self.assertEqual(tep.relations.keys(), ['test-endpoint:0'])
