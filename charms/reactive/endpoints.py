@@ -189,7 +189,7 @@ class Endpoint(RelationFactory):
         if not departed_hook:
             return
         relation = self.relations[hookenv.relation_id()]
-        unit = relation.joined_units.pop(hookenv.remote_unit())
+        unit = RelatedUnit(relation, hookenv.remote_unit())
         self.all_departed_units.append(unit)
         if not relation.joined_units:
             del self.relations[relation.relation_id]
