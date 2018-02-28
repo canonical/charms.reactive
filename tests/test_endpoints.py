@@ -383,9 +383,18 @@ class TestEndpoint(unittest.TestCase):
         rel.to_publish.update({'key': {'new': 'new'}})
         self.assertEqual(rel.to_publish_raw, {'key': '{"new": "new"}'})
 
-        assert isinstance(rel.to_publish.get('foo', {}), dict)
-        assert isinstance(rel.to_publish.setdefault('foo', {}), dict)
-        assert isinstance(rel.to_publish['foo'], dict)
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish.get('foo', 'one') == 'one'
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish.setdefault('foo', 'two') == 'two'
+        assert 'foo' in rel.to_publish
+        assert rel.to_publish['foo'] == 'two'
+        del rel.to_publish['foo']
+        assert 'foo' not in rel.to_publish
+        with self.assertRaises(KeyError):
+            del rel.to_publish['foo']
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish['foo'] is None
 
     def test_handlers(self):
         Handler._HANDLERS = {k: h for k, h in Handler._HANDLERS.items()
