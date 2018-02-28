@@ -383,6 +383,10 @@ class TestEndpoint(unittest.TestCase):
         rel.to_publish.update({'key': {'new': 'new'}})
         self.assertEqual(rel.to_publish_raw, {'key': '{"new": "new"}'})
 
+        assert isinstance(rel.to_publish.get('foo', {}), dict)
+        assert isinstance(rel.to_publish.setdefault('foo', {}), dict)
+        assert isinstance(rel.to_publish['foo'], dict)
+
     def test_handlers(self):
         Handler._HANDLERS = {k: h for k, h in Handler._HANDLERS.items()
                              if hasattr(h, '_action') and
