@@ -748,6 +748,11 @@ class UnitDataView(UserDict):
         self._modified = True
         self.data[key] = value
 
+    def setdefault(self, key, value):
+        if key not in self:
+            self[key] = value
+        return self[key]
+
 
 class JSONUnitDataView(UserDict):
     """
@@ -807,6 +812,11 @@ class JSONUnitDataView(UserDict):
 
     def __setitem__(self, key, value):
         self.raw_data[key] = json.dumps(value, sort_keys=True)
+
+    def setdefault(self, key, value):
+        if key not in self:
+            self[key] = value
+        return self[key]
 
 
 hookenv.atstart(Endpoint._startup)
