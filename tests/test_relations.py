@@ -464,16 +464,15 @@ class TestConversation(unittest.TestCase):
         conv.remove_state('{relation_name}.bar')
         get_flag_value.assert_called_once_with('rel.bar')
         assert not set_flag.called
-        assert not clear_flag.called
+        assert clear_flag.called
 
         conv.remove_state('{relation_name}.bar')
         set_flag.assert_called_once_with('rel.bar', {'conversations': ['foo']})
-        assert not clear_flag.called
+        assert clear_flag.called
 
         set_flag.reset_mock()
         conv.remove_state('{relation_name}.bar')
         assert not set_flag.called
-        clear_flag.assert_called_once_with('rel.bar')
 
     @mock.patch.object(relations, '_get_flag_value')
     def test_is_state(self, get_flag_value):

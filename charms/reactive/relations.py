@@ -702,6 +702,7 @@ class Conversation(object):
         state = state.format(relation_name=self.relation_name)
         value = _get_flag_value(state)
         if not value:
+            clear_flag(state)
             return
         if self.key in value['conversations']:
             value['conversations'].remove(self.key)
