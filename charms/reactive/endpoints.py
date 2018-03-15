@@ -451,8 +451,8 @@ class RelatedUnit:
     """
     def __init__(self, relation, unit_name, data=None):
         self._relation = relation
-        self.unit_name = unit_name
-        self.application_name = unit_name.split('/')[0]
+        self._unit_name = unit_name
+        self._application_name = unit_name.split('/')[0]
         self._data = data
 
     @property
@@ -461,6 +461,20 @@ class RelatedUnit:
         The relation to which this unit belongs.
         """
         return self._relation
+
+    @property
+    def unit_name(self):
+        """
+        The name of this unit.
+        """
+        return self._unit_name
+
+    @property
+    def application_name(self):
+        """
+        The name of the application to which this unit belongs.
+        """
+        return self._application_name
 
     @property
     def received(self):
