@@ -164,7 +164,7 @@ class Endpoint(RelationFactory):
         return self._relations
 
     @property
-    def joined(self):
+    def is_joined(self):
         """
         Whether this endpoint has remote applications attached to it.
         """
@@ -203,7 +203,7 @@ class Endpoint(RelationFactory):
         rel_hook = hook_name.startswith(self.endpoint_name + '-relation-')
         departed_hook = rel_hook and hook_name.endswith('-departed')
 
-        toggle_flag(self.expand_name('joined'), self.joined)
+        toggle_flag(self.expand_name('joined'), self.is_joined)
 
         if departed_hook:
             set_flag(self.expand_name('departed'))
