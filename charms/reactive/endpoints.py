@@ -97,10 +97,10 @@ class Endpoint(RelationFactory):
         The ``{name}}`` portion will be passed to
         :meth:`~charms.reactive.endpoints.Endpoint.from_name`.
 
-        If an appropriate Endpoint sublcass cannot be found, or the flag name
-        can't be parsed, ``None`` will be returned.
+        If the flag is not set, an appropriate Endpoint subclass cannot be
+        found, or the flag name can't be parsed, ``None`` will be returned.
         """
-        if '.' not in flag:
+        if not is_flag_set(flag) or '.' not in flag:
             return None
         parts = flag.split('.')
         if parts[0] == 'endpoint':
