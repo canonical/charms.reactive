@@ -21,7 +21,7 @@ import unittest
 from pathlib import Path
 
 from charmhelpers.core import unitdata
-from charms.reactive import Endpoint, is_flag_set, clear_flag
+from charms.reactive import Endpoint, set_flag, is_flag_set, clear_flag
 from charms.reactive.bus import discover, dispatch, Handler
 
 
@@ -150,8 +150,14 @@ class TestEndpoint(unittest.TestCase):
         self.assertIsNone(Endpoint.from_flag('foo'))
         self.assertIsNone(Endpoint.from_flag('bar.qux.zod'))
 
+        # should return None for unset flag
+        self.assertIsNone(Endpoint.from_flag('endpoint.foo.qux'))
+
+        # once flag is set, should return the endpoint
+        set_flag('endpoint.foo.qux')
         self.assertIs(Endpoint.from_flag('endpoint.foo.qux'), endpoint)
 
+        set_flag('foo.qux')
         self.assertIs(Endpoint.from_flag('foo.qux'), endpoint)
 
     def test_startup(self):
