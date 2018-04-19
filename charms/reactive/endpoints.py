@@ -170,6 +170,14 @@ class Endpoint(RelationFactory):
         """
         return len(self.all_units) > 0
 
+    @property
+    def joined(self):
+        """
+        .. deprecated:: 0.6.3
+           Use :attr:`is_joined` instead
+        """
+        return self.is_joined
+
     def expand_name(self, flag):
         """
         Complete a flag for this endpoint by expanding the endpoint name.
