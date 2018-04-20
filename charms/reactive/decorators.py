@@ -97,8 +97,10 @@ def _when_decorator(predicate, desired_flags, action, legacy_args=False):
         handler.add_predicate(partial(predicate, flags))
         if _is_endpoint_method(action):
             # Endpoint handler methods expect self to be passed in to conform
-            # to instance method convention.
-            handler.add_args(map(endpoint_from_name, [endpoint_name]))
+            # to instance method convention. But mutliple decorators should
+            # take care to not pass in multiple copies of self.
+            if not handler.has_args:
+                handler.add_args(map(endpoint_from_name, [endpoint_name]))
         elif has_params and legacy_args:
             # Handlers should all move to not taking any params and getting
             # the Endpoint instances from the context, but during the

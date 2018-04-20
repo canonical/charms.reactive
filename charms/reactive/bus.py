@@ -131,6 +131,13 @@ class Handler(object):
         """
         self._args.append(args)
 
+    @property
+    def has_args(self):
+        """
+        Whether or not this Handler has had any args added via :meth:`add_args`.
+        """
+        return len(self._args) > 0
+
     def add_predicate(self, predicate):
         """
         Add a new predicate callback to this handler.
