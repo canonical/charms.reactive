@@ -164,12 +164,14 @@ class TestEndpoint(unittest.TestCase):
         assert Endpoint.from_name('test-endpoint') is not None
         assert Endpoint.from_name('test-endpoint').endpoint_name == 'test-endpoint'
         assert Endpoint.from_name('test-endpoint').is_joined
+        assert Endpoint.from_name('test-endpoint').joined  # deprecated
         assert is_flag_set('endpoint.test-endpoint.joined')
         assert is_flag_set('endpoint.test-endpoint.changed')
         assert is_flag_set('endpoint.test-endpoint.changed.foo')
         assert Endpoint.from_name('test-endpoint2') is not None
         assert Endpoint.from_name('test-endpoint2').endpoint_name == 'test-endpoint2'
         assert not Endpoint.from_name('test-endpoint2').is_joined
+        assert not Endpoint.from_name('test-endpoint2').joined  # deprecated
         assert not is_flag_set('endpoint.test-endpoint2.joined')
         assert not is_flag_set('endpoint.test-endpoint2.changed')
         assert not is_flag_set('endpoint.test-endpoint2.changed.foo')
