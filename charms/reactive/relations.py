@@ -30,6 +30,7 @@ from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
 __all__ = [
+    'endpoint_from_name',
     'endpoint_from_flag',
     'relation_from_flag',  # DEPRECATED
     'scopes',  # DEPRECATED
