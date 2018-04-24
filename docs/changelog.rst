@@ -1,5 +1,17 @@
 **Changelog**
 
+0.6.3
+^^^^^
+Tuesday Apr 24 2018
+
+* Export endpoint_from_name as well (#174)
+* Rename Endpoint.joined to Endpoint.is_joined (#168)
+* Only pass one copy of self to Endpoint method handlers (#172)
+* Make Endpoint.from_flag return None for unset flags (#173)
+* Fix hard-coded version in docs config (#167)
+* Fix documentation of unit_name and application_name on RelatedUnit (#165)
+* Fix setdefault on Endpoint data collections (#163)
+
 0.6.2
 ^^^^^
 Friday Feb 23 2018
