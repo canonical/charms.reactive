@@ -33,6 +33,7 @@ from charmhelpers.core import unitdata
 
 # DEPRECATED: transitional imports for backwards compatibility
 bus.StateList = flags.StateList
+bus.State = flags.State
 bus.set_state = flags.set_flag
 bus.remove_state = flags.clear_flag
 bus.get_state = flags.get_state
