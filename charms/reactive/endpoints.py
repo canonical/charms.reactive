@@ -829,7 +829,8 @@ class JSONUnitDataView(UserDict):
             return value
         try:
             return json.loads(value)
-        except json.JSONDecodeError:
+        except Exception:
+            # Catch json.JSONDecodeError when we drop Python 3.4 support.
             return value
 
     def __setitem__(self, key, value):
