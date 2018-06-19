@@ -48,8 +48,7 @@ directory.
 .. note:: Because ``update-status`` is invoked every 5 minutes, you should take
    care to ensure that your reactive handlers only invoke expensive operations
    when absolutely necessary.  It is recommended that you use helpers like
-   :func:`@when_file_changed <charms.reactive.decorators.when_file_changed>`,
-   and :func:`@data_changed <charms.reactive.helpers.data_changed>` to ensure
+   :func:`@data_changed <charms.reactive.helpers.data_changed>` to ensure
    that handlers run only when necessary.
 ```
 
@@ -87,6 +86,16 @@ def my_opt_changed():
     restart_service()
 ```
 
+```eval_rst
+.. note:: The config flag are now managed by the reactive library directly,
+  however, the behavior with respect to automatic removal is changing slightly.
+  The existing behavior is selected by setting the ``autoremove_config_flags``
+  layer option to ``true``, which is currently the default but is expected to
+  change.  See :ref:`automatic-flags` and
+  :ref:`Layer Configuration <layer-basic/layer-config>` for
+  more info.
+```
+
 
 ```eval_rst
 .. _layer-basic/layer-config:
@@ -116,6 +125,18 @@ This layer supports the following options, which can be set in `layer.yaml`:
     the `--system-site-packages` options to make system Python libraries
     visible within the venv.
 
+  * **autoremove_config_flags** If set to true, the legacy behavior of
+    automatically removing the various `config.*` flags is enabled.  Otherwise,
+    the flags will not be removed and they should be removed by the top-level
+    charm layer as processed, while base layers should use [triggers].
+    
+    ```eval_rst
+    .. note:: The current default value for ``autoremove_config_flags`` is
+       ``true`` but is expected to change to ``false`` in the future.
+    ```
+
+[triggers]: https://charmsreactive.readthedocs.io/en/latest/charms.reactive.flags.html#charms.reactive.flags.register_trigger
+
 An example `layer.yaml` using these options might be:
 
 ```yaml
@@ -125,6 +146,7 @@ options:
     packages: ['git']
     use_venv: true
     include_system_packages: true
+    autoremove_config_flags: false
 ```
 
 
