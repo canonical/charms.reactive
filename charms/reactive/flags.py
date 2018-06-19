@@ -1,4 +1,6 @@
+
 from charmhelpers.cli import cmdline
+from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 
 from charms.reactive.bus import FlagWatch
@@ -269,3 +271,20 @@ def get_state(flag, default=None):
        For internal use only.
     """
     return _get_flag_value(flag, default)
+
+
+# INTERNAL
+
+@hookenv.atstart
+def _manage_automatic_flags():
+    _manage_upgrade_flags()
+
+
+def _manage_upgrade_flags():
+    hook_name = hookenv.hook_name()
+
+    if hook_name == 'pre-series-upgrade':
+        set_flag('upgrade.series.pre')
+
+    if hook_name == 'post-series-upgrade':
+        set_flag('upgrade.series.post')
