@@ -158,6 +158,11 @@ class TestReactiveHelpers(unittest.TestCase):
     @mock.patch('charmhelpers.core.host.file_hash')
     def test_any_file_changed_argtypes(self, file_hash):
         file_hash.return_value = 'beep'
+        self.kv.update({
+            'one': 'beep',
+            'two': 'beep',
+            '3': 'beep',
+        }, prefix='reactive.files_changed.')
         # A filename may be a callable, in which case it is called and
         # the result used, and are cast to strings.
         reactive.helpers.any_file_changed(['one', lambda: 'two', 3])

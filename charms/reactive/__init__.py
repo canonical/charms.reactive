@@ -15,7 +15,6 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-import sys
 import traceback
 
 from .flags import *  # noqa
@@ -55,7 +54,8 @@ def main(relation_name=None):
 
     :param str relation_name: Optional name of the relation which is being handled.
     """
-    restricted_mode = hookenv.hook_name() in ['meter-status-changed', 'collect-metrics']
+    hook_name = hookenv.hook_name()
+    restricted_mode = hook_name in ['meter-status-changed', 'collect-metrics']
 
     hookenv.log('Reactive main running for hook %s' % hookenv.hook_name(), level=hookenv.INFO)
     if restricted_mode:
@@ -64,7 +64,7 @@ def main(relation_name=None):
     # work-around for https://bugs.launchpad.net/juju-core/+bug/1503039
     # ensure that external handlers can tell what hook they're running in
     if 'JUJU_HOOK_NAME' not in os.environ:
-        os.environ['JUJU_HOOK_NAME'] = os.path.basename(sys.argv[0])
+        os.environ['JUJU_HOOK_NAME'] = hook_name
 
     try:
         bus.discover()

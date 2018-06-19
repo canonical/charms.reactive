@@ -1,4 +1,9 @@
+from pathlib import Path
+
+import yaml
+
 from charmhelpers.cli import cmdline
+from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 
 from charms.reactive.bus import FlagWatch
@@ -269,3 +274,86 @@ def get_state(flag, default=None):
        For internal use only.
     """
     return _get_flag_value(flag, default)
+
+
+# INTERNAL
+
+@hookenv.atstart
+def _manage_automatic_flags():
+    _manage_upgrade_flags()
+    _manage_config_flags()
+    _manage_leadership_flags()
+    # TODO: storage flags?
+
+
+def _manage_upgrade_flags():
+    # import here to prevent circular import :(
+    from charms.reactive.helpers import data_changed
+    hook_name = hookenv.hook_name()
+    charm_dir = Path(hookenv.charm_dir())
+
+    if hook_name == 'upgrade-charm':
+        charm_rev = (charm_dir / '.juju-charm').read_text()
+        if data_changed('reactive.charm-rev', charm_rev):
+            clear_flag('upgrade.charm.completed')
+            set_flag('upgrade.charm.completed')
+        clear_flag('upgrade.resources.check')
+        set_flag('upgrade.resources.check')
+
+    if hook_name == 'pre-series-upgrade':
+        clear_flag('upgrade.series.started')
+        set_flag('upgrade.series.started')
+
+    if hook_name == 'post-series-upgrade':
+        clear_flag('upgrade.series.completed')
+        set_flag('upgrade.series.completed')
+
+
+def _manage_config_flags():
+    # import here to prevent circular import :(
+    from charms.reactive.helpers import data_changed
+
+    config = hookenv.config()
+    config_defaults = {}
+    config_path = Path(hookenv.charm_dir()) / 'config.yaml'
+    if config_path.exists():
+        config_yaml = yaml.safe_load(config_path.read_text())
+        config_defs = config_yaml.get('options', {})
+        config_defaults = {key: value.get('default')
+                           for key, value in config_defs.items()}
+    any_changed = False
+    for opt, value in config.items():
+        if data_changed('reactive.config.{}'.format(opt), value):
+            any_changed = True
+            set_flag('config.changed.{}'.format(opt))
+        toggle_flag('config.set.{}'.format(opt), value not in (None, ''))
+        toggle_flag('config.default.{}'.format(opt),
+                    value == config_defaults.get(opt))
+    if any_changed:
+        set_flag('config.changed')
+
+
+def _manage_leadership_flags():
+    # import here to prevent circular import :(
+    from charms.reactive.helpers import data_changed
+
+    # defer to leadership layer if included
+    try:
+        import charms.leadership  # noqa
+    except ImportError:
+        pass
+    else:
+        return
+
+    is_leader = hookenv.is_leader()
+    toggle_flag('leadership.is_leader', is_leader)
+
+    leader_settings = hookenv.leader_get()
+    any_changed = False
+    for setting, value in leader_settings.items():
+        if data_changed('reactive.leadership.{}'.format(setting), value):
+            any_changed = True
+            set_flag('leadership.changed.{}'.format(setting))
+        toggle_flag('leadership.set.{}'.format(setting), value is not None)
+    if any_changed:
+        set_flag('leadership.changed')

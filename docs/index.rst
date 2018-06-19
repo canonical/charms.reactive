@@ -69,6 +69,7 @@ Table of Contents
    :maxdepth: 3
 
    structure
+   managed-flags
    layer-basic
    bash-reactive
    faq
