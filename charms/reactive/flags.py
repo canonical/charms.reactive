@@ -284,7 +284,7 @@ def _manage_upgrade_flags():
     hook_name = hookenv.hook_name()
 
     if hook_name == 'pre-series-upgrade':
-        set_flag('upgrade.series.pre')
+        set_flag('upgrade.series.in-progress')
 
     if hook_name == 'post-series-upgrade':
-        set_flag('upgrade.series.post')
+        clear_flag('upgrade.series.in-progress')

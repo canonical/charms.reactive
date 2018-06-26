@@ -18,14 +18,12 @@ with a layer-specific flag that can be safely used within that layer.
 The flags that are set by the framework are:
 
 +----------------------------------------------+------------------------------------------------------------+
-| ``upgrade.series.pre``                       | This is set when the ``pre-series-upgrade`` hook is        |
+| ``upgrade.series.in-progress``               | This is set when the ``pre-series-upgrade`` hook is        |
 |                                              | fired, indicating that any application services should     |
 |                                              | be stopped and disabled so that they do not start on       |
 |                                              | reboot, so that the operator can perform a OS series       |
-|                                              | upgrade.                                                   |
-+----------------------------------------------+------------------------------------------------------------+
-| ``upgrade.series.post``                      | This is set when the ``post-series-upgrade`` hook is       |
-|                                              | fired, indicating that the operator has completed the      |
+|                                              | upgrade, and removed when the ``post-series-upgrade`` hook |
+|                                              | is fired, indicating that the operator has completed the   |
 |                                              | series upgrade and any application migrations should be    |
 |                                              | performed and any services should be resumed and           |
 |                                              | re-enabled.                                                |
