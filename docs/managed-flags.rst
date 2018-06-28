@@ -18,15 +18,9 @@ with a layer-specific flag that can be safely used within that layer.
 The flags that are set by the framework are:
 
 +----------------------------------------------+------------------------------------------------------------+
-| ``upgrade.series.in-progress``               | This is set when the ``pre-series-upgrade`` hook is        |
-|                                              | fired, indicating that any application services should     |
-|                                              | be stopped and disabled so that they do not start on       |
-|                                              | reboot, so that the operator can perform a OS series       |
-|                                              | upgrade, and removed when the ``post-series-upgrade`` hook |
-|                                              | is fired, indicating that the operator has completed the   |
-|                                              | series upgrade and any application migrations should be    |
-|                                              | performed and any services should be resumed and           |
-|                                              | re-enabled.                                                |
+| ``upgrade.series.in-progress``               | This is set when the operator is about to start an OS      |
+|                                              | upgrade, and removed after the operator has completed the  |
+|                                              | upgrade.  See :doc:`series-upgrade` for more information.  |
 +----------------------------------------------+------------------------------------------------------------+
 | ``config.changed``                           | This is set when any config option has changed. [1]_       |
 +----------------------------------------------+------------------------------------------------------------+
