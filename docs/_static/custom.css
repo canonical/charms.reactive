@@ -5,3 +5,8 @@
 .rst-content code.xref {
     color: #2980B9;
 }
+
+#automatic-flags td,
+#reactive-api-documentation td {
+    white-space: normal;
+}

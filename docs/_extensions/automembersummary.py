@@ -44,9 +44,12 @@ class AutoMemberSummary(Autosummary):
 
         def _get_items(name):
             _items = super(AutoMemberSummary, self).get_items([shorten + name])
+            if self.result.data and ".. deprecated::" in self.result.data[0]:
+                # don't show deprecated classes / functions in summary
+                return
             for dn, sig, summary, rn in _items:
-                # Don't show deprecated methods in summary
                 if ".. deprecated::" in summary:
+                    # don't show deprecated methods in summary
                     continue
                 items.append(('%s%s' % (prefix, dn), sig, summary, rn))
 
