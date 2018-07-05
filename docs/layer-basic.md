@@ -243,17 +243,21 @@ options:
     enable-bar: true  # set the "enable-bar" option to true
 ```
 
-The `foo` layer can then use the `charms.layer.options` helper to load the values
-for the options that it defined.  For example:
+The `foo` layer can then use the API provided by the [`options` layer][layer-options]
+(which is automatically included via the `basic` layer) to load the values for the
+options that it defined.  For example:
 
 ```python
 from charms import layer
 
 @when('flag')
 def do_thing():
-  layer_opts = layer.options('foo')  # load all of the options for the "foo" layer
-  if layer_opts['enable-bar']:  # check the value of the "enable-bar" option
+  # check the value of the "enable-bar" option for the "foo" layer
+  if layer.options.get('foo', 'enable-bar'):
       hookenv.log("Bar is enabled")
+
+  # or get all of the options for the "foo" layer as a dict
+  foo_opts = layer.options.get('foo')
 ```
 
 You can also access layer options in other handlers, such as Bash, using
@@ -287,6 +291,7 @@ will be printed out.
 [pypi charms.X]: https://pypi.python.org/pypi?%3Aaction=search&term=charms.&submit=search
 [`requirements.txt`]: https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
 [layer-basic]: https://github.com/juju-solutions/layer-basic
+[layer-options]: https://github.com/juju-solutions/layer-options
 
 <!---
 Hard-coding links to other charms.reactive docs is currently required.
