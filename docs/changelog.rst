@@ -1,5 +1,16 @@
 **Changelog**
 
+1.0.0
+^^^^^
+Wednesday Aug 8 2018
+
+* Preliminary support for operating system series upgrades (#183)
+* Hotfix for Python 3.4 incompatibility (#181)
+* Hotfix adding missed backwards compatibility alias (#176)
+* Documentation updates, including merging in core layer docs (#186)
+* Acknowledgment by version number that this is mature software
+  (and has been for quite some time).
+
 0.6.3
 ^^^^^
 Tuesday Apr 24 2018
