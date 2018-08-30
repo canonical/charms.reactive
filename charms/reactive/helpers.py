@@ -129,6 +129,17 @@ def mark_invoked(invocation_id):
     unitdata.kv().set('reactive.invoked.%s' % invocation_id, True)
 
 
+def _data_changed(data_id, data, hash_type, update):
+    key = 'reactive.data_changed.%s' % data_id
+    alg = getattr(hashlib, hash_type)
+    serialized = json.dumps(data, sort_keys=True).encode('utf8')
+    old_hash = unitdata.kv().get(key)
+    new_hash = alg(serialized).hexdigest()
+    if update:
+        unitdata.kv().set(key, new_hash)
+    return old_hash != new_hash
+
+
 def data_changed(data_id, data, hash_type='md5'):
     """
     Check if the given set of data has changed since the previous call.
@@ -141,13 +152,21 @@ def data_changed(data_id, data, hash_type='md5'):
     :param data: JSON-serializable data.
     :param str hash_type: Any hash algorithm supported by :mod:`hashlib`.
     """
-    key = 'reactive.data_changed.%s' % data_id
-    alg = getattr(hashlib, hash_type)
-    serialized = json.dumps(data, sort_keys=True).encode('utf8')
-    old_hash = unitdata.kv().get(key)
-    new_hash = alg(serialized).hexdigest()
-    unitdata.kv().set(key, new_hash)
-    return old_hash != new_hash
+    return _data_changed(data_id, data, hash_type, True)
+
+
+def is_data_changed(data_id, data, hash_type='md5'):
+    """
+    Check if the given set of data has changed since the last time
+    `data_changed` was called.
+
+    That is, this is a non-destructive way to check if the data has changed.
+
+    :param str data_id: Unique identifier for this set of data.
+    :param data: JSON-serializable data.
+    :param str hash_type: Any hash algorithm supported by :mod:`hashlib`.
+    """
+    return _data_changed(data_id, data, hash_type, False)
 
 
 def _hook(hook_patterns):
