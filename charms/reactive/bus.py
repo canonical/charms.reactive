@@ -24,6 +24,7 @@ from functools import partial
 
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
+from charms.reactive.trace import tracer
 
 
 _log_opts = os.environ.get('REACTIVE_LOG_OPTS', '').split(',')
@@ -362,18 +363,23 @@ def dispatch(restricted=False):
                     break
         FlagWatch.commit()
 
+    tracer().start_dispatch()
+
     # When in restricted context, only run hooks for that context.
     if restricted:
         unitdata.kv().set('reactive.dispatch.phase', 'restricted')
         hook_handlers = _test(Handler.get_handlers())
+        tracer().start_dispatch_phase('restricted', hook_handlers)
         _invoke(hook_handlers)
         return
 
     unitdata.kv().set('reactive.dispatch.phase', 'hooks')
     hook_handlers = _test(Handler.get_handlers())
+    tracer().start_dispatch_phase('hooks', hook_handlers)
     _invoke(hook_handlers)
 
     unitdata.kv().set('reactive.dispatch.phase', 'other')
+    tracer().start_dispatch_loop()
     for i in range(100):
         FlagWatch.iteration(i)
         other_handlers = _test(Handler.get_handlers())
