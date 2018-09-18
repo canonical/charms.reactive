@@ -93,7 +93,7 @@ class Handler(object):
     @classmethod
     def get_handlers(cls):
         """
-        Clear all registered handlers.
+        Get all registered handlers.
         """
         return cls._HANDLERS.values()
 
