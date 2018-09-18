@@ -1,9 +1,10 @@
-
 from charmhelpers.cli import cmdline
 from charmhelpers.core import hookenv
 from charmhelpers.core import unitdata
 
 from charms.reactive.bus import FlagWatch
+from charms.reactive.trace import tracer
+
 
 __all__ = [
     'set_flag',
@@ -74,6 +75,7 @@ def set_flag(flag, value=None):
     old_flags = get_flags()
     unitdata.kv().update({flag: value}, prefix='reactive.states.')
     if flag not in old_flags:
+        tracer().set_flag(flag)
         FlagWatch.change(flag)
         trigger = _get_trigger(flag)
         for flag_name in trigger['set_flag']:
@@ -99,6 +101,7 @@ def clear_flag(flag):
     unitdata.kv().unset('reactive.states.%s' % flag)
     unitdata.kv().set('reactive.dispatch.removed_state', True)
     if flag in old_flags:
+        tracer().clear_flag(flag)
         FlagWatch.change(flag)
 
 
