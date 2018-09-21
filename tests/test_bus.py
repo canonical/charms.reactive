@@ -582,6 +582,19 @@ class TestReactiveBus(unittest.TestCase):
         sys.path.pop()  # Repair sys.path
         sys.path.pop()
 
+    @attr('slow')
+    @mock.patch('charmhelpers.core.hookenv.log')
+    def test_full_stack_with_tracing(self, log):
+        self.addCleanup(reactive.trace.install_tracer, reactive.trace.NullTracer())
+        tracer = mock.Mock(wraps=reactive.trace.LogTracer())
+        reactive.trace.install_tracer(tracer)
+        self.test_full_stack()
+        log.assert_called()
+        tracer.start_dispatch.assert_called()
+        tracer.start_dispatch_phase.assert_any_call('hooks', mock.ANY)
+        tracer.start_dispatch_phase.assert_any_call('other', mock.ANY)
+        tracer.start_dispatch_iteration.assert_any_call(0, mock.ANY)
+
     @mock.patch.object(reactive.bus.importlib, 'import_module')
     def test_load_module_py3(self, import_module):
         import_module.side_effect = lambda x: x
