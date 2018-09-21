@@ -379,10 +379,12 @@ def dispatch(restricted=False):
     _invoke(hook_handlers)
 
     unitdata.kv().set('reactive.dispatch.phase', 'other')
-    tracer().start_dispatch_loop()
     for i in range(100):
         FlagWatch.iteration(i)
         other_handlers = _test(Handler.get_handlers())
+        if i == 0:
+            tracer().start_dispatch_phase('other', other_handlers)
+        tracer().start_dispatch_iteration(i, other_handlers)
         if not other_handlers:
             break
         _invoke(other_handlers)

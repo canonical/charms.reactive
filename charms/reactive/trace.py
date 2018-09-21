@@ -6,20 +6,40 @@ from charms.reactive import bus, flags
 class NullTracer(object):
     """
     NullTracer is the default tracer and tracer base class, and does nothing
+
+    This API will need to be adapted when charms.reactive internals
+    change and cannot be considered stable.
     """
     def start_dispatch(self):
+        """
+        Start of handler dispatch
+        """
         pass
 
     def start_dispatch_phase(self, phase, handlers):
+        """
+        Start of a particular dispatch phase. ie. hooks, restricted, or other.
+        """
         pass
 
-    def start_dispatch_loop(self):
-        pass
+    def start_dispatch_iteration(self, iteration, handlers):
+        """
+        Start of an iteration of the dispatch phase.
+
+        Only the 'other' phase (the main reactive loop) has multiple
+        phases, and is the only phase that invokes this method.
+        """
 
     def set_flag(self, flag):
+        """
+        A charms.reactive flag is being set.
+        """
         pass
 
     def clear_flag(self, flag):
+        """
+        A charms.reactive flag is being cleared.
+        """
         pass
 
 
@@ -43,18 +63,17 @@ class LogTracer(NullTracer):
         self._flush()
 
     def start_dispatch_phase(self, phase, handlers):
-        self._emit("{} phase, {} handlers".format(phase, len(handlers)))
         self._active_handlers = set(handlers)
+        if phase == 'other':
+            self._emit("main dispatch loop, {} handlers queued".format(len(handlers)))
+        else:
+            self._emit("{} phase, {} handlers queued".format(phase, len(handlers)))
         for h in sorted(h.id() for h in handlers):
             self._emit("++   queue handler {}".format(h))
         self._flush()
 
-    def start_dispatch_loop(self):
-        self._active_handlers = set(h for h in bus.Handler.get_handlers() if h.test())
-        self._emit("main dispatch loop, {} handlers initially queued".format(len(self._active_handlers)))
-        for h in sorted(h.id() for h in self._active_handlers):
-            self._emit("++   queue handler {}".format(h))
-        self._flush()
+    def start_dispatch_iteration(self, iteration, handlers):
+        self._active_handlers = set(handlers)
 
     def set_flag(self, flag):
         self._flag("set flag {}".format(flag))
@@ -95,7 +114,7 @@ def install_tracer(tracer):
     global _tracer
     _tracer = tracer
     # Disable tracing when we hit atexit, to avoid spam from layers
-    # such as the base layer tearing down flags.
+    # such as when the base layer tears down its automatic flags.
     hookenv.atexit(install_tracer, NullTracer())
 
 
