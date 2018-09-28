@@ -1,5 +1,11 @@
 **Changelog**
 
+1.1.1
+^^^^^
+Friday Sep 28 2018
+
+* Add is_data_changed to export list (#193)
+
 1.1.0
 ^^^^^
 Friday Sep 28 2018
