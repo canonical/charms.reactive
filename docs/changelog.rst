@@ -1,5 +1,12 @@
 **Changelog**
 
+1.1.0
+^^^^^
+Friday Sep 28 2018
+
+* Flag and handler trace logging (#191)
+* Add non-destructive version of data_changed (#188)
+
 1.0.0
 ^^^^^
 Wednesday Aug 8 2018
