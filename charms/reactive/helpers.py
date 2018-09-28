@@ -29,6 +29,7 @@ from charms.reactive.flags import is_state, all_states, any_states  # noqa
 
 __all__ = [
     'data_changed',
+    'is_data_changed',
     'any_file_changed',
 ]
 
