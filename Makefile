@@ -22,7 +22,7 @@ docclean:
 clean: docclean
 	-python setup.py clean
 	rm -rf build/ MANIFEST
-	rm -rf .tox
+	rm -rf .tox .coverage
 	rm -rf dist/*
 	find . -name '*.pyc' -or -name '__pycache__' | xargs rm -rf
 	(which dh_clean && dh_clean) || true
