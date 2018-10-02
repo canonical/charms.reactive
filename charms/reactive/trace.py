@@ -1,6 +1,6 @@
 from charmhelpers.core import hookenv
 
-from charms.reactive import bus, flags
+import charms.reactive
 
 
 class NullTracer(object):
@@ -56,7 +56,7 @@ class LogTracer(NullTracer):
         self._msgs = []
 
     def start_dispatch(self):
-        all_flags = flags.get_flags()
+        all_flags = charms.reactive.get_flags()
         self._emit("starting handler dispatch, {} flags set".format(len(all_flags)))
         for f in all_flags:
             self._emit("set flag {}".format(f))
@@ -94,7 +94,7 @@ class LogTracer(NullTracer):
     def _flag(self, msg):
         self._emit(msg)
         prev_handlers = self._active_handlers
-        next_handlers = set(h for h in bus.Handler.get_handlers() if h.test())
+        next_handlers = set(h for h in charms.reactive.bus.Handler.get_handlers() if h.test())
 
         for h in sorted(h.id() for h in (next_handlers - prev_handlers)):
             self._emit("++   queue handler {}".format(h))
