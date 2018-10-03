@@ -13,7 +13,7 @@ install:
   - pip install tox-travis
   - sudo snap install lxd --$SNAP_CHANNEL
   - sudo snap install juju --classic --$SNAP_CHANNEL
-  - sudo snap install charm --$SNAP_CHANNEL
+  - sudo snap install charm --classic --$SNAP_CHANNEL
   - sudo snap install --classic juju-wait --$SNAP_CHANNEL
 before_script:
   - sudo addgroup lxd || true

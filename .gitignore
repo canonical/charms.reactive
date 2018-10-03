@@ -14,3 +14,4 @@ docs/_build
 .settings
 *~
 charms.reactive.egg-info/
+.unit-state.db
