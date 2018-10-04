@@ -49,7 +49,7 @@ directory.
 .. note:: Because ``update-status`` is invoked every 5 minutes, you should take
    care to ensure that your reactive handlers only invoke expensive operations
    when absolutely necessary.  It is recommended that you use helpers like
-   :func:`@data_changed <charms.reactive.helpers.data_changed>` to ensure
+   :func:`data_changed <charms.reactive.helpers.data_changed>` to ensure
    that handlers run only when necessary.
 ```
 
