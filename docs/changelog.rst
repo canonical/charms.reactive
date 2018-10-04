@@ -1,5 +1,13 @@
 **Changelog**
 
+1.1.2
+^^^^^
+Thursday Oct 4 2018
+
+* Adjust imports to work with Python 3.4 (#194)
+* Adjust tests to work with older Ubuntu 14.04 (trusty) packages
+* Update CI for charm-tools snap confinement change.
+
 1.1.1
 ^^^^^
 Friday Sep 28 2018
