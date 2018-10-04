@@ -54,12 +54,12 @@ directory.
 ```
 
 ```eval_rst
-.. note:: The [charm snap](https://snapcraft.io/charm) has been the supported
+.. note:: The `charm snap <https://snapcraft.io/charm>`_ has been the supported
    way to build charms for a long time, but there is still an old version of
    charm-tools available via apt on some systems.  This old version doesn't
-   properly handle the `hook.template` file, leading to missing hooks when
+   properly handle the ``hook.template`` file, leading to missing hooks when
    charms are built.  If you encounter this issue, please make sure you have
-   the snap installed and remove any copies of the `charm` or `charm-tools`
+   the snap installed and remove any copies of the ``charm`` or ``charm-tools``
    apt packages.
 ```
 
