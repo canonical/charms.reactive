@@ -27,9 +27,9 @@ using the [external handler protocol][external handler protocol].
 
 ## Hooks
 
-This layer provides hooks so that the reactive framework gets started when these
-hooks run, and so that other layers can react to these hooks using the
-decorators of the [charms.reactive][] library:
+This layer provides a `hook.template` which starts the reactive framework when
+the hook is run.  During the build process, this template is used to implement
+all of the following hooks, as well as any necessary relation and storage hooks:
 
   * `config-changed`
   * `install`
@@ -39,18 +39,28 @@ decorators of the [charms.reactive][] library:
   * `stop`
   * `upgrade-charm`
   * `update-status`
+  * `pre-series-upgrade`
+  * `post-series-upgrade`
 
-Other hooks are not implemented at this time. A new layer can implement other
-hooks such as `storage` in their own layer by putting them in the `hooks`
+A layer can implement other hooks (e.g., `metrics`) by putting them in the `hooks`
 directory.
 
 ```eval_rst
 .. note:: Because ``update-status`` is invoked every 5 minutes, you should take
    care to ensure that your reactive handlers only invoke expensive operations
    when absolutely necessary.  It is recommended that you use helpers like
-   :func:`@when_file_changed <charms.reactive.decorators.when_file_changed>`,
-   and :func:`@data_changed <charms.reactive.helpers.data_changed>` to ensure
+   :func:`data_changed <charms.reactive.helpers.data_changed>` to ensure
    that handlers run only when necessary.
+```
+
+```eval_rst
+.. note:: The `charm snap <https://snapcraft.io/charm>`_ has been the supported
+   way to build charms for a long time, but there is still an old version of
+   charm-tools available via apt on some systems.  This old version doesn't
+   properly handle the ``hook.template`` file, leading to missing hooks when
+   charms are built.  If you encounter this issue, please make sure you have
+   the snap installed and remove any copies of the ``charm`` or ``charm-tools``
+   apt packages.
 ```
 
 
