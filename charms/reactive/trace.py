@@ -123,4 +123,12 @@ def tracer():
     return _tracer
 
 
+# On import, the NullTracer is installed to avoid unit tests having
+# to mock hookenv.log.
 install_tracer(NullTracer())
+
+# Install the LogTracer by default, after discovery, before running
+# handlers. If this is too noisy for some, we can make it optional
+# via layer.yaml. Using hookenv.atstart, because the tests already
+# mock it.
+hookenv.atstart(install_tracer, LogTracer())
