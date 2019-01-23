@@ -43,8 +43,8 @@ ftest: lint
 	.tox/py3/bin/nosetests --attr '!slow' --nologcapture tests/
 
 docs: lint
-	.tox/py3/bin/pip install -r docs/requirements.txt
-	(cd docs; make html SPHINXBUILD=../.tox/py3/bin/sphinx-build)
+	.tox/lint/bin/pip install -r docs/requirements.txt
+	(cd docs; make html SPHINXBUILD=../.tox/lint/bin/sphinx-build)
 	cd docs/_build/html && zip -r ../docs.zip *
 .PHONY: docs
 

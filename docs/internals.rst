@@ -6,4 +6,5 @@ Internals and Advanced
 
     dispatch
     triggers
+    series-upgrade
     charms.reactive.bus
