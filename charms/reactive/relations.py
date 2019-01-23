@@ -760,7 +760,7 @@ class Conversation(object):
         :param str key: The name of a field to set.
         :param value: A value to set. This value must be json serializable.
         :param dict data: A mapping of keys to values.
-        :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
+        :param **kwdata: A mapping of keys to values, as keyword arguments.
         """
         if data is None:
             data = {}
@@ -820,7 +820,7 @@ class Conversation(object):
         :param str key: The name of a field to set.
         :param value: A value to set. This value must be json serializable.
         :param dict data: A mapping of keys to values.
-        :param \*\*kwdata: A mapping of keys to values, as keyword arguments.
+        :param **kwdata: A mapping of keys to values, as keyword arguments.
         """
         if data is None:
             data = {}
