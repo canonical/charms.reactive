@@ -13,7 +13,7 @@ When the operator is about to initiate an OS upgrade, they will run:
 
 .. code-block:: bash
 
-  juju upgrade-series prepare <machine>
+  juju upgrade-series <machine> prepare <target-series>
 
 The framework will then set the ``upgrade.series.in-progress`` flag,  which
 will give the charm one and only one chance to disable and stop its application
@@ -25,8 +25,8 @@ Once the operator has completed the upgrade, they will run:
 
 .. code-block:: bash
 
-  juju upgrade-series complete <machine>
-    
+  juju upgrade-series <machine> complete
+
 Juju will once again enable the charm code to run, and the framework will
 re-bootstrap the charm environment to ensure that it is setup properly for the
 new OS series.  it will then remove the ``upgrade.series.in-progress`` flag.
@@ -47,7 +47,7 @@ look something along the lines of:
       stop_app_services()
       disable_app_services()
       set_flag('charm.application.disabled')
-  
+
 
   @when('charm.application.disabled')
   @when_not('upgrade.series.in-progress')
