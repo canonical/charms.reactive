@@ -1,5 +1,16 @@
 **Changelog**
 
+1.1.0
+^^^^^
+Wednesday Feb 6 2019
+
+* Add ability to trigger on flag being cleared (#205)
+* Add documentation for python_packages layer option (#204)
+* Fix docs on upgrade series for final syntax (#203)
+* Add OS Series Upgrades to main index (#202)
+* Turn on flag and handler log tracing for all charms (#200)
+* Update docs around hook.template and call out removing apt package (#199)
+
 1.1.2
 ^^^^^
 Thursday Oct 4 2018
