@@ -7,12 +7,10 @@ from charms.reactive import flags
 
 class TestTriggers(unittest.TestCase):
     def setUp(self):
-        self.kv_p = mock.patch('charmhelpers.core.unitdata.kv')
-        kv = self.kv_p.start()
+        kv_p = mock.patch('charmhelpers.core.unitdata.kv')
+        kv = kv_p.start()
+        self.addCleanup(kv_p.stop)
         kv.return_value = MockKV()
-
-    def tearDown(self):
-        self.kv_p.stop()
 
     def test_no_triggers(self):
         assert not flags.any_flags_set('foo', 'bar', 'qux')

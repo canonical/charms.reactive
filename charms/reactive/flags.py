@@ -188,12 +188,6 @@ def _save_trigger(when, when_not, data):
     return unitdata.kv().set(key, data)
 
 
-def _clear_triggers():
-    unitdata.kv().unsetrange(prefix='reactive.flag_triggers.')  # old key
-    unitdata.kv().unsetrange(prefix='reactive.flag_set_triggers.')
-    unitdata.kv().unsetrange(prefix='reactive.flag_clear_triggers.')
-
-
 @cmdline.subcommand()
 @cmdline.test_command
 def is_flag_set(flag):
@@ -308,7 +302,6 @@ def get_state(flag, default=None):
 
 @hookenv.atstart
 def _manage_automatic_flags():
-    _clear_triggers()
     _manage_upgrade_flags()
 
 
@@ -320,3 +313,10 @@ def _manage_upgrade_flags():
 
     if hook_name == 'post-series-upgrade':
         clear_flag('upgrade.series.in-progress')
+
+
+@hookenv.atexit
+def _clear_triggers():
+    unitdata.kv().unsetrange(prefix='reactive.flag_triggers.')  # old key
+    unitdata.kv().unsetrange(prefix='reactive.flag_set_triggers.')
+    unitdata.kv().unsetrange(prefix='reactive.flag_clear_triggers.')

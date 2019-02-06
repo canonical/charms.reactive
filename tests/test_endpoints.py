@@ -21,8 +21,13 @@ import unittest
 from pathlib import Path
 
 from charmhelpers.core import unitdata
-from charms.reactive import Endpoint
-from charms.reactive import set_flag, is_flag_set, clear_flag, register_trigger
+from charms.reactive import (
+    Endpoint,
+    set_flag,
+    is_flag_set,
+    clear_flag,
+    register_trigger,
+)
 from charms.reactive.bus import discover, dispatch, Handler
 
 
