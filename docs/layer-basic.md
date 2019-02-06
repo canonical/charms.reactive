@@ -116,6 +116,17 @@ This layer supports the following options, which can be set in `layer.yaml`:
        `Apt layer <https://github.com/stub42/layer-apt>`_
     ```
 
+  * **python_packages**  A list of Python packages to be installed after the wheelhouse
+    but before the reactive handlers are invoked.
+    ```eval_rst
+    .. note:: The ``packages`` layer option is intended for **charm** dependencies only.
+       That is, for libraries and applications that the charm code itself needs to
+       do its job of deploying and configuring the payload. If the payload (the
+       application you're deploying) itself has dependencies, those should be
+       handled separately, by your Charm using for example the
+       `Apt layer <https://github.com/stub42/layer-apt>`_
+    ```
+
   * **use_venv**  If set to true, the charm dependencies from the various
     layers' `wheelhouse.txt` files will be installed in a Python virtualenv
     located at `$JUJU_CHARM_DIR/../.venv`.  This keeps charm dependencies from
