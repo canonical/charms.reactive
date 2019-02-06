@@ -1,4 +1,5 @@
 PROJECT=charms
+BIN_DIR := .tox/py3/bin
 PYTHON := .tox/py3/bin/python
 SUITE=unstable
 TESTS=tests/
@@ -50,9 +51,8 @@ docs: lint
 
 release: test
 	git remote | xargs -L1 git fetch --tags
-	$(PYTHON) setup.py sdist upload
+	rm dist/*
+	$(PYTHON) setup.py sdist
+	$(BIN_DIR)/twine upload dist/*
 	git tag ${VERSION}
 	git remote | xargs -L1 git push --tags
-
-docrelease: ftest docs
-	$(PYTHON) setup.py sdist register upload_sphinx

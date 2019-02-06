@@ -4,3 +4,4 @@ mock
 nose
 flake8
 ipython
+twine
