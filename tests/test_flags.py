@@ -6,26 +6,45 @@ from charms.reactive import flags
 
 
 class TestTriggers(unittest.TestCase):
-    @mock.patch('charmhelpers.core.unitdata.kv')
-    def test_triggers(self, kv):
+    def setUp(self):
+        kv_p = mock.patch('charmhelpers.core.unitdata.kv')
+        kv = kv_p.start()
+        self.addCleanup(kv_p.stop)
         kv.return_value = MockKV()
 
+    def test_no_triggers(self):
         assert not flags.any_flags_set('foo', 'bar', 'qux')
         flags.set_flag('foo')
         assert not flags.any_flags_set('bar', 'qux')
         flags.clear_flag('foo')
         assert not flags.any_flags_set('foo', 'bar', 'qux')
 
+    def test_when_set(self):
         flags.register_trigger(when='foo', set_flag='bar')
         flags.set_flag('foo')
         assert flags.is_flag_set('bar')
         flags.clear_flag('foo')
         assert flags.is_flag_set('bar')
-        flags.clear_flag('bar')
 
+    def test_when_clear(self):
         flags.register_trigger(when='foo', clear_flag='qux')
         flags.set_flag('qux')
         flags.set_flag('foo')
+        assert not flags.is_flag_set('qux')
+
+    def test_when_not_set_clear(self):
+        flags.register_trigger(when_not='foo',
+                               set_flag='bar',
+                               clear_flag='qux')
+        flags.set_flag('noop')
+        flags.clear_flag('noop')
+        assert not flags.is_flag_set('bar')
+
+        flags.set_flag('foo')
+        flags.set_flag('qux')
+        assert not flags.is_flag_set('bar')
+        flags.clear_flag('foo')
+        assert flags.is_flag_set('bar')
         assert not flags.is_flag_set('qux')
 
 

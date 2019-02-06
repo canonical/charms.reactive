@@ -5,3 +5,5 @@ requires:
     interface: 'test-alt'
   test-endpoint2:
     interface: 'test-alt'
+  test-endpoint3:
+    interface: 'test-alt'
