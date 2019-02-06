@@ -78,7 +78,7 @@ def set_flag(flag, value=None):
     if flag not in old_flags:
         tracer().set_flag(flag)
         FlagWatch.change(flag)
-        trigger = _get_trigger(flag)
+        trigger = _get_trigger(flag, None)
         for flag_name in trigger['set_flag']:
             set_flag(flag_name)
         for flag_name in trigger['clear_flag']:
@@ -104,6 +104,11 @@ def clear_flag(flag):
     if flag in old_flags:
         tracer().clear_flag(flag)
         FlagWatch.change(flag)
+        trigger = _get_trigger(None, flag)
+        for flag_name in trigger['set_flag']:
+            set_flag(flag_name)
+        for flag_name in trigger['clear_flag']:
+            clear_flag(flag_name)
 
 
 @cmdline.subcommand()
@@ -136,35 +141,57 @@ def toggle_flag(flag, should_set):
 
 @cmdline.subcommand()
 @cmdline.no_output
-def register_trigger(when, set_flag=None, clear_flag=None):
+def register_trigger(when=None, when_not=None, set_flag=None, clear_flag=None):
     """
     Register a trigger to set or clear a flag when a given flag is set.
 
     Note: Flag triggers are handled at the same time that the given flag is set.
 
-    :param str when: Flag to trigger on.
+    :param str when: Flag to trigger on when it is set.
+    :param str when_not: Flag to trigger on when it is cleared.
     :param str set_flag: If given, this flag will be set when `when` is set.
     :param str clear_flag: If given, this flag will be cleared when `when` is set.
+
+    Note: Exactly one of either `when` or `when_not`, and at least one of
+    `set_flag` or `clear_flag` must be provided.
     """
-    trigger = _get_trigger(when)
+    if not any((when, when_not)):
+        raise ValueError('Must provide one of when or when_not')
+    if all((when, when_not)):
+        raise ValueError('Only one of when or when_not can be provided')
+    if not any((set_flag, clear_flag)):
+        raise ValueError('Must provide at least one of set_flag or clear_flag')
+    trigger = _get_trigger(when, when_not)
     if set_flag and set_flag not in trigger['set_flag']:
         trigger['set_flag'].append(set_flag)
     if clear_flag and clear_flag not in trigger['clear_flag']:
         trigger['clear_flag'].append(clear_flag)
-    _save_trigger(when, trigger)
+    _save_trigger(when, when_not, trigger)
 
 
-def _get_trigger(when):
-    key = 'reactive.flag_triggers.{}'.format(when)
+def _get_trigger(when, when_not):
+    if when is not None:
+        key = 'reactive.flag_set_triggers.{}'.format(when)
+    elif when_not is not None:
+        key = 'reactive.flag_clear_triggers.{}'.format(when_not)
     return unitdata.kv().get(key, {
         'set_flag': [],
         'clear_flag': [],
     })
 
 
-def _save_trigger(when, data):
-    key = 'reactive.flag_triggers.{}'.format(when)
+def _save_trigger(when, when_not, data):
+    if when is not None:
+        key = 'reactive.flag_set_triggers.{}'.format(when)
+    elif when_not is not None:
+        key = 'reactive.flag_clear_triggers.{}'.format(when_not)
     return unitdata.kv().set(key, data)
+
+
+def _clear_triggers():
+    unitdata.kv().unsetrange(prefix='reactive.flag_triggers.')  # old key
+    unitdata.kv().unsetrange(prefix='reactive.flag_set_triggers.')
+    unitdata.kv().unsetrange(prefix='reactive.flag_clear_triggers.')
 
 
 @cmdline.subcommand()
@@ -281,6 +308,7 @@ def get_state(flag, default=None):
 
 @hookenv.atstart
 def _manage_automatic_flags():
+    _clear_triggers()
     _manage_upgrade_flags()
 
 
