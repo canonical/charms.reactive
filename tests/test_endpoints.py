@@ -21,7 +21,8 @@ import unittest
 from pathlib import Path
 
 from charmhelpers.core import unitdata
-from charms.reactive import Endpoint, set_flag, is_flag_set, clear_flag
+from charms.reactive import Endpoint
+from charms.reactive import set_flag, is_flag_set, clear_flag, register_trigger
 from charms.reactive.bus import discover, dispatch, Handler
 
 
@@ -165,8 +166,19 @@ class TestEndpoint(unittest.TestCase):
         assert not is_flag_set('endpoint.test-endpoint.changed')
         assert not is_flag_set('endpoint.test-endpoint.changed.foo')
 
+        set_flag('endpoint.test-endpoint2.joined')
+        set_flag('alias.test-endpoint2.joined')
+
+        def _register_triggers(self):
+            joined_flag = self.expand_name('endpoint.{endpoint_name}.joined')
+            alias_joined_flag = self.expand_name('alias.{endpoint_name}.joined')
+            register_trigger(when=joined_flag, set_flag=alias_joined_flag)
+            register_trigger(when_not=joined_flag, clear_flag=alias_joined_flag)
+
         self.data_changed.return_value = True
-        Endpoint._startup()
+        with mock.patch.object(Endpoint, 'register_triggers',
+                               _register_triggers):
+            Endpoint._startup()
         assert Endpoint.from_name('test-endpoint') is not None
         assert Endpoint.from_name('test-endpoint').endpoint_name == 'test-endpoint'
         assert Endpoint.from_name('test-endpoint').is_joined
@@ -181,6 +193,9 @@ class TestEndpoint(unittest.TestCase):
         assert not is_flag_set('endpoint.test-endpoint2.joined')
         assert not is_flag_set('endpoint.test-endpoint2.changed')
         assert not is_flag_set('endpoint.test-endpoint2.changed.foo')
+        assert is_flag_set('alias.test-endpoint.joined')
+        assert not is_flag_set('alias.test-endpoint2.joined')
+        assert not is_flag_set('alias.test-endpoint3.joined')
         self.assertEqual(self.atexit.call_args_list, [
             mock.call(Endpoint.from_name('test-endpoint').relations[0]._flush_data),
             mock.call(Endpoint.from_name('test-endpoint').relations[1]._flush_data),

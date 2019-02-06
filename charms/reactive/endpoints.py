@@ -127,6 +127,7 @@ class Endpoint(RelationFactory):
                     else rid for rid in rids]
             endpoint = relf(endpoint_name, rids)
             cls._endpoints[endpoint_name] = endpoint
+            endpoint.register_triggers()
             endpoint._manage_departed()
             endpoint._manage_flags()
             for relation in endpoint.relations:
@@ -138,6 +139,16 @@ class Endpoint(RelationFactory):
                                   key_attr='relation_id')
         self._all_joined_units = None
         self._all_departed_units = None
+
+    def register_triggers(self):
+        """
+        Called once and only once for each named instance of this endpoint,
+        before the endpoint's automatic flags are updated.
+
+        This gives the endpoint implementation a chance to register triggers
+        that will honor changes to the automatically managed flags.
+        """
+        pass
 
     @property
     def endpoint_name(self):
