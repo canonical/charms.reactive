@@ -9,6 +9,7 @@ model="reactive-$nonce"
 CHARM_DIR=$HOME/$model/charms
 BUILD_DIR=$HOME/$model/builds
 
+mkdir "$HOME/$model"
 mkdir "$CHARM_DIR"
 mkdir "$BUILD_DIR"
 
