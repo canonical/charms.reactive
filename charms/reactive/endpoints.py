@@ -15,7 +15,7 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-from collections import UserDict
+from collections import UserDict, defaultdict
 from itertools import chain
 
 from charmhelpers.core import hookenv, unitdata
@@ -194,12 +194,14 @@ class Endpoint(RelationFactory):
         Complete a flag for this endpoint by expanding the endpoint name.
 
         If the flag does not already contain ``{endpoint_name}``, it will be
-        prefixed with ``endpoint.{endpoint_name}.``. Then, ``str.format`` will
-        be used to fill in ``{endpoint_name}`` with ``self.endpoint_name``.
+        prefixed with ``endpoint.{endpoint_name}.``. Then, any occurance of
+        ``{endpoint_name}`` will be replaced with ``self.endpoint_name``.
         """
         if '{endpoint_name}' not in flag:
             flag = 'endpoint.{endpoint_name}.' + flag
-        return flag.format(endpoint_name=self.endpoint_name)
+        # use replace rather than format to prevent any other braces or braced
+        # strings from being touched
+        return flag.replace('{endpoint_name}', self.endpoint_name)
 
     def _manage_departed(self):
         hook_name = hookenv.hook_name()
