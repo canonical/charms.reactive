@@ -19,7 +19,7 @@ from collections import UserDict
 from itertools import chain
 
 from charmhelpers.core import hookenv, unitdata
-from charms.reactive.flags import set_flag, toggle_flag, is_flag_set
+from charms.reactive.flags import set_flag, clear_flag, toggle_flag, is_flag_set
 from charms.reactive.helpers import data_changed
 from charms.reactive.relations import RelationFactory, relation_factory
 
@@ -226,6 +226,8 @@ class Endpoint(RelationFactory):
 
         if departed_hook:
             set_flag(self.expand_name('departed'))
+        elif self.is_joined:
+            clear_flag(self.expand_name('departed'))
 
         if already_joined and not rel_hook:
             # skip checking relation data outside hooks for this relation
