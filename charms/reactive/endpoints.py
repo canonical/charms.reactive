@@ -15,7 +15,7 @@
 # along with charm-helpers.  If not, see <http://www.gnu.org/licenses/>.
 
 import json
-from collections import UserDict, defaultdict
+from collections import UserDict
 from itertools import chain
 
 from charmhelpers.core import hookenv, unitdata
