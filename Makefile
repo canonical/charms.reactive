@@ -50,8 +50,9 @@ docs: lint
 .PHONY: docs
 
 release: test
+	$(BIN_DIR)/pip install twine
 	git remote | xargs -L1 git fetch --tags
-	rm dist/*
+	rm -f dist/*
 	$(PYTHON) setup.py sdist
 	$(BIN_DIR)/twine upload dist/*
 	git tag ${VERSION}
