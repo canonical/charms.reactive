@@ -1,6 +1,13 @@
 **Changelog**
 
-1.1.0
+1.2.1
+^^^^^
+Wednesday Apr 3 2019
+
+* Fix errant str.format handling of flags in expand_name (#210)
+* Remove departed flag when joined (#209)
+
+1.2.0
 ^^^^^
 Wednesday Feb 6 2019
 
