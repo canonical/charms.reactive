@@ -185,7 +185,6 @@ installing ``apt`` dependencies of your Charm code.
    handled separately.
 ```
 
-
 ## Exec.d Support
 
 It is often necessary to configure and reconfigure machines
@@ -264,9 +263,8 @@ options:
     enable-bar: true  # set the "enable-bar" option to true
 ```
 
-The `foo` layer can then use the API provided by the [`options` layer][layer-options]
-(which is automatically included via the `basic` layer) to load the values for the
-options that it defined.  For example:
+The `foo` layer can then use `charms.layer.options` to get the value for each
+defined option. For example:
 
 ```python
 from charms import layer
@@ -279,6 +277,12 @@ def do_thing():
 
   # or get all of the options for the "foo" layer as a dict
   foo_opts = layer.options.get('foo')
+```
+
+```eval_rst
+.. note:: `charms.layer.options` is, itself, implemented as a layer named
+   [`layer:options`][layer-options] and is automatically included when a layer
+   includes [`layer:basic`][layer-basic]
 ```
 
 You can also access layer options in other handlers, such as Bash, using
