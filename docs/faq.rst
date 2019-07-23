@@ -12,7 +12,7 @@ The hook files in the ``hooks/`` directory are created by ``layer:basic`` and by
 the hook files aren't present in the `hooks/` directory.
 
 You can find more information about debugging reactive charms in
-`the Juju docs <https://jujucharms.com/docs/2.2/developer-debugging>`_.
+`the Juju docs <https://docs.jujucharms.com/charm-writing/hook-debug>`_.
 
 .. note:: **Changes to flags are reset when a handler crashes.** Changes to
    flags happen immediately, but they are only persisted at the end of a
