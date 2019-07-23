@@ -17,6 +17,7 @@ SETUP = {
     'packages': [
         "charms",
         "charms.reactive",
+        "charms.reactive.endpoint_patterns",
     ],
     'install_requires': [
         'pyaml',
