@@ -37,9 +37,14 @@ class Field(property):
     """
     def __init__(self, description):
         self.__doc__ = description
+        self._class = None
         self._name = None
 
+    def __repr__(self):
+        return '<Field {}.{}>'.format(self._class, self._name)
+
     def __set_name__(self, owner, name):
+        self._class = owner.__name__
         self._name = name
 
     def __set__(self, instance, value):
@@ -70,7 +75,7 @@ class FieldHolderDictProxy(dict):
         self[field_name] = field_value
 
 
-class BaseRequest(FieldHolderDictProxy):
+class BaseRequest(FieldHolderDictProxy, metaclass=SetNameBackport):
     """
     Base class for requests using the request / response pattern.
 
@@ -149,7 +154,7 @@ class BaseRequest(FieldHolderDictProxy):
         """
         Get a list of all requests (in order of their ID).
         """
-        return sorted(cls._cache.values(), key=lambda r: r.request_id)
+        return sorted(cls._cache.values(), key=lambda r: r._id)
 
     @classmethod
     def find(cls, relation=None, **fields):
@@ -214,7 +219,7 @@ class BaseRequest(FieldHolderDictProxy):
     def __init__(self, source, request_id):
         if self.RESPONSE_CLASS is None:
             raise TypeError('RESPONSE_CLASS must be defined by subclass')
-        self._id = request_id
+        self._id = request_id  # cache the ID so that we can determine the key
         self._source = source
         self.response = None
         if self.is_received:
@@ -272,7 +277,7 @@ class BaseRequest(FieldHolderDictProxy):
         return self.create_response(**fields)
 
     def _get_field(self, name):
-        return self._source_data[self._key].get(name)
+        return self._source_data.get(self._key, {}).get(name)
 
     def _update_field(self, name, value):
         if self.is_received:
@@ -302,7 +307,7 @@ class BaseRequest(FieldHolderDictProxy):
         return self._source_data['egress-subnets']
 
 
-class BaseResponse(FieldHolderDictProxy):
+class BaseResponse(FieldHolderDictProxy, metaclass=SetNameBackport):
     """
     Base class for responses using the request / response pattern.
     """
