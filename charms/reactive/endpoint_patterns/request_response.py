@@ -93,7 +93,7 @@ class BaseRequest(FieldHolderDictProxy):
     """
     RESPONSE_CLASS = None  # must be defined by subclass
 
-    id = Field('UUID for this request.  Will be automatically generated.')
+    request_id = Field('UUID for this request.  Will be automatically generated.')
 
     _cache = None
 
@@ -118,9 +118,9 @@ class BaseRequest(FieldHolderDictProxy):
             for key, request_data in requests.items():
                 if not key.startswith('request_'):
                     continue
-                request = cls(source, request_data['id'])
+                request = cls(source, request_data['request_id'])
                 request.response = cls.RESPONSE_CLASS._load(request)
-                cls._cache[request.id] = request
+                cls._cache[request.request_id] = request
 
     @classmethod
     def create(cls, relation, **fields):
@@ -130,7 +130,7 @@ class BaseRequest(FieldHolderDictProxy):
         Fields and their values can be passed in to pre-populate the request as
         keyword arguments, or can be set individually on the resulting request.
         """
-        request_id = fields.setdefault('id', str(uuid4()))
+        request_id = fields.setdefault('request_id', str(uuid4()))
         # pre-populate the field data directly in the data store (more
         # efficient than calling _update_field for every field)
         relation.to_publish['request_' + request_id] = fields
@@ -149,7 +149,7 @@ class BaseRequest(FieldHolderDictProxy):
         """
         Get a list of all requests (in order of their ID).
         """
-        return sorted(cls._cache.values(), key=lambda r: r.id)
+        return sorted(cls._cache.values(), key=lambda r: r.request_id)
 
     @classmethod
     def find(cls, relation=None, **fields):
@@ -277,8 +277,8 @@ class BaseRequest(FieldHolderDictProxy):
     def _update_field(self, name, value):
         if self.is_received:
             raise AttributeError("can't change field for received request")
-        if name == 'id':
-            raise AttributeError("id can't be modified")
+        if name == 'request_id':
+            raise AttributeError("request_id can't be modified")
         data = self._source_data[self._key]
         data[name] = value
         # reading serialized dict gets a copy, so we have to explicitly write
@@ -327,7 +327,7 @@ class BaseResponse(FieldHolderDictProxy):
             raise ValueError("can't respond to requests we created")
         # pre-populate the field data directly in the data store (more
         # efficient than calling _update_field for every field)
-        request._source.relation.to_publish['response_' + request.id] = fields
+        request._source.relation.to_publish['response_' + request.request_id] = fields
         response = cls(request)
         request.response = response
         return response
@@ -350,7 +350,7 @@ class BaseResponse(FieldHolderDictProxy):
 
     @property
     def _key(self):
-        return 'response_{}'.format(self.request.id)
+        return 'response_{}'.format(self.request.request_id)
 
     @property
     def is_received(self):

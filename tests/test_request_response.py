@@ -97,8 +97,8 @@ def test_request_response():
     req2 = TRequest.create(requester.rel, foo='unfoo', bar='unbar')
     assert len(requester.requests) == 2
     assert len(requester.responses) == 0
-    assert len(req1.id) > 0
-    assert len(req2.id) > 0
+    assert len(req1.request_id) > 0
+    assert len(req2.request_id) > 0
     assert TRequest.find(foo='foo') is req1
     assert TRequest.find(bar='unbar') is req2
     assert TRequest.find(foo='other') is None
