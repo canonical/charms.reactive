@@ -129,7 +129,7 @@ class Endpoint(RelationFactory):
             cls._endpoints[endpoint_name] = endpoint
             endpoint.register_triggers()
             endpoint._manage_departed()
-            endpoint._manage_flags()
+            endpoint.manage_flags()
             for relation in endpoint.relations:
                 hookenv.atexit(relation._flush_data)
 
@@ -215,9 +215,12 @@ class Endpoint(RelationFactory):
         if not relation.joined_units:
             del self.relations[relation.relation_id]
 
-    def _manage_flags(self):
+    def manage_flags(self):
         """
         Manage automatic relation flags.
+
+        Subclasses can override this (provided they call ``super()``) to add
+        additional flag manipulation at startup time.
         """
         already_joined = is_flag_set(self.expand_name('joined'))
         hook_name = hookenv.hook_name()
