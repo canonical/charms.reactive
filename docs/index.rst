@@ -73,6 +73,7 @@ Table of Contents
    layer-basic
    bash-reactive
    faq
+   patterns
    api
    internals
 
