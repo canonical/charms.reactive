@@ -2,6 +2,7 @@ import sys
 import weakref
 from uuid import uuid4
 
+from charms.reactive.flags import toggle_flag
 from charms.reactive.endpoints import Endpoint
 
 
@@ -418,6 +419,13 @@ class RequesterEndpoint(Endpoint, metaclass=FieldFinders):
 
     Subclasses **must** set the ``REQUEST_CLASS`` attribute to a subclass
     of :class:`BaseRequest` which defines the fields the request will use.
+
+    Will automatically manage the following flags:
+
+      * ``endpoint.{endpoint_name}.has_responses`` Set if any responses are
+        available
+      * ``endpoint.{endpoint_name}.all_responses`` Set if all requests have
+        responses.
     """
     REQUEST_CLASS = None  # must be defined by subclass
 
@@ -426,6 +434,13 @@ class RequesterEndpoint(Endpoint, metaclass=FieldFinders):
             raise TypeError('REQUEST_CLASS must be defined by subclass')
         super().__init__(*args, **kwargs)
         self.REQUEST_CLASS._load(self.relations)
+
+    def _manage_flags(self):
+        super()._manage_flags()
+        toggle_flag(self.expand_name('endpoint.{endpoint_name}.has_responses'),
+                    self.responses)
+        toggle_flag(self.expand_name('endpoint.{endpoint_name}.all_responses'),
+                    len(self.responses) == len(self.requests))
 
     @property
     def requests(self):
@@ -461,6 +476,13 @@ class ResponderEndpoint(Endpoint):
 
     Subclasses **must** set the ``REQUEST_CLASS`` attribute to a subclass
     of :class:`BaseRequest` which defines the fields the request will use.
+
+    Will automatically manage the following flags:
+
+      * ``endpoint.{endpoint_name}.has_requests`` Set if any requests are
+        available
+      * ``endpoint.{endpoint_name}.new_requests`` Set if any unhandled requests
+        are available.
     """
     REQUEST_CLASS = None  # must be defined by subclass
 
@@ -469,6 +491,13 @@ class ResponderEndpoint(Endpoint):
             raise TypeError('REQUEST_CLASS must be defined by subclass')
         super().__init__(*args, **kwargs)
         self.REQUEST_CLASS._load(self.all_joined_units)
+
+    def _manage_flags(self):
+        super()._manage_flags()
+        toggle_flag(self.expand_name('endpoint.{endpoint_name}.has_requests'),
+                    self.all_requests)
+        toggle_flag(self.expand_name('endpoint.{endpoint_name}.new_requests'),
+                    self.new_requests)
 
     @property
     def all_requests(self):
