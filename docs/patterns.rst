@@ -25,8 +25,8 @@ the data for the request and response.  Each field can provide a description,
 for documentation purposes.
 
 .. note:: The request class must explicitly point to the class which implements
-the associated response, via the ``RESPONSE_CLASS`` attribute, so that the
-correct class can be used when creating responses to requests.
+    the associated response, via the ``RESPONSE_CLASS`` attribute, so that the
+    correct class can be used when creating responses to requests.
 
 For example::
 
