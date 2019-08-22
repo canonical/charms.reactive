@@ -22,6 +22,7 @@ from .relations import *  # noqa
 from .endpoints import *  # noqa
 from .decorators import *  # noqa
 from .helpers import *  # noqa
+from .patterns.request_response import *  # noqa
 
 from . import bus
 from . import flags

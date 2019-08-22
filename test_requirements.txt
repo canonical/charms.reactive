@@ -5,3 +5,4 @@ nose
 flake8
 ipython
 twine
+ipdb
