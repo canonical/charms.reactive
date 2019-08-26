@@ -1,5 +1,13 @@
 **Changelog**
 
+1.3.0
+^^^^^
+Monday Aug 26 2019
+
+* Add pattern for request / response Endpoints (#215)
+* Update link to the juju docs on debugging (#214)
+* Separate layer-options sidenote from the main text (#211)
+
 1.2.1
 ^^^^^
 Wednesday Apr 3 2019
