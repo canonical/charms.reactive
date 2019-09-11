@@ -25,17 +25,18 @@ interface layer, so the total hierarchy of the charm would look like this:
 
 .. code-block:: text
 
-  ┌─────────────┐ ┌───────────┐ ┌────────────────┐
-  │ layer:basic │ │ layer:apt │ │ interface:http │
-  └──────┬──────┘ └──────┬────┘ └─────────┬──────┘
-         └───────────────┼────────────────┘
-                  ┌──────┴────────┐ ┌─────────────────┐
-                  │ layer:apache2 │ │ interface:mysql │
-                  └──────┬────────┘ └────────┬────────┘
-                         └─────────┬─────────┘
-                              ┌────┴───┐
+                              ┌────────┐
                               │ my_app │
-                              └────────┘
+                              └────┬───┘
+                         ┌─────────┴─────────┐
+                  ┌──────┴────────┐ ┌────────┴────────┐
+                  │ layer:apache2 │ │ interface:mysql │
+                  └──────┬────────┘ └─────────────────┘
+         ┌───────────────┼────────────────┐                
+  ┌──────┴──────┐ ┌──────┴────┐ ┌─────────┴──────┐
+  │ layer:basic │ │ layer:apt │ │ interface:http │
+  └─────────────┘ └───────────┘ └────────────────┘
+         
 
 The ``options`` section in the ``layer.yaml`` allows the charm to set
 configuration for other layers. In this case, specifying to the ``basic`` layer
