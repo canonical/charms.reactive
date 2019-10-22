@@ -306,7 +306,7 @@ Note that options of type `boolean` will set the exit code, while other types
 will be printed out.
 
 
-[charm-helpers]: https://pythonhosted.org/charmhelpers/
+[charm-helpers]: https://charm-helpers.readthedocs.io/
 [charms.reactive]: https://charmsreactive.readthedocs.io/en/latest/
 [interfaces.juju.solutions]: http://interfaces.juju.solutions/
 [non-python]: https://charmsreactive.readthedocs.io/en/latest/bash-reactive.html
