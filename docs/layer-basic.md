@@ -241,7 +241,7 @@ from charms.layer.foo import my_helper
 
 Any layer can define options in its `layer.yaml`.  Those options can then be set
 by other layers to change the behavior of your layer.  The options are defined
-using [jsonschema][], which is the same way that [action paramters][] are defined.
+using [jsonschema][], which is the same way that [action parameters][] are defined.
 
 For example, the `foo` layer could include the following option definitons:
 
@@ -312,7 +312,7 @@ will be printed out.
 [non-python]: https://charmsreactive.readthedocs.io/en/latest/bash-reactive.html
 [external handler protocol]: https://charmsreactive.readthedocs.io/en/latest/charms.reactive.bus.html#charms.reactive.bus.ExternalHandler
 [jsonschema]: http://json-schema.org/
-[action paramters]: https://jujucharms.com/docs/stable/authors-charm-actions
+[action parameters]: https://jaas.ai/docs/stable/developer-actions
 [pypi charms.X]: https://pypi.python.org/pypi?%3Aaction=search&term=charms.&submit=search
 [`requirements.txt`]: https://pip.pypa.io/en/stable/reference/pip_install/#requirements-file-format
 [layer-basic]: https://github.com/juju-solutions/layer-basic
