@@ -419,7 +419,11 @@ def discover():
     for search_dir in ('reactive', 'hooks/reactive', 'hooks/relations'):
         search_path = os.path.join(hookenv.charm_dir(), search_dir)
         for dirpath, dirnames, filenames in os.walk(search_path):
+            if os.path.basename(dirpath) == '__pycache__':
+                continue
             for filename in filenames:
+                if filename.endswith('.pyc'):
+                    continue
                 filepath = os.path.join(dirpath, filename)
                 _register_handlers_from_file(search_path, filepath)
 
@@ -446,7 +450,7 @@ def _register_handlers_from_file(root, filepath):
     no_exec_blacklist = (
         '.md', '.yaml', '.txt', '.ini',
         'makefile', '.gitignore',
-        'copyright', 'license')
+        'copyright', 'license', '.pyc')
     if filepath.lower().endswith(no_exec_blacklist):
         # Don't load handlers with one of the blacklisted extensions
         return
