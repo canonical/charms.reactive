@@ -447,12 +447,18 @@ def _load_module(root, filepath):
 def _is_external_handler(filepath):
     if not os.access(filepath, os.X_OK):
         return False
+    _, ext = os.path.splitext(filepath)
+    if ext not in ('', '.sh'):
+        return False
     with open(filepath, 'rb') as fp:
         bytes = fp.read(1024)
-    if bytes.startswith(b'#!'):
+    try:
+        text = bytes.decode('utf8')
+    except UnicodeDecodeError:
+        # binary executable
         return True
-    textchars = bytearray({7, 8, 9, 10, 12, 13, 27} | set(range(0x20, 0x100)) - {0x7f})
-    return bool(bytes.translate(None, textchars))
+    else:
+        return text.startswith('#!')
 
 
 def _register_handlers_from_file(root, filepath):
