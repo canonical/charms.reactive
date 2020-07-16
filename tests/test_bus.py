@@ -446,7 +446,7 @@ class TestReactiveBus(unittest.TestCase):
 
         self.assertEqual(len(reactive.bus.Handler.get_handlers()), 0)
         reactive.bus.discover()
-        self.assertEqual(len(reactive.bus.Handler.get_handlers()), 18)
+        self.assertEqual(len(reactive.bus.Handler.get_handlers()), 19)
 
         # The path is extended so discovered modules can perform
         # absolute and relative imports as expected.
@@ -505,7 +505,7 @@ class TestReactiveBus(unittest.TestCase):
         }):
             self.assertEqual(len(reactive.bus.Handler.get_handlers()), 0)
             reactive.bus.discover()
-            self.assertEqual(len(reactive.bus.Handler.get_handlers()), 18)
+            self.assertEqual(len(reactive.bus.Handler.get_handlers()), 19)
 
             reactive.set_flag('test')
             reactive.set_flag('to-remove')
