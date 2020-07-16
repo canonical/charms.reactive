@@ -1,5 +1,14 @@
 **Changelog**
 
+1.3.1
+^^^^^
+Thursday July 16 2020
+
+* Exclude .pyc and __pycache__ files from discovery (#224)
+* Fix typo and update link to action params definition (#220)
+* Fix link to charm-helpers in layer-basic docs (#219)  
+* Reverse diagram to match text (#216)  
+
 1.3.0
 ^^^^^
 Monday Aug 26 2019
