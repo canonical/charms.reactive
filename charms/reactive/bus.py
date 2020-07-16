@@ -419,6 +419,8 @@ def discover():
     for search_dir in ('reactive', 'hooks/reactive', 'hooks/relations'):
         search_path = os.path.join(hookenv.charm_dir(), search_dir)
         for dirpath, dirnames, filenames in os.walk(search_path):
+            if os.path.basename(dirpath) == '__pycache__':
+                continue
             for filename in filenames:
                 filepath = os.path.join(dirpath, filename)
                 _register_handlers_from_file(search_path, filepath)
@@ -443,12 +445,16 @@ def _load_module(root, filepath):
 
 
 def _register_handlers_from_file(root, filepath):
+    exec_whitelist = ('', '.py', '.sh')
     no_exec_blacklist = (
-        '.md', '.yaml', '.txt', '.ini',
         'makefile', '.gitignore',
         'copyright', 'license')
+    _, ext = os.path.splitext(filepath)
+    if ext not in exec_whitelist:
+        # Don't load handlers unless they match the whitelist
+        return
     if filepath.lower().endswith(no_exec_blacklist):
-        # Don't load handlers with one of the blacklisted extensions
+        # Don't load handlers which match the blacklist
         return
     if filepath.endswith('.py'):
         _load_module(root, filepath)
