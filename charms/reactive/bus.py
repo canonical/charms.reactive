@@ -448,7 +448,7 @@ def _register_handlers_from_file(root, filepath):
     exec_whitelist = ('', '.py', '.sh')
     no_exec_blacklist = (
         'makefile', '.gitignore',
-        'copyright', 'license',)
+        'copyright', 'license')
     _, ext = os.path.splitext(filepath)
     if ext not in exec_whitelist:
         # Don't load handlers unless they match the whitelist
