@@ -422,8 +422,6 @@ def discover():
             if os.path.basename(dirpath) == '__pycache__':
                 continue
             for filename in filenames:
-                if filename.endswith('.pyc'):
-                    continue
                 filepath = os.path.join(dirpath, filename)
                 _register_handlers_from_file(search_path, filepath)
 
@@ -447,12 +445,15 @@ def _load_module(root, filepath):
 
 
 def _register_handlers_from_file(root, filepath):
+    exec_whitelist = ('.py', '.sh')
     no_exec_blacklist = (
-        '.md', '.yaml', '.txt', '.ini',
         'makefile', '.gitignore',
-        'copyright', 'license', '.pyc')
+        'copyright', 'license',)
+    if not (filepath.lower().endswith(exec_whitelist) or '.' not in filepath):
+        # Don't load handlers unless they match the whitelist
+        return
     if filepath.lower().endswith(no_exec_blacklist):
-        # Don't load handlers with one of the blacklisted extensions
+        # Don't load handlers which match the blacklist
         return
     if filepath.endswith('.py'):
         _load_module(root, filepath)
