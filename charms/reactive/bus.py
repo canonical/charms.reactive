@@ -444,19 +444,25 @@ def _load_module(root, filepath):
     return importlib.import_module(package + module)
 
 
-def _register_handlers_from_file(root, filepath):
-    exec_whitelist = ('', '.py', '.sh')
-    no_exec_blacklist = (
-        'makefile', '.gitignore',
-        'copyright', 'license')
+def _is_external_handler(filepath):
+    if not os.access(filepath, os.X_OK):
+        return False
     _, ext = os.path.splitext(filepath)
-    if ext not in exec_whitelist:
-        # Don't load handlers unless they match the whitelist
-        return
-    if filepath.lower().endswith(no_exec_blacklist):
-        # Don't load handlers which match the blacklist
-        return
+    if ext not in ('', '.sh'):
+        return False
+    with open(filepath, 'rb') as fp:
+        bytes = fp.read(1024)
+    try:
+        text = bytes.decode('utf8')
+    except UnicodeDecodeError:
+        # binary executable
+        return True
+    else:
+        return text.startswith('#!')
+
+
+def _register_handlers_from_file(root, filepath):
     if filepath.endswith('.py'):
         _load_module(root, filepath)
-    elif os.access(filepath, os.X_OK):
+    elif _is_external_handler(filepath):
         ExternalHandler.register(filepath)

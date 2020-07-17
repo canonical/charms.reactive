@@ -653,19 +653,20 @@ class TestReactiveBus(unittest.TestCase):
         self.assertIs(sub_mod, sys.modules['reactive.nested.nested'])
 
     @mock.patch.object(reactive.bus.ExternalHandler, 'register')
-    @mock.patch.object(reactive.bus.os, 'access')
+    @mock.patch.object(reactive.bus, '_is_external_handler')
     @mock.patch.object(reactive.bus, '_load_module')
-    def test_register_handlers_from_file(self, _load_module, access, register):
+    def test_register_handlers_from_file(self, _load_module, _is_external_handler, register):
         reactive.bus._register_handlers_from_file('reactive',
                                                   'reactive/foo.py')
         _load_module.assert_called_once_with('reactive',
                                              'reactive/foo.py')
-        access.return_value = True
+        _is_external_handler.return_value = True
         reactive.bus._register_handlers_from_file('reactive', 'reactive/foo')
-        access.assert_called_once_with('reactive/foo', os.X_OK)
+        _is_external_handler.assert_called_once_with('reactive/foo')
         register.assert_called_once_with('reactive/foo')
 
         register.reset_mock()
+        _is_external_handler.return_value = False
         reactive.bus._register_handlers_from_file('hooks/relations',
                                                   'hooks/relations/foo/README.md')
         assert not register.called
