@@ -1,5 +1,11 @@
 **Changelog**
 
+1.3.2
+^^^^^
+Friday July 17 2020
+
+* Drop blacklist in favor of shebang and binary check (#225)
+
 1.3.1
 ^^^^^
 Thursday July 16 2020
