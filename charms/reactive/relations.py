@@ -29,6 +29,11 @@ from charms.reactive.flags import clear_flag
 from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
+try:
+    from importlib.metadata import entry_points
+except ImportError:
+    from pkg_resources import iter_entry_points as entry_points
+
 __all__ = [
     'endpoint_from_name',
     'endpoint_from_flag',
@@ -109,6 +114,22 @@ class RelationFactory(object):
     ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``.
     This is normally a RelationBase subclass.
     """
+    _factories = []
+
+    @classmethod
+    def discover(cls):
+        for ep in entry_points().get('charms.reactive.relation_factory', []):
+            factory = ep.load()
+            factory.load()
+            RelationFactory._factories.append(factory)
+
+    @classmethod
+    def get_factory(cls, relation_name):
+        for factory in RelationFactory._factories:
+            if factory.from_name(relation_name):
+                return factory
+        return None
+
     @classmethod
     def from_name(cls, relation_name):
         raise NotImplementedError()
@@ -124,6 +145,9 @@ def relation_factory(relation_name):
     Looks for a RelationFactory in the first file matching:
     ``$CHARM_DIR/hooks/relations/{interface}/{provides,requires,peer}.py``
     """
+    factory = RelationFactory.get_factory(relation_name)
+    if factory:
+        return factory
     role, interface = hookenv.relation_to_role_and_interface(relation_name)
     if not (role and interface):
         hookenv.log('Unable to determine role and interface for relation '
@@ -905,3 +929,4 @@ def relation_call(method, relation_name=None, flag=None, state=None, *args):
 
 
 hookenv.atstart(RelationBase._startup)
+RelationFactory.discover()
