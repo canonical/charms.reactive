@@ -32,7 +32,11 @@ from charms.reactive.bus import _append_path
 try:
     from importlib.metadata import entry_points
 except ImportError:
-    from pkg_resources import iter_entry_points as entry_points
+    from pkg_resources import iter_entry_points
+
+    def entry_points():
+        group = 'charms.reactive.relation_factory'
+        return {group: list(iter_entry_points(group))}
 
 __all__ = [
     'endpoint_from_name',
