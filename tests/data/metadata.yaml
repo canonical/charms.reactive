@@ -1,3 +1,12 @@
+name: test-charm
+description: |
+  Test charm for charms.reactive framework
+summary: |
+  Test charm for charms.reactive framework
+min-juju-version: 2.8.0
+series: ['focal']
+maintainers: ['Cory Johns <cory.johns@canonical.com>']
+tags: ["test"]
 requires:
   test-rel:
     interface: 'test'
