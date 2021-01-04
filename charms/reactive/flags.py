@@ -232,6 +232,19 @@ def get_flags():
     return sorted(flags.keys())
 
 
+@cmdline.subcommand()
+def get_unset_flags(*desired_flags):
+    """Check if any of the provided flags missing and return them if so.
+
+    :param desired_flags: list of reactive flags
+    :type desired_flags: non-keyword args, str
+    :returns: list of unset flags filtered from the parameters shared
+    :rtype: List[str]
+    """
+    flags = unitdata.kv().getrange('reactive.states.', strip=True) or {}
+    return sorted(set(desired_flags) - flags.keys())
+
+
 def _get_flag_value(flag, default=None):
     return unitdata.kv().get('reactive.states.%s' % flag, default)
 
