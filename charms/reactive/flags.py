@@ -24,6 +24,8 @@ __all__ = [
     'any_states',  # DEPRECATED
 ]
 
+TRIGGER_CALLBACKS = {}
+
 
 class State(str):
     """
@@ -83,6 +85,8 @@ def set_flag(flag, value=None):
             set_flag(flag_name)
         for flag_name in trigger['clear_flag']:
             clear_flag(flag_name)
+        for callback in trigger['callbacks']:
+            callback()
 
 
 @cmdline.subcommand()
@@ -109,6 +113,8 @@ def clear_flag(flag):
             set_flag(flag_name)
         for flag_name in trigger['clear_flag']:
             clear_flag(flag_name)
+        for callback in trigger['callbacks']:
+            callback()
 
 
 @cmdline.subcommand()
@@ -141,7 +147,7 @@ def toggle_flag(flag, should_set):
 
 @cmdline.subcommand()
 @cmdline.no_output
-def register_trigger(when=None, when_not=None, set_flag=None, clear_flag=None):
+def register_trigger(when=None, when_not=None, set_flag=None, clear_flag=None, callback=None):
     """
     Register a trigger to set or clear a flag when a given flag is set.
 
@@ -149,23 +155,26 @@ def register_trigger(when=None, when_not=None, set_flag=None, clear_flag=None):
 
     :param str when: Flag to trigger on when it is set.
     :param str when_not: Flag to trigger on when it is cleared.
-    :param str set_flag: If given, this flag will be set when `when` is set.
-    :param str clear_flag: If given, this flag will be cleared when `when` is set.
+    :param str set_flag: If given, this flag will be set when the relevant flag is changed.
+    :param str clear_flag: If given, this flag will be cleared when the relevant flag is changed.
+    :param str callback: If given, this callback will be invoked when the relevant flag is changed.
 
     Note: Exactly one of either `when` or `when_not`, and at least one of
-    `set_flag` or `clear_flag` must be provided.
+    `set_flag`, `clear_flag`, or `callback` must be provided.
     """
     if not any((when, when_not)):
         raise ValueError('Must provide one of when or when_not')
     if all((when, when_not)):
         raise ValueError('Only one of when or when_not can be provided')
-    if not any((set_flag, clear_flag)):
-        raise ValueError('Must provide at least one of set_flag or clear_flag')
+    if not any((set_flag, clear_flag, callback)):
+        raise ValueError('Must provide at least one of set_flag, clear_flag, or callback')
     trigger = _get_trigger(when, when_not)
     if set_flag and set_flag not in trigger['set_flag']:
         trigger['set_flag'].append(set_flag)
     if clear_flag and clear_flag not in trigger['clear_flag']:
         trigger['clear_flag'].append(clear_flag)
+    if callback and callback not in trigger['callbacks']:
+        trigger['callbacks'].append(callback)
     _save_trigger(when, when_not, trigger)
 
 
@@ -174,10 +183,12 @@ def _get_trigger(when, when_not):
         key = 'reactive.flag_set_triggers.{}'.format(when)
     elif when_not is not None:
         key = 'reactive.flag_clear_triggers.{}'.format(when_not)
-    return unitdata.kv().get(key, {
+    triggers = unitdata.kv().get(key, {
         'set_flag': [],
         'clear_flag': [],
     })
+    triggers['callbacks'] = TRIGGER_CALLBACKS.get(key, [])
+    return triggers
 
 
 def _save_trigger(when, when_not, data):
@@ -185,6 +196,7 @@ def _save_trigger(when, when_not, data):
         key = 'reactive.flag_set_triggers.{}'.format(when)
     elif when_not is not None:
         key = 'reactive.flag_clear_triggers.{}'.format(when_not)
+    TRIGGER_CALLBACKS[key] = data.pop('callbacks')
     return unitdata.kv().set(key, data)
 
 

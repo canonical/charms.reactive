@@ -47,6 +47,37 @@ class TestTriggers(unittest.TestCase):
         assert flags.is_flag_set('bar')
         assert not flags.is_flag_set('qux')
 
+    def test_callbacks(self):
+        a = mock.Mock()
+        b = mock.Mock()
+        c = mock.Mock()
+        flags.register_trigger(when='a', callback=a)
+        flags.register_trigger(when_not='b', callback=b)
+        flags.set_flag('a')
+        assert a.call_count == 1
+        assert b.call_count == 0
+        assert c.call_count == 0
+        flags.clear_flag('a')
+        assert a.call_count == 1
+        assert b.call_count == 0
+        assert c.call_count == 0
+        flags.set_flag('b')
+        assert a.call_count == 1
+        assert b.call_count == 0
+        assert c.call_count == 0
+        flags.clear_flag('b')
+        assert a.call_count == 1
+        assert b.call_count == 1
+        assert c.call_count == 0
+        flags.set_flag('c')
+        assert a.call_count == 1
+        assert b.call_count == 1
+        assert c.call_count == 0
+        flags.clear_flag('c')
+        assert a.call_count == 1
+        assert b.call_count == 1
+        assert c.call_count == 0
+
 
 class MockKV:
     def __init__(self):
