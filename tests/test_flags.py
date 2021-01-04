@@ -78,6 +78,12 @@ class TestTriggers(unittest.TestCase):
         assert b.call_count == 1
         assert c.call_count == 0
 
+    def test_get_unset_flags(self):
+        self.assertEqual(flags.get_flags(), [])
+        flags.set_flag('foo')
+        self.assertEqual(flags.get_flags(), ['foo'])
+        self.assertEqual(flags.get_unset_flags('foo', 'bar'), ['bar'])
+
 
 class MockKV:
     def __init__(self):
