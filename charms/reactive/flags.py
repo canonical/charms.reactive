@@ -15,6 +15,7 @@ __all__ = [
     'all_flags_set',
     'any_flags_set',
     'get_flags',
+    'get_unset_flags',
     'set_state',  # DEPRECATED
     'remove_state',  # DEPRECATED
     'toggle_state',  # DEPRECATED
