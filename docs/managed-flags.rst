@@ -29,8 +29,8 @@ The flags that are set by the framework are:
 | ``config.set.{option_name}``                 | This is set for each config option whose value is not      |
 |                                              | ``None``, ``False``, or an empty string. [1]_              |
 +----------------------------------------------+------------------------------------------------------------+
-| ``config.default.{option_name}``             | This is set for each config option whose value was         |
-|                                              | changed from its default. [1]_                             |
+| ``config.default.{option_name}``             | This is set for each config option whose value is equal to |
+|                                              | its default value, and cleared if it has been changed. [1]_|
 +----------------------------------------------+------------------------------------------------------------+
 | ``leadership.is_leader``                     | This is set when the unit is the leader. The unit will     |
 |                                              | remain the leader for the remainder of the hook, but       |
