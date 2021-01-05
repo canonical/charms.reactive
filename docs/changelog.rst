@@ -1,5 +1,14 @@
 **Changelog**
 
+1.4.0
+^^^^^
+Tuesday Jan 5 2021
+
+* Switch to GitHub Workflows for PR tests (#229)
+* Fix config.default.foo automatic flag doc (#223)
+* Up-port get_unset_flags from lp:1836063 (#228)
+* Add relation factory discovery and trigger callbacks (#227)
+
 1.3.2
 ^^^^^
 Friday July 17 2020
@@ -12,8 +21,8 @@ Thursday July 16 2020
 
 * Exclude .pyc and __pycache__ files from discovery (#224)
 * Fix typo and update link to action params definition (#220)
-* Fix link to charm-helpers in layer-basic docs (#219)  
-* Reverse diagram to match text (#216)  
+* Fix link to charm-helpers in layer-basic docs (#219)
+* Reverse diagram to match text (#216)
 
 1.3.0
 ^^^^^
