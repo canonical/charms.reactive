@@ -341,6 +341,7 @@ class Relation:
         self._units = None
         self._departed_units = None
         self._data = None
+        self._app = False
 
     @property
     def relation_id(self):
@@ -367,6 +368,7 @@ class Relation:
         return Endpoint.from_name(self.endpoint_name)
 
     @property
+    
     def application_name(self):
         """
         The name of the remote application for this relation, or ``None``.
@@ -459,13 +461,24 @@ class Relation:
         """
         return self.to_publish.data
 
+    @property
+    def app(self):
+        return self._app
+
+    @app.setter
+    def app(self, app):
+        if app is not True:
+            self._app = False
+        else:
+            self._app = True
+
     def _flush_data(self):
         """
         If this relation's local unit data has been modified, publish it on the
         relation. This should be automatically called.
         """
         if self._data and self._data.modified:
-            hookenv.relation_set(self.relation_id, dict(self.to_publish.data))
+            hookenv.relation_set(self.relation_id, dict(self.to_publish.data), app=self._app)
 
     def _serialize(self):
         return self.relation_id
