@@ -368,7 +368,6 @@ class Relation:
         return Endpoint.from_name(self.endpoint_name)
 
     @property
-    
     def application_name(self):
         """
         The name of the remote application for this relation, or ``None``.
