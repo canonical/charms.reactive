@@ -135,10 +135,8 @@ class BaseRequest(FieldHolderDictProxy, metaclass=SetNameBackport):
             app_requests = hookenv.relation_get(
                     app=rel.application_name,
                     rid=rel.relation_id)
-            
             if app_requests is not None:
                 for key, app_request_data in app_requests.items():
-
                     if not key.startswith('request_'):
                         continue
                     rel.app = True
