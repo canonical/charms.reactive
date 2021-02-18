@@ -446,6 +446,20 @@ class Relation:
         return self._data
 
     @property
+    def to_publish_app
+        """
+        Added separate method as initially We can't recognize this is app level
+        relation data or unit relation data.
+        """
+        if self._data is None:
+            # using JSONUnitDataView though it's name includes unit.
+            self._data = JSONUnitDataView(
+                hookenv.relation_get(app=self.application_name,
+                                     rid=self.relation_id),
+                writeable=True)
+        return self._data
+
+    @property
     def to_publish_raw(self):
         """
         This is the raw relation data that the local unit publishes so it is

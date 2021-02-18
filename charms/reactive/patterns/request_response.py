@@ -1,7 +1,6 @@
 import sys
 import weakref
 from uuid import uuid4
-import json
 
 from charms.reactive.flags import toggle_flag
 from charms.reactive.endpoints import Endpoint
@@ -131,19 +130,17 @@ class BaseRequest(FieldHolderDictProxy, metaclass=SetNameBackport):
 
     @classmethod
     def _load_app(cls, relations):
-        for rel in relations:
-            app_requests = hookenv.relation_get(
-                    app=rel.application_name,
-                    rid=rel.relation_id)
-            if app_requests is not None:
-                for key, app_request_data in app_requests.items():
-                    if not key.startswith('request_'):
-                        continue
-                    rel.app = True
-                    source =json.loads(app_request_data)
-                    request = cls(rel, source['request_id'])
-                    request.response = cls.RESPONSE_CLASS._load(request)
-                    cls._cache[request.request_id] = request
+        for source in relations:
+            if source.application_name is None:
+                continue
+            app_requests = source.to_publish_app
+            for key, app_request_data in app_requests.items():
+                if not key.startswith('request_'):
+                    continue
+                source.app = True
+                request = cls(source, source['request_id'])
+                request.response = cls.RESPONSE_CLASS._load(request)
+                cls._cache[request.request_id] = request
 
     @classmethod
     def create(cls, relation, **fields):
