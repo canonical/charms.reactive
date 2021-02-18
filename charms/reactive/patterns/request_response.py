@@ -505,7 +505,9 @@ class ResponderEndpoint(Endpoint):
             raise TypeError('REQUEST_CLASS must be defined by subclass')
         super().__init__(*args, **kwargs)
         self.REQUEST_CLASS._load(self.all_joined_units)
-        self.REQUEST_CLASS._load(self.relations)
+        # loading application level relation data as well as unit relation data
+        # Added separate method _load_app as it needs relation
+        self.REQUEST_CLASS._load_app(self.relations)
 
     def _manage_flags(self):
         super()._manage_flags()
