@@ -341,6 +341,7 @@ class Relation:
         self._units = None
         self._departed_units = None
         self._data = None
+        # to check relation has application relation data
         self._app = False
 
     @property
