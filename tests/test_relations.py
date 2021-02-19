@@ -259,12 +259,22 @@ class TestRelationBase(unittest.TestCase):
         rb.set_state('state', 'scope')
         rb.conversation.assert_called_once_with('scope')
         conv.set_state.assert_called_once_with('state')
+        rb.conversation.reset_mock()
+        conv.reset_mock()
+        rb.set_flag('state', 'scope')
+        rb.conversation.assert_called_once_with('scope')
+        conv.set_state.assert_called_once_with('state')
 
     def test_remove_state(self):
         conv = mock.Mock(name='conv')
         rb = relations.RelationBase('relname', 'unit')
         rb.conversation = mock.Mock(return_value=conv)
         rb.remove_state('state', 'scope')
+        rb.conversation.assert_called_once_with('scope')
+        conv.remove_state.assert_called_once_with('state')
+        rb.conversation.reset_mock()
+        conv.reset_mock()
+        rb.remove_flag('state', 'scope')
         rb.conversation.assert_called_once_with('scope')
         conv.remove_state.assert_called_once_with('state')
 
@@ -278,6 +288,7 @@ class TestRelationBase(unittest.TestCase):
         conv.is_state.assert_called_once_with('state')
         rb.conversation.return_value.is_state.return_value = True
         assert rb.is_state('state', 'scope')
+        assert rb.is_flag_set('state', 'scope')
 
     def test_toggle_state(self):
         conv = mock.Mock(name='conv')
@@ -289,6 +300,11 @@ class TestRelationBase(unittest.TestCase):
 
         conv.toggle_state.reset_mock()
         rb.toggle_state('state')
+        conv.toggle_state.assert_called_once_with('state',
+                                                  relations.TOGGLE)
+
+        conv.toggle_state.reset_mock()
+        rb.toggle_flag('state')
         conv.toggle_state.assert_called_once_with('state',
                                                   relations.TOGGLE)
 
@@ -465,6 +481,9 @@ class TestConversation(unittest.TestCase):
         conv.set_state('{relation_name}.bar')
         self.assertEqual(set_flag.call_count, 2)
         set_flag.assert_called_with('rel.bar', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
+        conv.set_flag('{relation_name}.qux')
+        self.assertEqual(set_flag.call_count, 3)
+        set_flag.assert_called_with('rel.qux', {'conversations': ['foo', 'reactive.conversations.rel.scope']})
 
     @mock.patch.object(relations, 'clear_flag')
     @mock.patch.object(relations, 'set_flag')
@@ -474,6 +493,7 @@ class TestConversation(unittest.TestCase):
         get_flag_value.side_effect = [
             None,
             {'conversations': ['foo', 'reactive.conversations.rel.scope']},
+            {'conversations': ['reactive.conversations.rel.scope']},
             {'conversations': ['reactive.conversations.rel.scope']},
         ]
 
@@ -491,10 +511,19 @@ class TestConversation(unittest.TestCase):
         assert not set_flag.called
         clear_flag.assert_called_once_with('rel.bar')
 
+        clear_flag.reset_mock()
+        conv.remove_flag('{relation_name}.bar')
+        assert not set_flag.called
+        clear_flag.assert_called_once_with('rel.bar')
+
     @mock.patch.object(relations, '_get_flag_value')
     def test_is_state(self, get_flag_value):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
         get_flag_value.side_effect = [
+            None,
+            {'conversations': ['foo']},
+            {'conversations': ['reactive.conversations.rel.scope']},
+
             None,
             {'conversations': ['foo']},
             {'conversations': ['reactive.conversations.rel.scope']},
@@ -503,6 +532,10 @@ class TestConversation(unittest.TestCase):
         assert not conv.is_state('{relation_name}.bar')
         assert not conv.is_state('{relation_name}.bar')
         assert conv.is_state('{relation_name}.bar')
+
+        assert not conv.is_flag_set('{relation_name}.bar')
+        assert not conv.is_flag_set('{relation_name}.bar')
+        assert conv.is_flag_set('{relation_name}.bar')
 
     def test_toggle_state(self):
         conv = relations.Conversation('rel', ['service/0', 'service/1'], 'scope')
@@ -520,6 +553,8 @@ class TestConversation(unittest.TestCase):
         self.assertEqual(conv.set_state.call_count, 2)
         conv.toggle_state('foo', False)
         self.assertEqual(conv.remove_state.call_count, 3)
+        conv.toggle_flag('foo', True)
+        self.assertEqual(conv.set_state.call_count, 3)
 
     @mock.patch.object(relations.hookenv, 'relation_set')
     @mock.patch.object(relations.Conversation, 'relation_ids', ['rel:1', 'rel:2'])
