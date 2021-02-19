@@ -447,7 +447,7 @@ class Relation:
         return self._data
 
     @property
-    def to_publish_app:
+    def to_publish_app(self):
         """
         Added separate method as initially We can't recognize this is app level
         relation data or unit relation data.
