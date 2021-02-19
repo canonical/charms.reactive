@@ -474,6 +474,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         See :meth:`conversation` and :meth:`Conversation.set_state`.
         """
         self.conversation(scope).set_state(state)
+    set_flag = set_state
 
     def remove_state(self, state, scope=None):
         """
@@ -486,6 +487,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         See :meth:`conversation` and :meth:`Conversation.remove_state`.
         """
         self.conversation(scope).remove_state(state)
+    remove_flag = remove_state
 
     def is_state(self, state, scope=None):
         """
@@ -498,6 +500,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         See :meth:`conversation` and :meth:`Conversation.is_state`.
         """
         return self.conversation(scope).is_state(state)
+    is_flag_set = is_state
 
     def toggle_state(self, state, active=TOGGLE, scope=None):
         """
@@ -510,6 +513,7 @@ class RelationBase(RelationFactory, metaclass=AutoAccessors):
         See :meth:`conversation` and :meth:`Conversation.toggle_state`.
         """
         self.conversation(scope).toggle_state(state, active)
+    toggle_flag = toggle_state
 
     def set_remote(self, key=None, value=None, data=None, scope=None, **kwdata):
         """
@@ -712,6 +716,7 @@ class Conversation(object):
         if self.key not in value['conversations']:
             value['conversations'].append(self.key)
         set_flag(state, value)
+    set_flag = set_state
 
     def remove_state(self, state):
         """
@@ -738,6 +743,7 @@ class Conversation(object):
             set_flag(state, value)
         else:
             clear_flag(state)
+    remove_flag = remove_state
 
     def is_state(self, state):
         """
@@ -748,6 +754,7 @@ class Conversation(object):
         if not value:
             return False
         return self.key in value['conversations']
+    is_flag_set = is_state
 
     def toggle_state(self, state, active=TOGGLE):
         """
@@ -771,6 +778,7 @@ class Conversation(object):
             self.set_state(state)
         else:
             self.remove_state(state)
+    toggle_flag = toggle_state
 
     def set_remote(self, key=None, value=None, data=None, **kwdata):
         """
