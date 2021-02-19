@@ -1,5 +1,11 @@
 **Changelog**
 
+1.4.1
+^^^^^
+Friday Feb 19 2021
+
+* Add set_flag and other aliases to RelationBase (#233)
+
 1.4.0
 ^^^^^
 Tuesday Jan 5 2021
