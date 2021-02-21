@@ -398,12 +398,50 @@ class TestEndpoint(unittest.TestCase):
 
         rel.to_publish_raw['key'] = 'new-value'
         rel._flush_data()
-        self.relation_set.assert_called_once_with('test-endpoint:0', {'key': 'new-value'})
+        self.relation_set.assert_called_once_with('test-endpoint:0', {'key': 'new-value'}, app=False)
 
         self.relation_set.reset_mock()
         rel.to_publish['key'] = {'new': 'complex'}
         rel._flush_data()
-        self.relation_set.assert_called_once_with('test-endpoint:0', {'key': '{"new": "complex"}'})
+        self.relation_set.assert_called_once_with('test-endpoint:0', {'key': '{"new": "complex"}'}, app=False)
+
+        rel.to_publish_raw.update({'key': 'new-new'})
+        self.assertEqual(rel.to_publish_raw, {'key': 'new-new'})
+
+        rel.to_publish.update({'key': {'new': 'new'}})
+        self.assertEqual(rel.to_publish_raw, {'key': '{"new": "new"}'})
+
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish.get('foo', 'one') == 'one'
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish.setdefault('foo', 'two') == 'two'
+        assert 'foo' in rel.to_publish
+        assert rel.to_publish['foo'] == 'two'
+        del rel.to_publish['foo']
+        assert 'foo' not in rel.to_publish
+        with self.assertRaises(KeyError):
+            del rel.to_publish['foo']
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish['foo'] is None
+
+    def test_to_publish_app(self):
+        Endpoint._startup()
+        tep = Endpoint.from_name('test-endpoint')
+        rel = tep.relations[0]
+        rel.app = True
+
+        self.assertEqual(rel.to_publish_raw, {'key': 'value'})
+        rel._flush_data()
+        assert not self.relation_set.called
+
+        rel.to_publish_raw['key'] = 'new-value'
+        rel._flush_data()
+        self.relation_set.assert_called_once_with('test-endpoint:0', {'key': 'new-value'}, app=True)
+
+        self.relation_set.reset_mock()
+        rel.to_publish['key'] = {'new': 'complex'}
+        rel._flush_data()
+        self.relation_set.assert_called_once_with('test-endpoint:0', {'key': '{"new": "complex"}'}, app=True)
 
         rel.to_publish_raw.update({'key': 'new-new'})
         self.assertEqual(rel.to_publish_raw, {'key': 'new-new'})
