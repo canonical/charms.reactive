@@ -40,9 +40,9 @@ class TRequest(BaseRequest):
 class TRequester(RequesterEndpoint):
     REQUEST_CLASS = TRequest
 
-    rel = Mock(name='req_rel',
-               spec=['to_publish', 'joined_units'],
-               to_publish={})
+    rel = Mock(name='res_rel',
+               spec=['to_publish', 'joined_units', 'to_publish_app'],
+               to_publish={}, to_publish_app={}, application_name="requester")
     unit = Mock(name='req_unit',
                 spec=['relation', 'received'],
                 relation=rel,
@@ -63,8 +63,8 @@ class TResponder(ResponderEndpoint):
     REQUEST_CLASS = TRequest
 
     rel = Mock(name='res_rel',
-               spec=['to_publish', 'joined_units'],
-               to_publish={})
+               spec=['to_publish', 'joined_units', 'to_publish_app'],
+               to_publish={}, to_publish_app={}, application_name="requester")
     unit = Mock(name='res_unit',
                 spec=['relation', 'received'],
                 relation=rel,
