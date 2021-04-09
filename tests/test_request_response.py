@@ -59,6 +59,18 @@ class TRequester(RequesterEndpoint):
             super().__init__()
 
 
+class TRequester2(TRequester):
+    rel = Mock(name='req_rel2',
+               spec=['to_publish', 'joined_units'],
+               to_publish={})
+    unit = Mock(name='req_unit2',
+                spec=['relation', 'received'],
+                relation=rel,
+                received=rel.to_publish)
+    _relations = [rel]
+    _all_joined_units = []
+
+
 class TResponder(ResponderEndpoint):
     REQUEST_CLASS = TRequest
 
@@ -74,7 +86,7 @@ class TResponder(ResponderEndpoint):
     _relations = [rel]
     _all_joined_units = []
 
-    def __init__(self, requester):
+    def __init__(self):
         # patch out Endpoint's init so that we just use our mock relation data
         # but can still test the ResponderEndpoint init logic
         with patch('charms.reactive.endpoints.Endpoint.__init__'):
@@ -103,7 +115,7 @@ def test_request_response():
     assert TRequest.find(bar='unbar') is req2
     assert TRequest.find(foo='other') is None
 
-    responder = TResponder(requester)
+    responder = TResponder()
     assert len(responder.all_requests) == 2
     assert len(responder.new_requests) == 2
 
@@ -129,3 +141,56 @@ def test_request_response():
     # verify that they can be serialized
     assert json.dumps(req1) != '{}'
     assert json.dumps(res1) != '{}'
+
+
+def test_multi_request(req_id=None):
+    # hook up the relations so that each side sees the other side's unit
+    TRequester.rel.joined_units = [TResponder.unit]
+    TRequester._all_joined_units = [TResponder.unit]
+    TResponder.rel.joined_units = [TRequester.unit, TRequester2.unit]
+    TResponder._all_joined_units = [TRequester.unit, TRequester2.unit]
+
+    TRequester.rel.to_publish.clear()
+    TRequester2.rel.to_publish.clear()
+
+    requester1 = TRequester()
+    requester2 = TRequester2()
+    responder = TResponder()
+
+    TRequest._load([])
+    assert len(requester1.requests) == 0
+    assert len(requester1.responses) == 0
+    assert len(responder.all_requests) == 0
+
+    TRequest._load([requester1.rel])
+    req1 = TRequest.create_or_update(
+        match_fields=['foo'],
+        relation=requester1.rel,
+        request_id=req_id,
+        foo='foo',
+        bar='bar',
+    )
+    # re-update same request
+    TRequest.create_or_update(
+        match_fields=['foo'],
+        relation=requester1.rel,
+        request_id=req_id,
+        foo='foo',
+        bar='bar',
+    )
+    TRequest._load([requester2.rel])
+    req2 = TRequest.create_or_update(
+        match_fields=['foo'],
+        relation=requester2.rel,
+        request_id=req_id,
+        foo='foo',
+        bar='bar',
+    )
+    assert req1 is not req2
+    TRequest._load(TResponder.rel.joined_units)
+    expected = 2 if req_id is None else 1
+    assert len(responder.all_requests) == expected
+
+
+def test_explicit_id_dedupe():
+    test_multi_request('req:1')

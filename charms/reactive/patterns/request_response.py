@@ -136,7 +136,8 @@ class BaseRequest(FieldHolderDictProxy, metaclass=SetNameBackport):
         Fields and their values can be passed in to pre-populate the request as
         keyword arguments, or can be set individually on the resulting request.
         """
-        request_id = fields.setdefault('request_id', str(uuid4()))
+        request_id = fields.get('request_id') or str(uuid4())
+        fields['request_id'] = request_id
         # pre-populate the field data directly in the data store (more
         # efficient than calling _update_field for every field)
         relation.to_publish['request_' + request_id] = fields
@@ -284,7 +285,10 @@ class BaseRequest(FieldHolderDictProxy, metaclass=SetNameBackport):
         if self.is_received:
             raise AttributeError("can't change field for received request")
         if name == 'request_id':
-            raise AttributeError("request_id can't be modified")
+            if value and value != self.request_id:
+                raise AttributeError("request_id can't be modified")
+            else:
+                return  # just ignore
         data = self._source_data[self._key]
         data[name] = value
         # reading serialized dict gets a copy, so we have to explicitly write
