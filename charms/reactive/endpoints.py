@@ -508,7 +508,9 @@ class Relation:
         relation. This should be automatically called.
         """
         if self._data and self._data.modified:
-            hookenv.relation_set(self.relation_id, dict(self.to_publish.data), app=self._app)
+            hookenv.relation_set(self.relation_id, dict(self.to_publish.data))
+        if self._app_data and self._app_data.modified:
+            hookenv.relation_set(self.relation_id, dict(self.to_publish_app.data), app=True)
 
     def _serialize(self):
         return self.relation_id
