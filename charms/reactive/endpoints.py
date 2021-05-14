@@ -449,16 +449,43 @@ class Relation:
     @property
     def to_publish_app(self):
         """
-        Added separate method as initially We can't recognize this is app level
-        relation data or unit relation data.
+        This is the relation data that the local app publishes so it is
+        visible to all related units. Use this to communicate with related
+        apps. It is a writeable
+        :class:`~charms.reactive.endpoints.JSONUnitDataView`.
+
+        Only the leader can set the app-level relation data.
+
+        All values stored in this collection will be automatically JSON
+        encoded when they are published. This means that they need to be JSON
+        serializable! Mappings stored in this collection will be encoded with
+        sorted keys, to ensure that the encoded representation will only change
+        if the actual data changes.
+
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
         """
-        if self._data is None:
+        if self._app_data is None:
             # using JSONUnitDataView though it's name includes unit.
-            self._data = JSONUnitDataView(
+            self._app_data = JSONUnitDataView(
                 hookenv.relation_get(app=self.application_name,
                                      rid=self.relation_id),
                 writeable=True)
-        return self._data
+        return self._app_data
+
+    @property
+    def received_app(self):
+        """
+        A :class:`~charms.reactive.endpoints.JSONUnitDataView` of the app-level
+        data received from this remote unit over the relation, with values
+        being automatically decoded as JSON.
+        """
+        if self._remote_app_data is None:
+            # using JSONUnitDataView though it's name includes unit.
+            self._remote_app_data = JSONUnitDataView(hookenv.relation_get(
+                app=self.application_name,
+                rid=self.relation.relation_id))
+        return self._remote_app_data
 
     @property
     def to_publish_raw(self):
