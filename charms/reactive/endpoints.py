@@ -502,17 +502,6 @@ class Relation:
         """
         return self.to_publish.data
 
-    @property
-    def app(self):
-        return self._app
-
-    @app.setter
-    def app(self, app):
-        if app is not True:
-            self._app = False
-        else:
-            self._app = True
-
     def _flush_data(self):
         """
         If this relation's local unit data has been modified, publish it on the
