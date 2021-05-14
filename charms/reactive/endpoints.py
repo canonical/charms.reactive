@@ -341,8 +341,8 @@ class Relation:
         self._units = None
         self._departed_units = None
         self._data = None
-        # to check relation has application relation data
-        self._app = False
+        self._app_data = None
+        self._remote_app_data = None
 
     @property
     def relation_id(self):
