@@ -128,7 +128,7 @@ class BaseRequest(FieldHolderDictProxy, metaclass=SetNameBackport):
                 request.response = cls.RESPONSE_CLASS._load(request)
                 cls._cache[request.request_id] = request
 
-   @classmethod
+    @classmethod
     def create(cls, relation, **fields):
         """
         Create a new request.
@@ -321,14 +321,6 @@ class BaseResponse(FieldHolderDictProxy, metaclass=SetNameBackport):
             return response
 
     @classmethod
-    def _load_app(cls, request):
-        response = cls(request)
-        if response._key not in response._source_data:
-            return None  # no response found
-        else:
-            return response
-
-    @classmethod
     def create(cls, request, **fields):
         """
         Create a response to the given request.
@@ -499,7 +491,7 @@ class ResponderEndpoint(Endpoint):
             raise TypeError('REQUEST_CLASS must be defined by subclass')
         super().__init__(*args, **kwargs)
         self.REQUEST_CLASS._load(self.all_joined_units)
-        
+
     def _manage_flags(self):
         super()._manage_flags()
         toggle_flag(self.expand_name('endpoint.{endpoint_name}.has_requests'),

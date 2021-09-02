@@ -40,7 +40,7 @@ class TRequest(BaseRequest):
 class TRequester(RequesterEndpoint):
     REQUEST_CLASS = TRequest
 
-    rel = Mock(name='res_rel',
+    rel = Mock(name='req_rel',
                spec=['to_publish', 'joined_units'],
                to_publish={})
     unit = Mock(name='req_unit',
