@@ -468,10 +468,40 @@ class Relation:
         if self._app_data is None:
             # using JSONUnitDataView though it's name includes unit.
             self._app_data = JSONUnitDataView(
-                hookenv.relation_get(app=self.application_name,
+                hookenv.relation_get(app=hookenv.application_name(),
                                      rid=self.relation_id),
                 writeable=True)
         return self._app_data
+
+    @property
+    def to_publish_raw(self):
+        """
+        This is the raw relation data that the local unit publishes so it is
+        visible to all related units. It is a writeable
+        :class:`~charms.reactive.endpoints.UnitDataView`. **Only use this
+        for backwards compatibility with interfaces that do not use JSON
+        encoding.** Use
+        :attr:`~charms.reactive.endpoints.Relation.to_publish` instead.
+
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
+        """
+        return self.to_publish.data
+
+    @property
+    def to_publish_app_raw(self):
+        """
+        This is the raw relation data that the app publishes so it is
+        visible to all related units. It is a writeable (by the leader only)
+        :class:`~charms.reactive.endpoints.UnitDataView`. **Only use this
+        for backwards compatibility with interfaces that do not use JSON
+        encoding.** Use
+        :attr:`~charms.reactive.endpoints.Relation.to_publish` instead.
+
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
+        """
+        return self.to_publish_app.data
 
     @property
     def received_app(self):
@@ -488,19 +518,12 @@ class Relation:
         return self._remote_app_data
 
     @property
-    def to_publish_raw(self):
+    def received_app_raw(self):
         """
-        This is the raw relation data that the local unit publishes so it is
-        visible to all related units. It is a writeable
-        :class:`~charms.reactive.endpoints.UnitDataView`. **Only use this
-        for backwards compatibility with interfaces that do not use JSON
-        encoding.** Use
-        :attr:`~charms.reactive.endpoints.Relation.to_publish` instead.
-
-        Changes to this data are published at the end of a succesfull hook. The
-        data is reset when a hook fails.
+        A :class:`~charms.reactive.endpoints.UnitDataView` of the raw app-level
+        data received from this remote unit over the relation.
         """
-        return self.to_publish.data
+        return self.received_app.raw_data
 
     def _flush_data(self):
         """
