@@ -57,6 +57,10 @@ class TestEndpoint(unittest.TestCase):
                                        mock.MagicMock(return_value='local/0'))
         self.local_unit_p.start()
 
+        self.app_name_p = mock.patch('charmhelpers.core.hookenv.application_name',
+                                     mock.MagicMock(return_value='local'))
+        self.app_name_p.start()
+
         self.remote_unit = None
         self.remote_unit_p = mock.patch('charmhelpers.core.hookenv.remote_unit')
         mremote_unit = self.remote_unit_p.start()
@@ -70,12 +74,16 @@ class TestEndpoint(unittest.TestCase):
         self.relations = {
             'test-endpoint': [
                 {
+                    'local': {'app-key': 'value'},
                     'local/0': {'key': 'value'},
+                    'unit': {'simple': 'value', 'complex': '[1, 2]'},
                     'unit/0': {'foo': 'yes'},
                     'unit/1': {},
                 },
                 {
+                    'local': {},
                     'local/0': {},
+                    'unit': {},
                     'unit/0': {'bar': '[1, 2]'},
                     'unit/1': {'foo': 'no'},
                 },
@@ -86,6 +94,13 @@ class TestEndpoint(unittest.TestCase):
             rn, ri = rid.split(':')
             return self.relations[rn][int(ri)]
 
+        def _rel_get(attribute=None, unit=None, rid=None, app=None):
+            data = _rel(rid)[unit or app]
+            if attribute is not None:
+                return data[attribute]
+            else:
+                return data
+
         self.rel_ids_p = mock.patch('charmhelpers.core.hookenv.relation_ids')
         rel_ids_m = self.rel_ids_p.start()
         rel_ids_m.side_effect = lambda endpoint: [
@@ -95,10 +110,12 @@ class TestEndpoint(unittest.TestCase):
         rel_units_m = self.rel_units_p.start()
         rel_units_m.side_effect = lambda rid: [
             key for key in _rel(rid).keys()
-            if (not key.startswith('local') and not _rel(rid)[key].get('departed'))]
+            if (not key.startswith('local') and
+                '/' in key and  # exclude apps
+                not _rel(rid)[key].get('departed'))]
         self.rel_get_p = mock.patch('charmhelpers.core.hookenv.relation_get')
         rel_get_m = self.rel_get_p.start()
-        rel_get_m.side_effect = lambda unit, rid: _rel(rid)[unit]
+        rel_get_m.side_effect = _rel_get
 
         self.rel_set_p = mock.patch('charmhelpers.core.hookenv.relation_set')
         self.relation_set = self.rel_set_p.start()
@@ -410,6 +427,43 @@ class TestEndpoint(unittest.TestCase):
 
         rel.to_publish.update({'key': {'new': 'new'}})
         self.assertEqual(rel.to_publish_raw, {'key': '{"new": "new"}'})
+
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish.get('foo', 'one') == 'one'
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish.setdefault('foo', 'two') == 'two'
+        assert 'foo' in rel.to_publish
+        assert rel.to_publish['foo'] == 'two'
+        del rel.to_publish['foo']
+        assert 'foo' not in rel.to_publish
+        with self.assertRaises(KeyError):
+            del rel.to_publish['foo']
+        assert 'foo' not in rel.to_publish
+        assert rel.to_publish['foo'] is None
+
+    def test_to_publish_app(self):
+        Endpoint._startup()
+        tep = Endpoint.from_name('test-endpoint')
+        rel = tep.relations[0]
+
+        self.assertEqual(rel.to_publish_app_raw, {'app-key': 'value'})
+        rel._flush_data()
+        assert not self.relation_set.called
+
+        rel.to_publish_app_raw['app-key'] = 'new-value'
+        rel._flush_data()
+        self.relation_set.assert_called_once_with('test-endpoint:0', {'app-key': 'new-value'}, app=True)
+
+        self.relation_set.reset_mock()
+        rel.to_publish_app['app-key'] = {'new': 'complex'}
+        rel._flush_data()
+        self.relation_set.assert_called_once_with('test-endpoint:0', {'app-key': '{"new": "complex"}'}, app=True)
+
+        rel.to_publish_app.update({'app-key': 'new-new'})
+        self.assertEqual(rel.to_publish_app, {'app-key': 'new-new'})
+
+        rel.to_publish_app.update({'app-key': {'new': 'new'}})
+        self.assertEqual(rel.to_publish_app, {'app-key': {"new": "new"}})
 
         assert 'foo' not in rel.to_publish
         assert rel.to_publish.get('foo', 'one') == 'one'

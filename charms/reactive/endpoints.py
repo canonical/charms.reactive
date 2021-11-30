@@ -341,6 +341,8 @@ class Relation:
         self._units = None
         self._departed_units = None
         self._data = None
+        self._app_data = None
+        self._remote_app_data = None
 
     @property
     def relation_id(self):
@@ -445,6 +447,33 @@ class Relation:
         return self._data
 
     @property
+    def to_publish_app(self):
+        """
+        This is the relation data that the local app publishes so it is
+        visible to all related units. Use this to communicate with related
+        apps. It is a writeable
+        :class:`~charms.reactive.endpoints.JSONUnitDataView`.
+
+        Only the leader can set the app-level relation data.
+
+        All values stored in this collection will be automatically JSON
+        encoded when they are published. This means that they need to be JSON
+        serializable! Mappings stored in this collection will be encoded with
+        sorted keys, to ensure that the encoded representation will only change
+        if the actual data changes.
+
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
+        """
+        if self._app_data is None:
+            # using JSONUnitDataView though it's name includes unit.
+            self._app_data = JSONUnitDataView(
+                hookenv.relation_get(app=hookenv.application_name(),
+                                     rid=self.relation_id),
+                writeable=True)
+        return self._app_data
+
+    @property
     def to_publish_raw(self):
         """
         This is the raw relation data that the local unit publishes so it is
@@ -459,6 +488,43 @@ class Relation:
         """
         return self.to_publish.data
 
+    @property
+    def to_publish_app_raw(self):
+        """
+        This is the raw relation data that the app publishes so it is
+        visible to all related units. It is a writeable (by the leader only)
+        :class:`~charms.reactive.endpoints.UnitDataView`. **Only use this
+        for backwards compatibility with interfaces that do not use JSON
+        encoding.** Use
+        :attr:`~charms.reactive.endpoints.Relation.to_publish` instead.
+
+        Changes to this data are published at the end of a succesfull hook. The
+        data is reset when a hook fails.
+        """
+        return self.to_publish_app.data
+
+    @property
+    def received_app(self):
+        """
+        A :class:`~charms.reactive.endpoints.JSONUnitDataView` of the app-level
+        data received from this remote unit over the relation, with values
+        being automatically decoded as JSON.
+        """
+        if self._remote_app_data is None:
+            # using JSONUnitDataView though it's name includes unit.
+            self._remote_app_data = JSONUnitDataView(hookenv.relation_get(
+                app=self.application_name,
+                rid=self.relation.relation_id))
+        return self._remote_app_data
+
+    @property
+    def received_app_raw(self):
+        """
+        A :class:`~charms.reactive.endpoints.UnitDataView` of the raw app-level
+        data received from this remote unit over the relation.
+        """
+        return self.received_app.raw_data
+
     def _flush_data(self):
         """
         If this relation's local unit data has been modified, publish it on the
@@ -466,6 +532,8 @@ class Relation:
         """
         if self._data and self._data.modified:
             hookenv.relation_set(self.relation_id, dict(self.to_publish.data))
+        if self._app_data and self._app_data.modified:
+            hookenv.relation_set(self.relation_id, dict(self.to_publish_app.data), app=True)
 
     def _serialize(self):
         return self.relation_id
