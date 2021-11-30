@@ -1,5 +1,11 @@
 **Changelog**
 
+1.5.0
+^^^^^
+Tuesday Nov 30 2021
+
+* Support app level relation data on Endpoint (#232)
+
 1.4.1
 ^^^^^
 Friday Feb 19 2021
