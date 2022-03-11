@@ -514,7 +514,7 @@ class Relation:
             # using JSONUnitDataView though it's name includes unit.
             self._remote_app_data = JSONUnitDataView(hookenv.relation_get(
                 app=self.application_name,
-                rid=self.relation.relation_id))
+                rid=self.relation_id))
         return self._remote_app_data
 
     @property
