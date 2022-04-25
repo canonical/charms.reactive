@@ -404,6 +404,32 @@ class TestEndpoint(unittest.TestCase):
         with self.assertRaises(ValueError):
             tep.relations[0].joined_units[0].received['foo'] = 'nope'
 
+    def test_receive_app(self):
+        Endpoint._startup()
+        tep = Endpoint.from_name('test-endpoint')
+
+        self.assertEqual(tep.relations[0].received_app_raw, {'simple': 'value', 'complex': '[1, 2]'})
+        self.assertEqual(tep.relations[1].received_app_raw, {})
+        self.assertEqual(tep.relations[0].received_app, {'simple': 'value', 'complex': [1, 2]})
+        self.assertEqual(tep.relations[1].received_app, {})
+
+        assert not tep.relations[0].received_app_raw.writeable
+        assert not tep.relations[1].received_app_raw.writeable
+        assert not tep.relations[0].received_app.writeable
+        assert not tep.relations[1].received_app.writeable
+
+        with self.assertRaises(ValueError):
+            tep.relations[0].received_app_raw['simple'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[1].received_app_raw['simple'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[0].received_app['simple'] = 'nope'
+
+        with self.assertRaises(ValueError):
+            tep.relations[1].received_app['simple'] = 'nope'
+
     def test_to_publish(self):
         Endpoint._startup()
         tep = Endpoint.from_name('test-endpoint')
