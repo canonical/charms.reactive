@@ -154,10 +154,10 @@ def register_trigger(when=None, when_not=None, set_flag=None, clear_flag=None, c
 
     Note: Flag triggers are handled at the same time that the given flag is set.
 
-    :param str when: Flag to trigger on when it is set.
-    :param str when_not: Flag to trigger on when it is cleared.
-    :param str set_flag: If given, this flag will be set when the relevant flag is changed.
-    :param str clear_flag: If given, this flag will be cleared when the relevant flag is changed.
+    :param Optional[str] when: Flag to trigger on when it is set.
+    :param Optional[str] when_not: Flag to trigger on when it is cleared.
+    :param Optional[str] set_flag: If given, this flag will be set when the relevant flag is changed.
+    :param Optional[str] clear_flag: If given, this flag will be cleared when the relevant flag is changed.
     :param Optional[Callable[[], Any]] callback:
                        If given, this callback will be invoked when the relevant flag is changed.
 
