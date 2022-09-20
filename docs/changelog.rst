@@ -1,5 +1,11 @@
 **Changelog**
 
+1.5.1
+^^^^^
+Tuesday Sep 20 2022
+
+* Fixing wrong reference (#235)
+
 1.5.0
 ^^^^^
 Tuesday Nov 30 2021
