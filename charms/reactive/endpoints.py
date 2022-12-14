@@ -855,6 +855,8 @@ class UnitDataView(UserDict):
         return self._writeable
 
     def get(self, key, default=None):
+        if self.data is None:
+            return default
         return self.data.get(key, default)
 
     def __getitem__(self, key):
