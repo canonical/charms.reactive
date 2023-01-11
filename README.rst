@@ -8,12 +8,21 @@ This module serves as the basis for creating charms and relation
 implementations using the reactive pattern. You can see its goal and vision in
 `the vision document`_
 
-
-
 The full documentation is available online at: https://charmsreactive.readthedocs.io/
 
 .. _the vision document: https://github.com/juju-solutions/charms.reactive/blob/master/VISION.md
 
+Status - Deprecated
+-------------------
+
+Please don't use ``charms.reactive`` for new charms. This library is being
+maintained for existing ``charms.reactive`` charms, to allow bug fixes to be
+made and to enable them to be built with `charm-tools
+<https://github.com/juju-solutions/charms.reactive>`_ using the reactive plugin
+in `charmcraft <https://github.com/canonical/charmcraft>`_.
+
+If you are going to write a new charm, then your life, and code, will be much
+easier with an `Operator Framework <https://juju.is/about>`_ charm.
 
 Usage
 -----
