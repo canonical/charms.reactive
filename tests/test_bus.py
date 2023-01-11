@@ -26,7 +26,6 @@ from subprocess import Popen
 from contextlib import contextmanager
 
 import mock
-from nose.plugins.attrib import attr
 
 from charmhelpers.core import unitdata
 from charms import reactive
@@ -455,7 +454,6 @@ class TestReactiveBus(unittest.TestCase):
         sys.path.pop()  # Repair sys.path
         sys.path.pop()
 
-    @attr('slow')
     @mock.patch.dict('sys.modules')
     @mock.patch('charmhelpers.core.hookenv.relation_to_role_and_interface')
     @mock.patch('subprocess.check_call')
@@ -582,7 +580,6 @@ class TestReactiveBus(unittest.TestCase):
         sys.path.pop()  # Repair sys.path
         sys.path.pop()
 
-    @attr('slow')
     @mock.patch('charmhelpers.core.hookenv.log')
     def test_full_stack_with_tracing(self, log):
         self.addCleanup(reactive.trace.install_tracer, reactive.trace.NullTracer())

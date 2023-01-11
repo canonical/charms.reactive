@@ -56,8 +56,8 @@ class TestReactiveRestrictedMain(unittest.TestCase):
         hook_name.return_value = 'meter-status-changed'
         reactive.main()
         _run_atstart.assert_not_called()
-        log.any_call('Reactive restricted main running for hook meter-status-changed', level=reactive.hookenv.INFO)
-        log.any_call('Restricted mode.', level=reactive.hookenv.INFO)
+        log.assert_any_call('Reactive main running for hook meter-status-changed', level='INFO')
+        log.assert_any_call('Restricted mode.', level='INFO')
         discover.assert_called_once_with()
         dispatch.assert_called_once_with(restricted=True)
         _KV.flush.assert_called_once_with()
