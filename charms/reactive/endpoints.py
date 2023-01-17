@@ -377,8 +377,12 @@ class Relation:
 
             relation.units[0].unit_name.split('/')[0]
         """
-        if self._application_name is None and self.units:
-            self._application_name = self.units[0].unit_name.split('/')[0]
+        if self._application_name is None:
+            if self.units:
+                self._application_name = self.units[0].unit_name.split('/')[0]
+            else:
+                # NOTE(ganso): This is a single unit peer relation corner case
+                return hookenv.application_name()
         return self._application_name
 
     @property
