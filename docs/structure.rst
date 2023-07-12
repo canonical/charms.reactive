@@ -93,11 +93,11 @@ An example tree for a charm layer might thus look like this:
     │   └── do-something
     └── copyright
 
-.. _configuration: https://jujucharms.com/docs/stable/charms-config
-.. _actions: https://jujucharms.com/docs/stable/developer-actions
-.. _metrics: https://jujucharms.com/docs/stable/developer-metrics
-.. _layers: https://jujucharms.com/docs/stable/authors-charm-building
-.. _`Charm Store`: https://jujucharms.com/
+.. _configuration: https://web.archive.org/web/20160319143647/https://jujucharms.com/docs/stable/charms-config
+.. _actions: https://web.archive.org/web/20160319143647/https://jujucharms.com/docs/stable/developer-actions
+.. _metrics: https://web.archive.org/web/20160319143647/https://jujucharms.com/docs/stable/developer-metrics
+.. _layers: https://web.archive.org/web/20160319143647/https://jujucharms.com/docs/stable/authors-charm-building
+.. _`Charm Store`: https://charmhub.io/
 
 
 Base Layers
@@ -144,4 +144,4 @@ created by the framework.
 More information about interface layers can be found in `the docs`_.
 
 
-.. _`the docs`: https://jujucharms.com/docs/stable/developer-layers-interfaces
+.. _`the docs`: https://web.archive.org/web/20160319143647/https://jujucharms.com/docs/stable/developer-layers-interfaces
