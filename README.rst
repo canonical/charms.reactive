@@ -31,7 +31,7 @@ See `Building a Charm from Layers`_ for more information on how to use the
 charms.reactive framework. Also look at the `layer-basic documentation`_ for more
 info on how to use the basic layer.
 
-.. _Building a Charm from Layers: https://jujucharms.com/docs/stable/authors-charm-building
+.. _Building a Charm from Layers: https://web.archive.org/web/20160319143647/https://jujucharms.com/docs/stable/authors-charm-building
 .. _layer-basic documentation: https://github.com/juju-solutions/layer-basic/blob/master/README.md
 
 Contributing
