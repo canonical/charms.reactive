@@ -122,7 +122,7 @@ class RelationFactory(object):
 
     @classmethod
     def discover(cls):
-        for ep in entry_points().get('charms.reactive.relation_factory', []):
+        for ep in entry_points().select(group='charms.reactive.relation_factory'):
             factory = ep.load()
             factory.load()
             RelationFactory._factories.append(factory)
