@@ -29,14 +29,8 @@ from charms.reactive.flags import clear_flag
 from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
-try:
-    from importlib.metadata import entry_points
-except ImportError:
-    from pkg_resources import iter_entry_points
+from pkg_resources import iter_entry_points
 
-    def entry_points():
-        group = 'charms.reactive.relation_factory'
-        return {group: list(iter_entry_points(group))}
 
 __all__ = [
     'endpoint_from_name',
@@ -51,6 +45,11 @@ __all__ = [
 # arbitrary obj instances to use as defaults instead of None
 ALL = object()
 TOGGLE = object()
+
+
+def entry_points():
+    group = 'charms.reactive.relation_factory'
+    return {group: list(iter_entry_points(group))}
 
 
 def endpoint_from_name(endpoint_name):
