@@ -253,7 +253,7 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
         assert not handler.test()
-        self.assertEquals(calls, [1])
+        self.assertEqual(calls, [1])
 
     def test_only_once_parens(self):
         calls = []
@@ -267,7 +267,7 @@ class TestReactiveDecorators(unittest.TestCase):
         assert handler.test()
         handler.invoke()
         assert not handler.test()
-        self.assertEquals(calls, [1])
+        self.assertEqual(calls, [1])
 
     def test_multi(self):
         action1 = mock.Mock(name='action1')
