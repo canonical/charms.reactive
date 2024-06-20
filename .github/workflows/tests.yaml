@@ -40,5 +40,8 @@ jobs:
     - name: Install extra tools
       run: |
         sudo snap install juju-wait --classic
+    - name: Create Juju model
+      run: |
+        juju add-model test
     - name: Run integration test
       run: tests/integration.sh
