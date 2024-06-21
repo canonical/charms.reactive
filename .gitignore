@@ -15,3 +15,6 @@ docs/_build
 *~
 charms.reactive.egg-info/
 .unit-state.db
+tests/data/charms.reactive-*.whl
+**/*.charm
+tests/data/wheelhouse.txt
