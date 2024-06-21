@@ -37,6 +37,7 @@ jobs:
       uses: charmed-kubernetes/actions-operator@main
       with:
         provider: lxd
+        charmcraft-channel: 3.x/beta
     - name: Install extra tools
       run: |
         sudo snap install juju-wait --classic
