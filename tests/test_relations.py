@@ -46,14 +46,14 @@ class TestFactory(unittest.TestCase):
         ])
         log.assert_called_once_with(mock.ANY, relations.hookenv.ERROR)
 
-    @mock.patch.object(relations, 'entry_points')
+    @mock.patch.object(relations, 'iter_entry_points')
     @mock.patch.object(relations, '_find_relation_factory')
     @mock.patch.object(relations.hookenv, 'log')
     @mock.patch.object(relations, '_relation_module')
     @mock.patch.object(relations.hookenv, 'charm_dir')
     @mock.patch.object(relations.hookenv, 'relation_to_role_and_interface')
     def test_relation_factory(self, relation_to_role_and_interface, charm_dir,
-                              rel_mod, log, find_factory, entry_points):
+                              rel_mod, log, find_factory, iter_entry_points):
         relation_to_role_and_interface.return_value = ('role', 'interface')
         charm_dir.return_value = 'charm_dir'
         rel_mod.return_value = 'module'
@@ -67,9 +67,7 @@ class TestFactory(unittest.TestCase):
 
             load = mock.Mock()
 
-        entry_points.return_value = {
-            'charms.reactive.relation_factory': [mock.Mock(load=lambda: MockRelFactory)],
-        }
+        iter_entry_points.return_value = [mock.Mock(load=lambda: MockRelFactory)]
         relations.RelationFactory.discover()
         assert MockRelFactory.load.called
 

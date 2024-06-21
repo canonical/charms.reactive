@@ -47,11 +47,6 @@ ALL = object()
 TOGGLE = object()
 
 
-def entry_points():
-    group = 'charms.reactive.relation_factory'
-    return {group: list(iter_entry_points(group))}
-
-
 def endpoint_from_name(endpoint_name):
     """The object used for interacting with the named relations, or None.
     """
@@ -121,7 +116,7 @@ class RelationFactory(object):
 
     @classmethod
     def discover(cls):
-        for ep in entry_points().get('charms.reactive.relation_factory', []):
+        for ep in iter_entry_points('charms.reactive.relation_factory'):
             factory = ep.load()
             factory.load()
             RelationFactory._factories.append(factory)
