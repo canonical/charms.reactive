@@ -24,7 +24,7 @@ jobs:
 
   integration-test:
     name: Integration test with LXD
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 40
     steps:
     - name: Check out code
@@ -32,14 +32,17 @@ jobs:
     - name: Setup Python
       uses: actions/setup-python@v5
       with:
-        python-version: 3.8
+        python-version: '3.10'
     - name: Setup operator environment
       uses: charmed-kubernetes/actions-operator@main
       with:
         provider: lxd
-        bootstrap-options: "--agent-version 2.9.29"
+        charmcraft-channel: 3.x/beta
     - name: Install extra tools
       run: |
         sudo snap install juju-wait --classic
+    - name: Create Juju model
+      run: |
+        juju add-model test
     - name: Run integration test
       run: tests/integration.sh

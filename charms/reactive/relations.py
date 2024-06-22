@@ -29,14 +29,8 @@ from charms.reactive.flags import clear_flag
 from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
-try:
-    from importlib.metadata import entry_points
-except ImportError:
-    from pkg_resources import iter_entry_points
+from pkg_resources import iter_entry_points
 
-    def entry_points():
-        group = 'charms.reactive.relation_factory'
-        return {group: list(iter_entry_points(group))}
 
 __all__ = [
     'endpoint_from_name',
@@ -122,7 +116,7 @@ class RelationFactory(object):
 
     @classmethod
     def discover(cls):
-        for ep in entry_points().get('charms.reactive.relation_factory', []):
+        for ep in iter_entry_points('charms.reactive.relation_factory'):
             factory = ep.load()
             factory.load()
             RelationFactory._factories.append(factory)
