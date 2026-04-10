@@ -17,6 +17,7 @@
 import os
 import sys
 import importlib
+from typing import Iterable
 from inspect import isclass
 
 from charmhelpers.core import hookenv
@@ -29,7 +30,7 @@ from charms.reactive.flags import clear_flag
 from charms.reactive.flags import StateList
 from charms.reactive.bus import _append_path
 
-from pkg_resources import iter_entry_points
+from importlib.metadata import entry_points, EntryPoint
 
 
 __all__ = [
@@ -102,6 +103,20 @@ def relation_from_state(state):
        Alias for :func:`endpoint_from_flag`
     """
     return endpoint_from_flag(state)
+
+def iter_entry_points(group: str) -> Iterable[EntryPoint]:
+    """Return an iterable of entry points for the given group.
+
+    This is a shim for the old pkg_resources.iter_entry_points in terms of
+    importlib.metadata so that we are not stuck with setuptools < 82.
+    """
+    entries = entry_points()
+    # python >= 3.10: entrypoints returns an EntryPoints object
+    # with a select method to filer by group
+    if hasattr(entries, 'select'):
+        return entries.select(group=group)
+    # python >=3.8,<3.10: entry_points() returns a dict, indexed by group name
+    return entries.get(group, [])
 
 
 class RelationFactory(object):
